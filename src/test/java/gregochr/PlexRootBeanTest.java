@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class PlexEventBeanTest {
+public class PlexRootBeanTest {
 
     @DisplayName("Create stop bean test")
     @Test
@@ -38,14 +38,14 @@ public class PlexEventBeanTest {
         + "}";
 
         ObjectMapper objectMapper = new ObjectMapper();
-        PlexEventBean plexEventBean = null;
+        PlexRootBean plexRootBean = null;
         try {
-            plexEventBean = objectMapper.readValue(stopPayload, PlexEventBean.class);
+            plexRootBean = objectMapper.readValue(stopPayload, PlexRootBean.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
 
-        assert(plexEventBean.getEvent().compareTo("media.stop") == 0);
+        assert(plexRootBean.getEvent().compareTo("media.stop") == 0);
     }
 
     @DisplayName("Create start bean test")
@@ -58,13 +58,13 @@ public class PlexEventBeanTest {
                 + "}";
 
         ObjectMapper objectMapper = new ObjectMapper();
-        PlexEventBean plexEventBean = null;
+        PlexRootBean plexRootBean = null;
         try {
-            plexEventBean = objectMapper.readValue(stopPayload, PlexEventBean.class);
+            plexRootBean = objectMapper.readValue(stopPayload, PlexRootBean.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        assert(plexEventBean.getEvent().compareTo("media.start") == 0);
+        assert(plexRootBean.getEvent().compareTo("media.start") == 0);
     }
 
     @DisplayName("Create pause bean test")
@@ -77,13 +77,13 @@ public class PlexEventBeanTest {
                 + "}";
 
         ObjectMapper objectMapper = new ObjectMapper();
-        PlexEventBean plexEventBean = null;
+        PlexRootBean plexRootBean = null;
         try {
-            plexEventBean = objectMapper.readValue(stopPayload, PlexEventBean.class);
+            plexRootBean = objectMapper.readValue(stopPayload, PlexRootBean.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        assert(plexEventBean.getEvent().compareTo("media.pause") == 0);
+        assert(plexRootBean.getEvent().compareTo("media.pause") == 0);
     }
 
     @DisplayName("Create resume bean test")
@@ -96,18 +96,18 @@ public class PlexEventBeanTest {
                 + "}";
 
         ObjectMapper objectMapper = new ObjectMapper();
-        PlexEventBean plexEventBean = null;
+        PlexRootBean plexRootBean = null;
         try {
-            plexEventBean = objectMapper.readValue(stopPayload, PlexEventBean.class);
+            plexRootBean = objectMapper.readValue(stopPayload, PlexRootBean.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        assert(plexEventBean.getEvent().compareTo("media.resume") == 0);
+        assert(plexRootBean.getEvent().compareTo("media.resume") == 0);
     }
 
     @DisplayName("Create scrobble bean test")
     @Test
-    public void mediaSCrobbleBeanTest() {
+    public void mediaScrobbleBeanTest() {
         final String stopPayload = "{"
                 + "\"event\": \"media.scrobble\","
                 +        "\"user\": true,"
@@ -115,12 +115,12 @@ public class PlexEventBeanTest {
                 + "}";
 
         ObjectMapper objectMapper = new ObjectMapper();
-        PlexEventBean plexEventBean = null;
+        PlexRootBean plexRootBean = null;
         try {
-            plexEventBean = objectMapper.readValue(stopPayload, PlexEventBean.class);
+            plexRootBean = objectMapper.readValue(stopPayload, PlexRootBean.class);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        assert(plexEventBean.getEvent().compareTo("media.scrobble") == 0);
+        assert(plexRootBean.getEvent().compareTo("media.scrobble") == 0);
     }
 }

@@ -13,7 +13,7 @@ public class PlexMetadataBean {
         this.title = title;
     }
 
-    public String getEvent()  { return this.title; }
+    public String getTitle()  { return this.title; }
 
     @JsonSetter("duration")
     public void setDuration(int duration) {

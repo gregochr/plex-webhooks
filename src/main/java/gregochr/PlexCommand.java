@@ -10,16 +10,16 @@ public class PlexCommand {
         SCROBBLE
     }
 
-    PlexCommand(PlexEventBean plexEventBean) {
-        if (plexEventBean.event.compareTo("media.stop") == 0) {
+    PlexCommand(PlexRootBean plexRootBean) {
+        if (plexRootBean.event.compareTo("media.stop") == 0) {
             this.event = PlexEvent.STOP;
-        } else if (plexEventBean.event.compareTo("media.play") == 0) {
+        } else if (plexRootBean.event.compareTo("media.play") == 0) {
             this.event = PlexEvent.PLAY;
-        } else if (plexEventBean.event.compareTo("media.pause") == 0) {
+        } else if (plexRootBean.event.compareTo("media.pause") == 0) {
             this.event = PlexEvent.PAUSE;
-        } else if (plexEventBean.event.compareTo("media.resume") == 0) {
+        } else if (plexRootBean.event.compareTo("media.resume") == 0) {
             this.event = PlexEvent.RESUME;
-        } else if (plexEventBean.event.compareTo("media.scrobble") == 0) {
+        } else if (plexRootBean.event.compareTo("media.scrobble") == 0) {
             this.event = PlexEvent.SCROBBLE;
         }
     }

@@ -11,12 +11,13 @@ public class PlexController {
     @RequestMapping(value = "/plex", method = RequestMethod.POST, consumes = { "multipart/form-data" } )
     public void plexEvent(@RequestParam String payload) {
         try {
-            PlexEventBean bean = new ObjectMapper().readerFor(PlexEventBean.class).readValue(payload);
+            PlexRootBean bean = new ObjectMapper().readerFor(PlexRootBean.class).readValue(payload);
             PlexCommand command = new PlexCommand(bean);
+            LocationController locationController = new LocationController();
 
-            LogManager.getLogger(PlexController.class).info("Configuration File Defined To Be :: "+System.getProperty("log4j.configurationFile"));
             LogManager.getLogger(PlexController.class).debug("Payload: " + payload);
             LogManager.getLogger(PlexController.class).info(command.toString());
+            LogManager.getLogger(PlexController.class).info(locationController.toString());
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

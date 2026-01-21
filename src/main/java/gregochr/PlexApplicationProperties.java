@@ -17,7 +17,6 @@ public class PlexApplicationProperties {
 
     public void setPostCode(String postCode) {
         this.postCode = postCode;
-        LogManager.getLogger(PlexApplicationProperties.class).debug(this.postCode);
     }
 
     public String getPostCode() {

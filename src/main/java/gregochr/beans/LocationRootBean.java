@@ -26,6 +26,6 @@ public class LocationRootBean {
 
     public String toString() {
         return "[ Status: " + Integer.toString(status) + ", " +
-                locationResultBean.toString() + "]";
+                locationResultBean.toString() + " ]";
     }
 }

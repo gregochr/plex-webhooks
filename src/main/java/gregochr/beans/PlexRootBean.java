@@ -22,6 +22,6 @@ public class PlexRootBean {
 
     public String toString() {
         return "[ Event: " + event  + ", "
-                + this.metadata.toString() + "]";
+                + this.metadata.toString() + " ]";
     }
 }

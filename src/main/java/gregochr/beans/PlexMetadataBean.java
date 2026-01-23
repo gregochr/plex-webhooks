@@ -24,6 +24,6 @@ public class PlexMetadataBean {
 
     public String toString() {
         return "[ Title: " + this.title + ", "
-                + "Duration: " + this.duration + "]";
+                + "Duration: " + this.duration + " ]";
     }
 }

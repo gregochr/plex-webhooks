@@ -24,6 +24,6 @@ public class LocationResultBean {
 
     public String toString() {
         return "[ Latitude: " + this.latitude + ", "
-                + "Longitude: " + this.longitude + "]";
+                + "Longitude: " + this.longitude + " ]";
     }
 }

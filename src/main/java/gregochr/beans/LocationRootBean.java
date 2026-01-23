@@ -1,4 +1,4 @@
-package gregochr;
+package gregochr.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -25,7 +25,7 @@ public class LocationRootBean {
     }
 
     public String toString() {
-        return "Status: " + Integer.toString(status) + "\n" +
-                locationResultBean.toString();
+        return "[ Status: " + Integer.toString(status) + ", " +
+                locationResultBean.toString() + "]";
     }
 }

@@ -1,5 +1,7 @@
 package gregochr;
 
+import gregochr.beans.PlexRootBean;
+
 public class PlexCommand {
     private PlexEvent event;
     public enum PlexEvent {
@@ -10,7 +12,7 @@ public class PlexCommand {
         SCROBBLE
     }
 
-    PlexCommand(PlexRootBean plexRootBean) {
+    public PlexCommand(PlexRootBean plexRootBean) {
         if (plexRootBean.event.compareTo("media.stop") == 0) {
             this.event = PlexEvent.STOP;
         } else if (plexRootBean.event.compareTo("media.play") == 0) {

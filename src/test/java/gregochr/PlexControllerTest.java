@@ -1,5 +1,6 @@
 package gregochr;
 
+import gregochr.controllers.PlexController;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

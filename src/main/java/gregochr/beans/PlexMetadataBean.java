@@ -1,4 +1,4 @@
-package gregochr;
+package gregochr.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -23,7 +23,7 @@ public class PlexMetadataBean {
     public int getDuration()  { return this.duration; }
 
     public String toString() {
-        return "Title: " + this.title + "\n"
-                + "Duration: " + this.duration;
+        return "[ Title: " + this.title + ", "
+                + "Duration: " + this.duration + "]";
     }
 }

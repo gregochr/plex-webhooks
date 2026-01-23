@@ -1,4 +1,4 @@
-package gregochr;
+package gregochr.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -23,7 +23,7 @@ public class LocationResultBean {
     public double getLatitude()  { return this.latitude; }
 
     public String toString() {
-        return "Latitude: " + this.latitude + "\n"
-                + "Longitude: " + this.longitude;
+        return "[ Latitude: " + this.latitude + ", "
+                + "Longitude: " + this.longitude + "]";
     }
 }

@@ -1,4 +1,4 @@
-package gregochr;
+package gregochr.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -21,7 +21,7 @@ public class PlexRootBean {
     public PlexMetadataBean getMetadata()  { return this.metadata; }
 
     public String toString() {
-        return "Event: " + event  + "\n"
-                + this.metadata.toString();
+        return "[ Event: " + event  + ", "
+                + this.metadata.toString() + "]";
     }
 }

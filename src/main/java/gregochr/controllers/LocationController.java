@@ -1,54 +1,44 @@
 package gregochr.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gregochr.beans.LocationRootBean;
 import org.apache.logging.log4j.LogManager;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClient;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.IOException;
 
-@RestController
+@Configuration
+@Component
 public class LocationController {
-    private final String postCodeServiceURL = "https://api.postcodes.io/postcodes/";
 
-    public LocationRootBean getLatitudeAndLogitude(String postCode) {
-        final String url = postCodeServiceURL + postCode;
-        URI uri = null;
-        try {
-            uri = new URI(url);
-        } catch (URISyntaxException e) {
-            LogManager.getLogger(LocationController.class).error("Error creating URL for: " + url);
-            throw new RuntimeException(e);
-        }
-        return getLocationRootBean(uri, postCode);
+    @Value("postCode")
+    private String postCode = "DH1 3QL";
+
+    public void setPostCode(String postCode) {
+        this.postCode = postCode;
     }
 
-    private LocationRootBean getLocationRootBean(URI uri, String postCode) {
-        LocationRootBean locationRootBean = new LocationRootBean();
+    public LocationRootBean getLatitudeAndLogitude() throws IOException {
+        RestClient restClient = RestClient.create();
+        LogManager.getLogger(PlexController.class).info("[ Postcode from config : " + this.postCode + " ]");
+        String postCodeServiceURL = "https://api.postcodes.io/postcodes/";
+        
+        LocationRootBean locationRootBean = restClient
+                .get()
+                .uri(postCodeServiceURL + "{postCode}", getPostCodeFormattedForPostCodesAPI())
+                .retrieve()
+                .body(LocationRootBean.class);
 
-        try {
-            RestTemplate template = new RestTemplate();
-            ResponseEntity<String> result = template.getForEntity(uri, String.class);
-            HttpStatusCode statusCode = result.getStatusCode();
-            if (statusCode.value() == 200) {
-                ObjectMapper objectMapper = new ObjectMapper();
-                try {
-                    locationRootBean = new ObjectMapper().readerFor(LocationRootBean.class).readValue(result.getBody());
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                LogManager.getLogger(LocationController.class).error("HTTP Error fetching longitude / latitude from postcode: " + postCode + ", HTTP Status: " + statusCode.toString());
-            }
-        } catch (HttpClientErrorException e) {
-            LogManager.getLogger(LocationController.class).error("HTTP Error fetching longitude / latitude from postcode: " + postCode    );
-        }
+        restClient.delete();
+        LogManager.getLogger(LocationController.class).info("[ Location: " + locationRootBean + " ]");
         return locationRootBean;
     }
+
+    private String getPostCodeFormattedForPostCodesAPI() throws IOException {
+        return StringUtils.delete(this.postCode, " ");
+    }
+
 }

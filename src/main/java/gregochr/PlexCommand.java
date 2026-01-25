@@ -3,7 +3,7 @@ package gregochr;
 import gregochr.beans.PlexRootBean;
 
 public class PlexCommand {
-    private PlexEvent event;
+    public PlexEvent event;
     public enum PlexEvent {
         STOP,
         PLAY,

@@ -42,4 +42,22 @@ public class LocationControllerTest {
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.766509);
         assert(locationRootBean.getLocationResultBean().getLongitude() == -1.594375);
     }
+    @DisplayName("Get latitude and longitude for post code with lots of spaces")
+    @Test
+    public void getLatitudeAndLongitudeTestForPostCodeWithLotsOfSpaces() {
+        LocationController locationController = new LocationController();
+        LocationRootBean locationRootBean = null;
+
+        try {
+            locationController.setPostCode("D H 1 4 H U");
+            locationRootBean = locationController.getLatitudeAndLogitude();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        assert(locationRootBean.getStatus() == 200);
+        assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
+        assert(locationRootBean.getLocationResultBean().getLongitude() == -1.600031);
+    }
+
 }

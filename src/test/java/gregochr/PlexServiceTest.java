@@ -1,10 +1,10 @@
 package gregochr;
 
-import gregochr.controllers.PlexController;
+import gregochr.services.PlexService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class PlexControllerTest {
+public class PlexServiceTest {
 
     @DisplayName("Stop playback test")
     @Test
@@ -14,7 +14,7 @@ public class PlexControllerTest {
                 +        "\"user\": true,"
                 +        "\"owner\": true"
                 + "}";
-        PlexController controller = new PlexController();
+        PlexService controller = new PlexService();
         controller.plexEvent(payload);
 
         assert(1 == 2);

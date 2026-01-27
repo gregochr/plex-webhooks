@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 public class HueLightStatusBean {
     private boolean on;
 
-    @JsonSetter("om")
+    @JsonSetter("oo")
     public void setOn(boolean title) {
         this.on = on;
     }

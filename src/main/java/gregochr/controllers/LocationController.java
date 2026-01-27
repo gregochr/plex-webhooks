@@ -1,6 +1,7 @@
 package gregochr.controllers;
 
 import gregochr.beans.LocationRootBean;
+import gregochr.services.PlexService;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +24,7 @@ public class LocationController {
 
     public LocationRootBean getLatitudeAndLogitude() throws IOException {
         RestClient restClient = RestClient.create();
-        LogManager.getLogger(PlexController.class).info("[ Postcode from config : " + this.postCode + " ]");
+        LogManager.getLogger(PlexService.class).info("[ Postcode from config : " + this.postCode + " ]");
         String postCodeServiceURL = "https://api.postcodes.io/postcodes/";
         
         LocationRootBean locationRootBean = restClient

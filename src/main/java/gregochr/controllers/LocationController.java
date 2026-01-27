@@ -24,7 +24,7 @@ public class LocationController {
 
     public LocationRootBean getLatitudeAndLogitude() throws IOException {
         RestClient restClient = RestClient.create();
-        LogManager.getLogger(PlexService.class).info("[ Postcode from config : " + this.postCode + " ]");
+        LogManager.getLogger(PlexService.class).info("[ Postcode : " + this.postCode + " ]");
         String postCodeServiceURL = "https://api.postcodes.io/postcodes/";
         
         LocationRootBean locationRootBean = restClient

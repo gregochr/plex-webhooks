@@ -1,7 +1,7 @@
 package gregochr.controllers;
 
-import gregochr.beans.LocationRootBean;
-import gregochr.services.PlexService;
+import gregochr.controllers.beans.LocationRootBean;
+import gregochr.services.plex.PlexService;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -35,11 +35,11 @@ public class LocationController {
 
         restClient.delete();
         LogManager.getLogger(LocationController.class).info("[ Location: " + locationRootBean + " ]");
+
         return locationRootBean;
     }
 
     private String getPostCodeFormattedForPostCodesAPI() throws IOException {
         return StringUtils.delete(this.postCode, " ");
     }
-
 }

@@ -1,7 +1,8 @@
-package gregochr.controllers;
+package gregochr.controllers.hue;
 
-import gregochr.beans.HueLightBean;
-import gregochr.commands.PlexCommand;
+import gregochr.controllers.beans.hue.HueLightBean;
+import gregochr.commands.PlexPlayCommand;
+import gregochr.controllers.LocationController;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
@@ -30,7 +31,7 @@ public class HueLightController extends HueController {
                 //.body(HueLightResponseBean.class);
 
         restClient.delete();
-        LogManager.getLogger(LocationController.class).info("[ Hue light response : " + response.toString() + " ]");
+        LogManager.getLogger(HueLightController.class).info("[ Hue light response : " + response.toString() + " ]");
     }
     private void setScene(final String sceneId) {
         final String restURL = "https://" + this.hubId + "/clip/v2/resource/sceneId/";
@@ -50,7 +51,7 @@ public class HueLightController extends HueController {
         //.body(HueLightResponseBean.class);
 
         restClient.delete();
-        LogManager.getLogger(LocationController.class).info("[ Hue sceneId response : " + response.toString() + " ]");
+        LogManager.getLogger(HueLightController.class).info("[ Hue sceneId response : " + response.toString() + " ]");
     }
     private void turnLightOff(final HueLightBean light) {
         final String body = "{\"on\":{\"on\":false}}";
@@ -59,10 +60,6 @@ public class HueLightController extends HueController {
     private void turnLightOn(final HueLightBean light) {
         final String body = "{\"on\":{\"on\":true}}";
         setLightState(light, body);
-    }
-
-    public void execute(PlexCommand command) {
-
     }
 
 }

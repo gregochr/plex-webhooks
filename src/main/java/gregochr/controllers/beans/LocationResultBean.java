@@ -1,4 +1,4 @@
-package gregochr.beans;
+package gregochr.controllers.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;

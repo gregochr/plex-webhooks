@@ -1,4 +1,4 @@
-package gregochr.beans;
+package gregochr.controllers.beans.hue;
 
 public class HueLightBean {
     private String key;

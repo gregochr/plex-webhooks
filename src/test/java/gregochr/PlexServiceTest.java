@@ -1,6 +1,6 @@
 package gregochr;
 
-import gregochr.services.PlexService;
+import gregochr.services.plex.PlexService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

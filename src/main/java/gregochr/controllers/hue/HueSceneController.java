@@ -1,6 +1,5 @@
-package gregochr.controllers;
+package gregochr.controllers.hue;
 
-import gregochr.commands.PlexCommand;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
@@ -26,24 +25,16 @@ public class HueSceneController extends HueController {
         //.body(HueLightResponseBean.class);
 
         restClient.delete();
-        LogManager.getLogger(LocationController.class).info("[ Hue sceneId response : " + response.toString() + " ]");
+        LogManager.getLogger(HueSceneController.class).info("[ Hue sceneId response : " + response.toString() + " ]");
     }
 
-    private void startMovieLightScene() {
+    public void startMovieLightScene() {
         final String scene = "04a673ca-d640-4bbb-bd94-7368434a0f94";  // Hardcoded to Movie for now
         setScene(scene);
     }
-    private void stopMovieLightScene() {
+
+    public void stopMovieLightScene() {
         final String scene = "f59f642e-89ed-45c2-9a53-2545dfe048b1";  // Hardcoded to Chill now
         setScene(scene);
-    }
-
-    public void execute(PlexCommand command) {
-        if (command.getCommand() == PlexCommand.PlexCommandEnum.PLAY ||
-            command.getCommand() == PlexCommand.PlexCommandEnum.RESUME) {
-            startMovieLightScene();
-        } else {
-            stopMovieLightScene();
-        }
     }
 }

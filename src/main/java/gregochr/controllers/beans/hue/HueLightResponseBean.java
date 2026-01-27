@@ -1,7 +1,6 @@
-package gregochr.beans;
+package gregochr.controllers.beans.hue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonSetter;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class HueLightResponseBean {

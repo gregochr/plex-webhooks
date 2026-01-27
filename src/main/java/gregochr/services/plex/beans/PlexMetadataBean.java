@@ -1,4 +1,4 @@
-package gregochr.beans;
+package gregochr.services.plex.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;

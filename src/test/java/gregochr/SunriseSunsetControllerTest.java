@@ -28,4 +28,22 @@ public class SunriseSunsetControllerTest {
         assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset().isEmpty() == false);
         assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset().length() > 0);
     }
+    @DisplayName("Test get sunset time for 28th January 2026")
+    @Test
+    public void testSunsetTimeFor20260128() {
+        SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
+        SunriseSunsetRootBean sunriseSunsetRootBean = null;
+
+        try {
+            String theDate = "2026-01-28";
+            sunriseSunsetRootBean = sunriseSunsetController.getSunsetTimeForDate(54.777797,-1.600031, theDate);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        assert(sunriseSunsetRootBean.getStatus().compareTo("OK") == 0);
+        assert(sunriseSunsetRootBean.getTzId().compareTo("UTC") == 0);
+        assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset().compareTo("4:37:54 PM") == 0);
+    }
+
 }

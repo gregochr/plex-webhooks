@@ -9,9 +9,9 @@ import java.io.IOException;
 
 public class SunriseSunsetControllerTest {
 
-    @DisplayName("Get sunset time for today")
+    @DisplayName("Test get sunset time for today")
     @Test
-    public void getSunsetTimeForToday() {
+    public void testSunsetTimeForToday() {
         SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
         SunriseSunsetRootBean sunriseSunsetRootBean = null;
 

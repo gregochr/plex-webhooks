@@ -10,8 +10,8 @@ import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 public class PlexPlayCommand extends PlexCommand  {
-    public PlexPlayCommand(String event, String title) {
-        super(event, title);
+    public PlexPlayCommand(String event, String title, int duration) {
+        super(event, title, duration);
     }
 
     public void execute(HueSceneController controller) {

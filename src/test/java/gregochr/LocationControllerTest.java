@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 public class LocationControllerTest {
-
     @DisplayName("Get latitude and longitude for DH1 4HU")
     @Test
     public void getLatitudeAndLongitudeTestForDH14HU() {
@@ -26,6 +25,7 @@ public class LocationControllerTest {
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
         assert(locationRootBean.getLocationResultBean().getLongitude() == -1.600031);
     }
+
     @DisplayName("Get latitude and longitude for default post-code (DH1 3QL)")
     @Test
     public void getLatitudeAndLongitudeTestForDefaultPostCode() {
@@ -42,6 +42,7 @@ public class LocationControllerTest {
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.766509);
         assert(locationRootBean.getLocationResultBean().getLongitude() == -1.594375);
     }
+
     @DisplayName("Get latitude and longitude for post code with lots of spaces")
     @Test
     public void getLatitudeAndLongitudeTestForPostCodeWithLotsOfSpaces() {
@@ -59,5 +60,4 @@ public class LocationControllerTest {
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
         assert(locationRootBean.getLocationResultBean().getLongitude() == -1.600031);
     }
-
 }

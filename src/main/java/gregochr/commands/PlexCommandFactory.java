@@ -9,21 +9,26 @@ public class PlexCommandFactory {
         this.plexRootBean = plexRootBean;
     }
     public PlexCommand getPlexCommand() {
-        if (this.plexRootBean.getEvent().compareTo("play") == 0) {
+        if (this.plexRootBean.getEvent().compareTo("media.play") == 0) {
             return new PlexPlayCommand(this.plexRootBean.getEvent(),
-                    this.plexRootBean.getMetadata().getTitle());
-        } else if (this.plexRootBean.getEvent().compareTo("resume") == 0) {
+                    this.plexRootBean.getMetadata().getTitle(),
+                    this.plexRootBean.getMetadata().getDuration());
+        } else if (this.plexRootBean.getEvent().compareTo("media.resume") == 0) {
             return new PlexResumeCommand(this.plexRootBean.getEvent(),
-                    this.plexRootBean.getMetadata().getTitle());
-        } else if (this.plexRootBean.getEvent().compareTo("stop") == 0) {
+                    this.plexRootBean.getMetadata().getTitle(),
+                    this.plexRootBean.getMetadata().getDuration());
+        } else if (this.plexRootBean.getEvent().compareTo("media.stop") == 0) {
             return new PlexStopCommand(this.plexRootBean.getEvent(),
-                    this.plexRootBean.getMetadata().getTitle());
-        } else if (this.plexRootBean.getEvent().compareTo("pause") == 0) {
+                    this.plexRootBean.getMetadata().getTitle(),
+                    this.plexRootBean.getMetadata().getDuration());
+        } else if (this.plexRootBean.getEvent().compareTo("media.pause") == 0) {
             return new PlexPauseCommand(this.plexRootBean.getEvent(),
-                    this.plexRootBean.getMetadata().getTitle());
-        } else if (this.plexRootBean.getEvent().compareTo("scrobble") == 0) {
+                    this.plexRootBean.getMetadata().getTitle(),
+                    this.plexRootBean.getMetadata().getDuration());
+        } else if (this.plexRootBean.getEvent().compareTo("media.scrobble") == 0) {
             return new PlexScrobbleCommand(this.plexRootBean.getEvent(),
-                    this.plexRootBean.getMetadata().getTitle());
+                    this.plexRootBean.getMetadata().getTitle(),
+                    this.plexRootBean.getMetadata().getDuration());
         }
         return null;
     }

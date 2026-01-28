@@ -5,10 +5,12 @@ import gregochr.controllers.hue.HueSceneController;
 public abstract class PlexCommand {
     protected String event;
     protected String title;
+    protected int duration;
 
-    public PlexCommand(String event, String title) {
+    public PlexCommand(String event, String title, int duration) {
         this.event = event;
         this.title  = title;
+        this.duration = duration;
     }
 
     public String getEvent() {
@@ -17,10 +19,12 @@ public abstract class PlexCommand {
     public String getTitle() {
         return this.title;
     }
+    public int getDuration() { return this.duration; }
 
     public String toString() {
         return "[ Event: " + this.event + ", " +
-                "Title: " + this.title + " ]";
+                "Title: " + this.title + ", " +
+                "Duration: " + this.duration + "]";
     }
 
     abstract public void execute(HueSceneController controller);

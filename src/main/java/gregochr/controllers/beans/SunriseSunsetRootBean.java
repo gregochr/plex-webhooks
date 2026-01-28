@@ -28,7 +28,7 @@ public class SunriseSunsetRootBean {
         this.sunriseSunsetResultBean = sunriseSunsetResultBean;
     }
 
-    public SunriseSunsetResultBean getLocationResultBean() {
+    public SunriseSunsetResultBean getSunriseSunsetResultBean() {
         return sunriseSunsetResultBean;
     }
 

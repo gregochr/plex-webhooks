@@ -18,6 +18,7 @@ public class PlexCommandFactoryTest {
 
         assert(plexCommand != null);
         assert(plexCommand instanceof PlexPlayCommand);
+        assert(plexCommand.getEvent().equals("media.play"));
         assert(plexCommand.getTitle().equals("Good Will Hunting"));
         assert(plexCommand.getDuration() == 123);
     }
@@ -32,6 +33,7 @@ public class PlexCommandFactoryTest {
 
         assert(plexCommand != null);
         assert(plexCommand instanceof PlexResumeCommand);
+        assert(plexCommand.getEvent().equals("media.resume"));
         assert(plexCommand.getTitle().equals("Good Will Hunting"));
         assert(plexCommand.getDuration() == 123);
     }
@@ -46,6 +48,7 @@ public class PlexCommandFactoryTest {
 
         assert(plexCommand != null);
         assert(plexCommand instanceof PlexStopCommand);
+        assert(plexCommand.getEvent().equals("media.stop"));
         assert(plexCommand.getTitle().equals("Good Will Hunting"));
         assert(plexCommand.getDuration() == 123);
     }
@@ -60,6 +63,7 @@ public class PlexCommandFactoryTest {
 
         assert(plexCommand != null);
         assert(plexCommand instanceof PlexPauseCommand);
+        assert(plexCommand.getEvent().equals("media.pause"));
         assert(plexCommand.getTitle().equals("Good Will Hunting"));
         assert(plexCommand.getDuration() == 123);
     }
@@ -74,8 +78,20 @@ public class PlexCommandFactoryTest {
 
         assert(plexCommand != null);
         assert(plexCommand instanceof PlexScrobbleCommand);
+        assert(plexCommand.getEvent().equals("media.scrobble"));
         assert(plexCommand.getTitle().equals("Good Will Hunting"));
         assert(plexCommand.getDuration() == 123);
+    }
+
+    @DisplayName("Test unknown plex event creates a NULL command")
+    @Test
+    public void testPlexUnknownEvent() {
+        PlexRootBean plexRootBean = getPlexRootBean("RandomEventString");
+
+        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommand plexCommand = factory.getPlexCommand();
+
+        assert(plexCommand == null);
     }
 
     @Nonnull

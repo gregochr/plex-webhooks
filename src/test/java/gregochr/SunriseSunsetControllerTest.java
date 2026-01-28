@@ -24,6 +24,7 @@ public class SunriseSunsetControllerTest {
         }
 
         assert(sunriseSunsetRootBean.getStatus().compareTo("OK") == 0);
+        assert(sunriseSunsetRootBean.getTzId().compareTo("UTC") == 0);
         assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset() != null);  // The time changes every day, so lets just check its not null
         assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset().isBlank() == false);  // The time changes every day, so lets just check its not null, etc
         assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset().isEmpty() == false);

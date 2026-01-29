@@ -1,9 +1,11 @@
 package gregochr.services.plex;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-public class PlexServiceTest {
+public class PlexServiceIntegrationTest {
+    @Tag("integration")
     @DisplayName("Start playback test")
     @Test
     public void plexStartEventTest() {
@@ -13,6 +15,7 @@ public class PlexServiceTest {
     }
 
 
+    @Tag("integration")
     @DisplayName("Stop playback test")
     @Test
     public void plexStopEventTest() {

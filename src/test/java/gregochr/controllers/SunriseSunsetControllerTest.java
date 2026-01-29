@@ -2,12 +2,14 @@ package gregochr.controllers;
 
 import gregochr.controllers.beans.SunriseSunsetRootBean;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
 public class SunriseSunsetControllerTest {
 
+    @Tag("integration")
     @DisplayName("Test get sunset time for today")
     @Test
     public void testSunsetTimeForToday() {
@@ -27,6 +29,7 @@ public class SunriseSunsetControllerTest {
         assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset().isEmpty() == false);
         assert(sunriseSunsetRootBean.getSunriseSunsetResultBean().getSunset().length() > 0);
     }
+    @Tag("integration")
     @DisplayName("Test get sunset time for 28th January 2026")
     @Test
     public void testSunsetTimeFor20260128() {

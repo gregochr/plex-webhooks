@@ -2,11 +2,13 @@ package gregochr.controllers;
 
 import gregochr.controllers.beans.LocationRootBean;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
 public class LocationControllerTest {
+    @Tag("integration")
     @DisplayName("Get latitude and longitude for DH1 4HU")
     @Test
     public void getLatitudeAndLongitudeTestForDH14HU() {
@@ -25,6 +27,7 @@ public class LocationControllerTest {
         assert(locationRootBean.getLocationResultBean().getLongitude() == -1.600031);
     }
 
+    @Tag("integration")
     @DisplayName("Get latitude and longitude for default post-code (DH1 3QL)")
     @Test
     public void getLatitudeAndLongitudeTestForDefaultPostCode() {

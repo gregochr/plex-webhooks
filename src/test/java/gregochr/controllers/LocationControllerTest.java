@@ -45,6 +45,7 @@ public class LocationControllerTest {
         assert(locationRootBean.getLocationResultBean().getLongitude() == -1.594375);
     }
 
+    @Tag("integration")
     @DisplayName("Get latitude and longitude for post code with lots of spaces")
     @Test
     public void getLatitudeAndLongitudeTestForPostCodeWithLotsOfSpaces() {

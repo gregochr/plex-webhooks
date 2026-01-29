@@ -1,6 +1,5 @@
-package gregochr;
+package gregochr.controllers;
 
-import gregochr.controllers.LocationController;
 import gregochr.controllers.beans.LocationRootBean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

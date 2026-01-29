@@ -1,5 +1,7 @@
 package gregochr.commands;
 
+import gregochr.controllers.LocationController;
+import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
 
 public abstract class PlexCommand {
@@ -24,8 +26,8 @@ public abstract class PlexCommand {
     public String toString() {
         return "[ Event: " + this.event + ", " +
                 "Title: " + this.title + ", " +
-                "Duration: " + this.duration + "]";
+                "Duration: " + this.duration + " ]";
     }
 
-    abstract public void execute(HueSceneController controller);
+    abstract public void execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController);
 }

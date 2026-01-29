@@ -9,7 +9,7 @@ public class LocationResultBean {
     double latitude;
 
     @JsonSetter("longitude")
-    public void setTitle(double longitude) {
+    public void setLongitude(double longitude) {
         this.longitude = longitude;
     }
 

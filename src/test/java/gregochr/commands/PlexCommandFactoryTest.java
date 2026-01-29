@@ -1,6 +1,5 @@
-package gregochr;
+package gregochr.commands;
 
-import gregochr.commands.*;
 import gregochr.services.plex.beans.PlexMetadataBean;
 import gregochr.services.plex.beans.PlexRootBean;
 import jakarta.annotation.Nonnull;

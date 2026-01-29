@@ -14,26 +14,19 @@ public class PlexPlayCommand extends PlexCommand  {
         super(event, title, duration);
     }
 
-    public void execute(HueSceneController controller) {
-        LocationController locationController = new LocationController();
-        SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
-
-        LocationRootBean locationRootBean = null;
-        SunriseSunsetRootBean sunriseSunsetRootBean = null;
-
+    public void execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
         LogManager.getLogger(PlexPlayCommand.class).info("[ Executing Plex Play Command: " + this.toString() + " ]");
 
         try {
-             locationRootBean = locationController.getLatitudeAndLogitude();
-             LogManager.getLogger(PlexPlayCommand.class).info("Location Root Bean: " + locationRootBean.toString());
+            LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
+            LogManager.getLogger(PlexPlayCommand.class).info("Location Root Bean: " + locationRootBean.toString());
 
-             sunriseSunsetRootBean = sunriseSunsetController.getSunsetTimeForToday(locationController.getLatitudeAndLogitude().getLocationResultBean().getLatitude(),
+            SunriseSunsetRootBean sunriseSunsetRootBean = sunriseSunsetController.getSunsetTimeForToday(locationController.getLatitudeAndLogitude().getLocationResultBean().getLatitude(),
                      locationController.getLatitudeAndLogitude().getLocationResultBean().getLongitude());
             LogManager.getLogger(PlexPlayCommand.class).info("Sunrise / Sunset Root Bean: " + sunriseSunsetRootBean.toString());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-        controller.startMovieLightScene();
+        hueSceneController.startMovieLightScene();
     }
 }

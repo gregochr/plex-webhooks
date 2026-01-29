@@ -1,6 +1,5 @@
-package gregochr;
+package gregochr.controllers;
 
-import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.beans.SunriseSunsetRootBean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

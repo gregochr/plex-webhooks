@@ -3,6 +3,8 @@ package gregochr.services.plex;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexCommandFactory;
+import gregochr.controllers.LocationController;
+import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.plex.beans.PlexRootBean;
 import org.apache.logging.log4j.LogManager;
@@ -18,11 +20,13 @@ public class PlexService {
             PlexRootBean bean = new ObjectMapper().readerFor(PlexRootBean.class).readValue(payload);
             PlexCommand command = new PlexCommandFactory(bean).getPlexCommand();
             HueSceneController hueSceneController = new HueSceneController();
+            LocationController locationController = new LocationController();
+            SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
 
             LogManager.getLogger(PlexService.class).info("[ Plex payload: " + payload + " ]");
             LogManager.getLogger(PlexService.class).info("[ Plex command: " + command + " ]");
 
-            command.execute(hueSceneController);
+            command.execute(hueSceneController, locationController, sunriseSunsetController);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

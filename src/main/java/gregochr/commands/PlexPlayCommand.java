@@ -17,16 +17,6 @@ public class PlexPlayCommand extends PlexCommand  {
     public void execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
         LogManager.getLogger(PlexPlayCommand.class).info("[ Executing Plex Play Command: " + this.toString() + " ]");
 
-        try {
-            LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
-            LogManager.getLogger(PlexPlayCommand.class).info("Location Root Bean: " + locationRootBean.toString());
-
-            SunriseSunsetRootBean sunriseSunsetRootBean = sunriseSunsetController.getSunsetTimeForToday(locationController.getLatitudeAndLogitude().getLocationResultBean().getLatitude(),
-                     locationController.getLatitudeAndLogitude().getLocationResultBean().getLongitude());
-            LogManager.getLogger(PlexPlayCommand.class).info("Sunrise / Sunset Root Bean: " + sunriseSunsetRootBean.toString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         hueSceneController.startMovieLightScene();
     }
 }

@@ -4,10 +4,16 @@ import gregochr.controllers.beans.LocationRootBean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.IOException;
 
+@SpringBootTest
 public class LocationControllerTest {
+    @Autowired
+    LocationController locationController;
+
     @Tag("integration")
     @DisplayName("Get latitude and longitude for DH1 4HU")
     @Test
@@ -30,11 +36,12 @@ public class LocationControllerTest {
     @Tag("integration")
     @DisplayName("Get latitude and longitude for default post-code (DH1 3QL)")
     @Test
-    public void getLatitudeAndLongitudeTestForDefaultPostCode() {
+    public void getLatitudeAndLongitudeTestForDH13QL() {
         LocationController locationController = new LocationController();
         LocationRootBean locationRootBean = null;
 
         try {
+            locationController.setPostCode("DH1 3QL");
             locationRootBean = locationController.getLatitudeAndLogitude();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -62,5 +69,11 @@ public class LocationControllerTest {
         assert(locationRootBean.getStatus() == 200);
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
         assert(locationRootBean.getLocationResultBean().getLongitude() == -1.600031);
+    }
+
+    @DisplayName("Get post code from config file is DH1 4HU")
+    @Test
+    public void getPostCodeFromConfig() {
+        assert(locationController.getPostCode().equals("DH1 4HU"));
     }
 }

@@ -4,22 +4,24 @@ import gregochr.controllers.beans.LocationRootBean;
 import gregochr.services.plex.PlexService;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
 
-@Configuration
 @Component
 public class LocationController {
 
-    @Value("postCode")
-    private String postCode = "DH1 3QL";
+    @Value("${postcode}")
+    private String postCode;
 
     public void setPostCode(String postCode) {
         this.postCode = postCode;
+    }
+
+    public String getPostCode() {
+        return this.postCode;
     }
 
     public LocationRootBean getLatitudeAndLogitude() throws IOException {

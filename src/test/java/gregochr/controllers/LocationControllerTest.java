@@ -7,8 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.IOException;
-
 @SpringBootTest
 public class LocationControllerTest {
     @Autowired
@@ -19,14 +17,8 @@ public class LocationControllerTest {
     @Test
     public void getLatitudeAndLongitudeTestForDH14HU() {
         LocationController locationController = new LocationController();
-        LocationRootBean locationRootBean = null;
-
-        try {
-            locationController.setPostCode("DH1 4HU");
-            locationRootBean = locationController.getLatitudeAndLogitude();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        locationController.setPostCode("DH1 4HU");
+        LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
 
         assert(locationRootBean.getStatus() == 200);
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
@@ -38,14 +30,8 @@ public class LocationControllerTest {
     @Test
     public void getLatitudeAndLongitudeTestForDH13QL() {
         LocationController locationController = new LocationController();
-        LocationRootBean locationRootBean = null;
-
-        try {
-            locationController.setPostCode("DH1 3QL");
-            locationRootBean = locationController.getLatitudeAndLogitude();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        locationController.setPostCode("DH1 3QL");
+        LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
 
         assert(locationRootBean.getStatus() == 200);
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.766509);
@@ -57,14 +43,8 @@ public class LocationControllerTest {
     @Test
     public void getLatitudeAndLongitudeTestForPostCodeWithLotsOfSpaces() {
         LocationController locationController = new LocationController();
-        LocationRootBean locationRootBean = null;
-
-        try {
-            locationController.setPostCode("D H 1 4 H U");
-            locationRootBean = locationController.getLatitudeAndLogitude();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        locationController.setPostCode("D H 1 4 H U");
+        LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
 
         assert(locationRootBean.getStatus() == 200);
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
@@ -90,14 +70,8 @@ public class LocationControllerTest {
     @Test
     public void getLatitudeAndLongitudeTestForLowercasePostCode() {
         LocationController locationController = new LocationController();
-        LocationRootBean locationRootBean = null;
-
-        try {
-            locationController.setPostCode("dh1 4hu");
-            locationRootBean = locationController.getLatitudeAndLogitude();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        locationController.setPostCode("dh1 4hu");
+        LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
 
         assert(locationRootBean.getStatus() == 200);
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
@@ -109,14 +83,8 @@ public class LocationControllerTest {
     @Test
     public void getLatitudeAndLongitudeTestForPostCodeWithoutSpace() {
         LocationController locationController = new LocationController();
-        LocationRootBean locationRootBean = null;
-
-        try {
-            locationController.setPostCode("DH14HU");
-            locationRootBean = locationController.getLatitudeAndLogitude();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        locationController.setPostCode("DH14HU");
+        LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
 
         assert(locationRootBean.getStatus() == 200);
         assert(locationRootBean.getLocationResultBean().getLatitude() == 54.777797);
@@ -128,14 +96,8 @@ public class LocationControllerTest {
     @Test
     public void getLatitudeAndLongitudeTestForLondonPostCode() {
         LocationController locationController = new LocationController();
-        LocationRootBean locationRootBean = null;
-
-        try {
-            locationController.setPostCode("SW1A 1AA");
-            locationRootBean = locationController.getLatitudeAndLogitude();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        locationController.setPostCode("SW1A 1AA");
+        LocationRootBean locationRootBean = locationController.getLatitudeAndLogitude();
 
         assert(locationRootBean.getStatus() == 200);
         assert(locationRootBean.getLocationResultBean().getLatitude() == 51.50101);

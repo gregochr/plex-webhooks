@@ -8,10 +8,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
-import java.io.IOException;
-
 @Component
 public class LocationController {
+    private static final String POSTCODE_SERVICE_URL = "https://api.postcodes.io/postcodes/{postCode}";
 
     @Value("${postcode}")
     private String postCode;
@@ -24,24 +23,22 @@ public class LocationController {
         return this.postCode;
     }
 
-    public LocationRootBean getLatitudeAndLogitude() throws IOException {
+    public LocationRootBean getLatitudeAndLogitude() {
         RestClient restClient = RestClient.create();
-        LogManager.getLogger(PlexService.class).info("[ Postcode : " + this.postCode + " ]");
-        String postCodeServiceURL = "https://api.postcodes.io/postcodes/";
-        
+        LogManager.getLogger(PlexService.class).info("[ Postcode : {} ]", this.postCode);
+
         LocationRootBean locationRootBean = restClient
                 .get()
-                .uri(postCodeServiceURL + "{postCode}", getPostCodeFormattedForPostCodesAPI())
+                .uri(POSTCODE_SERVICE_URL, getPostCodeFormattedForPostCodesAPI())
                 .retrieve()
                 .body(LocationRootBean.class);
 
-        restClient.delete();
-        LogManager.getLogger(LocationController.class).info("[ Location: " + locationRootBean + " ]");
+        LogManager.getLogger(LocationController.class).info("[ Location: {} ]", locationRootBean);
 
         return locationRootBean;
     }
 
-    private String getPostCodeFormattedForPostCodesAPI() throws IOException {
+    private String getPostCodeFormattedForPostCodesAPI() {
         return StringUtils.delete(this.postCode, " ");
     }
 }

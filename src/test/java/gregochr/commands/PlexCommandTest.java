@@ -38,12 +38,8 @@ public class PlexCommandTest {
         sunriseSunsetResultBean.setSunset("18:00:00");
         sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
 
-        try {
-            when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-            when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
 
         plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController);
         verify(hueSceneController).startMovieLightScene();
@@ -70,12 +66,8 @@ public class PlexCommandTest {
         sunriseSunsetResultBean.setSunset("18:00:00");
         sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
 
-        try {
-            when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-            when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
 
         plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController);
         verify(hueSceneController).startMovieLightScene();
@@ -102,12 +94,8 @@ public class PlexCommandTest {
         sunriseSunsetResultBean.setSunset("18:00:00");
         sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
 
-        try {
-            when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-            when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
 
         plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController);
         verify(hueSceneController).stopMovieLightScene();
@@ -134,12 +122,8 @@ public class PlexCommandTest {
         sunriseSunsetResultBean.setSunset("18:00:00");
         sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
 
-        try {
-            when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-            when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
 
         plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController);
         verify(hueSceneController).stopMovieLightScene();
@@ -166,12 +150,8 @@ public class PlexCommandTest {
         sunriseSunsetResultBean.setSunset("18:00:00");
         sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
 
-        try {
-            when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-            when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
 
         plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController);
         verify(hueSceneController).stopMovieLightScene();

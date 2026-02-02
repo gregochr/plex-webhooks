@@ -18,6 +18,6 @@ public class PlexStopCommandIntegrationTest {
         SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
         PlexStopCommand plexStopCommand = new PlexStopCommand("media.stop", "Good Will Hunting", 123);
 
-        plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController);
+        assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController));
     }
 }

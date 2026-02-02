@@ -29,5 +29,5 @@ public abstract class PlexCommand {
                 "Duration: " + this.duration + " ]";
     }
 
-    abstract public void execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController);
+    abstract public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController);
 }

@@ -16,6 +16,10 @@ public class SunriseSunsetController {
         return getSunriseSunsetRootBean(latitude, longitude, date);
     }
 
+    public boolean isAfterSunset() {
+        return true;
+    }
+
     @Nullable
     private static SunriseSunsetRootBean getSunriseSunsetRootBean(double latitude, double longitude, String date) {
         RestClient restClient = RestClient.create();

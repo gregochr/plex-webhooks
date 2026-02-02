@@ -14,9 +14,9 @@ public class PlexPlayCommand extends PlexCommand  {
         super(event, title, duration);
     }
 
-    public void execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
+    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
         LogManager.getLogger(PlexPlayCommand.class).info("[ Executing Plex Play Command: " + this.toString() + " ]");
 
-        hueSceneController.startMovieLightScene();
+        return hueSceneController.startMovieLightScene();
     }
 }

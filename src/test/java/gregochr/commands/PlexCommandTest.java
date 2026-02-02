@@ -40,8 +40,9 @@ public class PlexCommandTest {
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(hueSceneController.startMovieLightScene()).thenReturn(true);
 
-        plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController);
+        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController));
         verify(hueSceneController).startMovieLightScene();
     }
     @DisplayName("Test Plex Resume Command")
@@ -68,8 +69,9 @@ public class PlexCommandTest {
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(hueSceneController.startMovieLightScene()).thenReturn(true);
 
-        plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController);
+        assert(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController));
         verify(hueSceneController).startMovieLightScene();
     }
     @DisplayName("Test Plex Stop Command")
@@ -96,8 +98,9 @@ public class PlexCommandTest {
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
-        plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController);
+        assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Pause Command")
@@ -124,8 +127,9 @@ public class PlexCommandTest {
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
-        plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController);
+        assert(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Scrobble Command")
@@ -152,8 +156,9 @@ public class PlexCommandTest {
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
-        plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController);
+        assert(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController));
         verify(hueSceneController).stopMovieLightScene();
     }
 }

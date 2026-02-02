@@ -18,6 +18,6 @@ public class PlexPlayCommandIntegrationTest {
         SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
         PlexPlayCommand plexPlayCommand = new PlexPlayCommand("media.play", "Good Will Hunting", 123);
 
-        plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController);
+        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController));
     }
 }

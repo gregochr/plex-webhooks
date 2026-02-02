@@ -11,7 +11,7 @@ public class PlexResumeCommand extends PlexCommand  {
         super(event, title, duration);
     }
 
-    public void execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
-        hueSceneController.startMovieLightScene();
+    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
+        return hueSceneController.startMovieLightScene();
     }
 }

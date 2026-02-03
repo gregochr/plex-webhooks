@@ -1,7 +1,6 @@
 package gregochr.controllers;
 
 import gregochr.controllers.beans.LocationRootBean;
-import gregochr.services.plex.PlexService;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -25,7 +24,7 @@ public class LocationController {
 
     public LocationRootBean getLatitudeAndLogitude() {
         RestClient restClient = RestClient.create();
-        LogManager.getLogger(PlexService.class).info("[ Postcode : {} ]", this.postCode);
+        LogManager.getLogger(LocationController.class).info("[ Postcode : {} ]", this.postCode);
 
         LocationRootBean locationRootBean = restClient
                 .get()

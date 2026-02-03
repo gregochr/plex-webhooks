@@ -32,6 +32,7 @@ public class SunriseSunsetRootBean {
         return sunriseSunsetResultBean;
     }
 
+    @Override
     public String toString() {
         return "[ Status: " + this.status + ", " +
                 "tzid: " + this.tzid + ", " +

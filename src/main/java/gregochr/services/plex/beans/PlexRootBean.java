@@ -20,6 +20,7 @@ public class PlexRootBean {
     }
     public PlexMetadataBean getMetadata()  { return this.metadata; }
 
+    @Override
     public String toString() {
         return "[ Event: " + event  + ", "
                 + this.metadata.toString() + " ]";

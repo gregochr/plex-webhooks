@@ -16,6 +16,7 @@ public class PlexResumeCommand extends PlexCommand  {
         return EVENT;
     }
 
+    @Override
     public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
         return hueSceneController.startMovieLightScene();
     }

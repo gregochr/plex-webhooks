@@ -22,6 +22,7 @@ public class LocationResultBean {
 
     public double getLatitude()  { return this.latitude; }
 
+    @Override
     public String toString() {
         return "[ Latitude: " + this.latitude + ", "
                 + "Longitude: " + this.longitude + " ]";

@@ -20,6 +20,7 @@ public abstract class PlexCommand {
     }
     public int getDuration() { return this.duration; }
 
+    @Override
     public String toString() {
         return "[ Event: " + this.getEvent() + ", " +
                 "Title: " + this.title + ", " +

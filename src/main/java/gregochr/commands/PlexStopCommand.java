@@ -17,8 +17,9 @@ public class PlexStopCommand extends PlexCommand  {
         return EVENT;
     }
 
+    @Override
     public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
-        LogManager.getLogger(PlexStopCommand.class).info("[ Executing Plex Stop Command: " + this.toString() + " ]");
+        LogManager.getLogger(PlexStopCommand.class).info("[ Executing Plex Stop Command: {} ]", this);
 
         return hueSceneController.stopMovieLightScene();
     }

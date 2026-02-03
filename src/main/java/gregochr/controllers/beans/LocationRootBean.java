@@ -24,6 +24,7 @@ public class LocationRootBean {
         return locationResultBean;
     }
 
+    @Override
     public String toString() {
         return "[ Status: " + Integer.toString(status) + ", " +
                 locationResultBean.toString() + " ]";

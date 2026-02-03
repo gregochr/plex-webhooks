@@ -22,6 +22,7 @@ public class PlexMetadataBean {
 
     public int getDuration()  { return this.duration; }
 
+    @Override
     public String toString() {
         return "[ Title: " + this.title + ", "
                 + "Duration: " + this.duration + " ]";

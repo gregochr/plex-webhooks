@@ -22,6 +22,7 @@ public class SunriseSunsetResultBean {
 
     public String getSunset()  { return this.sunset; }
 
+    @Override
     public String toString() {
         return "[ Sunrise: " + this.sunrise + ", "
                 + "Sunset: " + this.sunset + " ]";

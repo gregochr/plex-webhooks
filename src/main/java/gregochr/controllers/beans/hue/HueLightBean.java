@@ -23,6 +23,7 @@ public class HueLightBean {
 
     public String isReachable() { return this.reachable ? "Yes" : "No"; }
 
+    @Override
     public String toString() {
         return new String("Key:" + getKey() + ", Name: " + this.getName() + ", State: " + this.isOn() + ", Reachable: " + this.isReachable() + "\n");
     }

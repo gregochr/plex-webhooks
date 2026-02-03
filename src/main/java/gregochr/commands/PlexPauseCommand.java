@@ -2,13 +2,18 @@ package gregochr.commands;
 
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
-import gregochr.controllers.beans.LocationRootBean;
-import gregochr.controllers.beans.SunriseSunsetRootBean;
 import gregochr.controllers.hue.HueSceneController;
 
 public class PlexPauseCommand  extends PlexCommand  {
-    public PlexPauseCommand(String event, String title, int duration) {
-        super(event, title,  duration);
+    private static final String EVENT = "media.pause";
+
+    public PlexPauseCommand(String title, int duration) {
+        super(title, duration);
+    }
+
+    @Override
+    public String getEvent() {
+        return EVENT;
     }
 
     public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {

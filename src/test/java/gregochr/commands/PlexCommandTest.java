@@ -22,7 +22,7 @@ public class PlexCommandTest {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
-        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("media.play", "Good Will Hunting", 123);
+        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123);
 
         LocationRootBean locationRootBean = new LocationRootBean();
         LocationResultBean locationResultBean = new LocationResultBean();
@@ -51,7 +51,7 @@ public class PlexCommandTest {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
-        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("media.resume", "Good Will Hunting", 123);
+        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123);
 
         LocationRootBean locationRootBean = new LocationRootBean();
         LocationResultBean locationResultBean = new LocationResultBean();
@@ -80,7 +80,7 @@ public class PlexCommandTest {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
-        PlexStopCommand plexStopCommand = new PlexStopCommand("media.stop", "Good Will Hunting", 123);
+        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123);
 
         LocationRootBean locationRootBean = new LocationRootBean();
         LocationResultBean locationResultBean = new LocationResultBean();
@@ -109,7 +109,7 @@ public class PlexCommandTest {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
-        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("media.pause", "Good Will Hunting", 123);
+        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123);
 
         LocationRootBean locationRootBean = new LocationRootBean();
         LocationResultBean locationResultBean = new LocationResultBean();
@@ -138,7 +138,7 @@ public class PlexCommandTest {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("media.scrobble", "Good Will Hunting", 123);
+        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123);
 
         LocationRootBean locationRootBean = new LocationRootBean();
         LocationResultBean locationResultBean = new LocationResultBean();

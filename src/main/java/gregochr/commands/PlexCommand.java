@@ -5,26 +5,23 @@ import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
 
 public abstract class PlexCommand {
-    protected String event;
     protected String title;
     protected int duration;
 
-    public PlexCommand(String event, String title, int duration) {
-        this.event = event;
-        this.title  = title;
+    public PlexCommand(String title, int duration) {
+        this.title = title;
         this.duration = duration;
     }
 
-    public String getEvent() {
-        return this.event;
-    }
+    public abstract String getEvent();
+
     public String getTitle() {
         return this.title;
     }
     public int getDuration() { return this.duration; }
 
     public String toString() {
-        return "[ Event: " + this.event + ", " +
+        return "[ Event: " + this.getEvent() + ", " +
                 "Title: " + this.title + ", " +
                 "Duration: " + this.duration + " ]";
     }

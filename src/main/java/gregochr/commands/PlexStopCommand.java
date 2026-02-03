@@ -6,8 +6,15 @@ import gregochr.controllers.hue.HueSceneController;
 import org.apache.logging.log4j.LogManager;
 
 public class PlexStopCommand extends PlexCommand  {
-    public PlexStopCommand(String event, String title, int duration) {
-        super(event, title, duration);
+    private static final String EVENT = "media.stop";
+
+    public PlexStopCommand(String title, int duration) {
+        super(title, duration);
+    }
+
+    @Override
+    public String getEvent() {
+        return EVENT;
     }
 
     public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {

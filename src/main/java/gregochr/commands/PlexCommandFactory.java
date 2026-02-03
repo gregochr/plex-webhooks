@@ -12,15 +12,15 @@ public class PlexCommandFactory {
         String title = this.plexRootBean.getMetadata().getTitle();
         int duration = this.plexRootBean.getMetadata().getDuration();
 
-        if (this.plexRootBean.getEvent().compareTo("media.play") == 0) {
+        if ("media.play".equals(this.plexRootBean.getEvent())) {
             return new PlexPlayCommand(title, duration);
-        } else if (this.plexRootBean.getEvent().compareTo("media.resume") == 0) {
+        } else if ("media.resume".equals(this.plexRootBean.getEvent())) {
             return new PlexResumeCommand(title, duration);
-        } else if (this.plexRootBean.getEvent().compareTo("media.stop") == 0) {
+        } else if ("media.stop".equals(this.plexRootBean.getEvent())) {
             return new PlexStopCommand(title, duration);
-        } else if (this.plexRootBean.getEvent().compareTo("media.pause") == 0) {
+        } else if ("media.pause".equals(this.plexRootBean.getEvent())) {
             return new PlexPauseCommand(title, duration);
-        } else if (this.plexRootBean.getEvent().compareTo("media.scrobble") == 0) {
+        } else if ("media.scrobble".equals(this.plexRootBean.getEvent())) {
             return new PlexScrobbleCommand(title, duration);
         }
         return null;

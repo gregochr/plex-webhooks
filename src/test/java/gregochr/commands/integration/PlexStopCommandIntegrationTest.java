@@ -7,15 +7,25 @@ import gregochr.controllers.hue.HueSceneController;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
+@SpringBootTest
 public class PlexStopCommandIntegrationTest {
+
+    @Autowired
+    private HueSceneController hueSceneController;
+
+    @Autowired
+    private LocationController locationController;
+
+    @Autowired
+    private SunriseSunsetController sunriseSunsetController;
+
     @Tag("integration")
     @DisplayName("Test Plex Stop Command")
     @Test
     public void testPlexStopCommand() {
-        HueSceneController hueSceneController = new HueSceneController();
-        LocationController locationController = new LocationController();
-        SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
         PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123);
 
         assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController));

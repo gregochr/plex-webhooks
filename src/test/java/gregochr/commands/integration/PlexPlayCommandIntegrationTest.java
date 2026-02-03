@@ -7,15 +7,25 @@ import gregochr.controllers.hue.HueSceneController;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
+@SpringBootTest
 public class PlexPlayCommandIntegrationTest {
+
+    @Autowired
+    private HueSceneController hueSceneController;
+
+    @Autowired
+    private LocationController locationController;
+
+    @Autowired
+    private SunriseSunsetController sunriseSunsetController;
+
     @Tag("integration")
     @DisplayName("Test Plex Play Command")
     @Test
     public void testPlexPlayCommand() {
-        HueSceneController hueSceneController = new HueSceneController();
-        LocationController locationController = new LocationController();
-        SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
         PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123);
 
         assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController));

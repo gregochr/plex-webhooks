@@ -3,8 +3,10 @@ package gregochr.controllers;
 import gregochr.controllers.beans.SunriseSunsetRootBean;
 import jakarta.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+@Component
 public class SunriseSunsetController {
     private static final String SUNRISE_SUNSET_SERVICE_URL = "https://api.sunrise-sunset.org/json?lat={lat}&lng={lng}&date={date}";
 

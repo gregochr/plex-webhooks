@@ -1,10 +1,19 @@
 package gregochr.controllers.hue;
 
-import gregochr.commands.PlexPlayCommand;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+@Component
 public class HueController {
-    protected final String hubAddress = "192.168.4.38/";
-    protected final String hubId = "001788fffe7107c8";
-    protected final String login = "UndoIYT7IxLAEiJsAnLN4nBwynr9xmSUgoYcywvh";
-    protected final String key = "EDE7190A863DB7F0CEC20E4E35BF95F1";
+    @Value("${hue.hub-address}")
+    protected String hubAddress;
+
+    @Value("${hue.hub-id}")
+    protected String hubId;
+
+    @Value("${hue.login}")
+    protected String login;
+
+    @Value("${hue.key}")
+    protected String key;
 }

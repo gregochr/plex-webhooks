@@ -12,19 +12,28 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.io.IOException;
 
 @RestController
 public class PlexService {
+    private final HueSceneController hueSceneController;
+    private final LocationController locationController;
+    private final SunriseSunsetController sunriseSunsetController;
+
+    public PlexService(HueSceneController hueSceneController,
+                       LocationController locationController,
+                       SunriseSunsetController sunriseSunsetController) {
+        this.hueSceneController = hueSceneController;
+        this.locationController = locationController;
+        this.sunriseSunsetController = sunriseSunsetController;
+    }
 
     @RequestMapping(value = "/plex", method = RequestMethod.POST, consumes = { "multipart/form-data" } )
     public void plexEvent(@RequestParam String payload) {
         try {
             PlexRootBean bean = new ObjectMapper().readerFor(PlexRootBean.class).readValue(payload);
             PlexCommand command = new PlexCommandFactory(bean).getPlexCommand();
-            HueSceneController hueSceneController = new HueSceneController();
-            LocationController locationController = new LocationController();
-            SunriseSunsetController sunriseSunsetController = new SunriseSunsetController();
 
             LogManager.getLogger(PlexService.class).info("[ Plex payload: " + payload + " ]");
             LogManager.getLogger(PlexService.class).info("[ Plex command: " + command + " ]");

@@ -6,8 +6,11 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClient;
 
+import org.springframework.stereotype.Component;
+
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
+@Component
 public class HueSceneController extends HueController {
     private static final String FRONT_ROOM_MOVIE_SCENE = "04a673ca-d640-4bbb-bd94-7368434a0f94";
     private static final String FRONT_ROOM_CHILL_SCENE = "f59f642e-89ed-45c2-9a53-2545dfe048b1";

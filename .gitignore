@@ -35,3 +35,7 @@
 /target/classes/gregochr/controllers/beans/SunriseSunsetResultBean.class
 /target/classes/gregochr/controllers/beans/SunriseSunsetRootBean.class
 /target/test-classes/UnitTestSuite.class
+/target/classes/gregochr/commands/PlexNoOpCommand.class
+/.claude/settings.local.json
+/target/classes/gregochr/controllers/SunriseSunsetTimeFactory.class
+/target/test-classes/gregochr/controllers/SunriseSunsetTimeFactoryTest.class

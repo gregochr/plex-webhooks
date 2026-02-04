@@ -6,9 +6,22 @@ import org.apache.logging.log4j.LogManager;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.Clock;
+import java.time.LocalTime;
+
 @Component
 public class SunriseSunsetController {
     private static final String SUNRISE_SUNSET_SERVICE_URL = "https://api.sunrise-sunset.org/json?lat={lat}&lng={lng}&date={date}";
+
+    private final Clock clock;
+
+    public SunriseSunsetController() {
+        this(Clock.systemDefaultZone());
+    }
+
+    public SunriseSunsetController(Clock clock) {
+        this.clock = clock;
+    }
 
     public SunriseSunsetRootBean getSunsetTimeForToday(double latitude, double longitude) {
         return getSunriseSunsetRootBean(latitude, longitude, "today");
@@ -18,8 +31,8 @@ public class SunriseSunsetController {
         return getSunriseSunsetRootBean(latitude, longitude, date);
     }
 
-    public boolean isAfterSunset() {
-        return true;
+    public boolean isAfterSunset(LocalTime sunsetTime) {
+        return LocalTime.now(clock).isAfter(sunsetTime);
     }
 
     @Nullable

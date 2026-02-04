@@ -5,6 +5,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -60,10 +65,29 @@ public class SunriseSunsetControllerTest {
         // Summer sunset in Durham is much later than winter
     }
 
-    @DisplayName("Test isAfterSunset returns true")
+    @DisplayName("Test isAfterSunset returns true when current time is after sunset")
     @Test
     public void testIsAfterSunset() {
-        SunriseSunsetController controller = new SunriseSunsetController();
-        assertTrue(controller.isAfterSunset());
+        // Fixed clock at 8 PM UTC
+        Clock fixedClock = Clock.fixed(Instant.parse("2026-01-28T20:00:00Z"), ZoneId.of("UTC"));
+        SunriseSunsetController controller = new SunriseSunsetController(fixedClock);
+
+        // Sunset is at 4:37:54 PM (16:37:54)
+        LocalTime sunsetTime = LocalTime.of(16, 37, 54);
+
+        assertTrue(controller.isAfterSunset(sunsetTime));
+    }
+
+    @DisplayName("Test isAfterSunset returns false when current time is before sunset")
+    @Test
+    public void testIsBeforeSunset() {
+        // Fixed clock at 2 PM UTC
+        Clock fixedClock = Clock.fixed(Instant.parse("2026-01-28T14:00:00Z"), ZoneId.of("UTC"));
+        SunriseSunsetController controller = new SunriseSunsetController(fixedClock);
+
+        // Sunset is at 4:37:54 PM (16:37:54)
+        LocalTime sunsetTime = LocalTime.of(16, 37, 54);
+
+        assertFalse(controller.isAfterSunset(sunsetTime));
     }
 }

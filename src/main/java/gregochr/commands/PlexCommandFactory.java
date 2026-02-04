@@ -23,6 +23,6 @@ public class PlexCommandFactory {
         } else if ("media.scrobble".equals(this.plexRootBean.getEvent())) {
             return new PlexScrobbleCommand(title, duration);
         }
-        return null;
+        return new PlexNoOpCommand(this.plexRootBean.getEvent());
     }
 }

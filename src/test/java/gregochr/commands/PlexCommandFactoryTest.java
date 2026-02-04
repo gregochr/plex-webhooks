@@ -82,7 +82,7 @@ public class PlexCommandFactoryTest {
         assert(plexCommand.getDuration() == 123);
     }
 
-    @DisplayName("Test unknown plex event creates a NULL command")
+    @DisplayName("Test unknown plex event creates a NoOp command")
     @Test
     public void testPlexUnknownEvent() {
         PlexRootBean plexRootBean = getPlexRootBean("RandomEventString");
@@ -90,7 +90,22 @@ public class PlexCommandFactoryTest {
         PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
         PlexCommand plexCommand = factory.getPlexCommand();
 
-        assert(plexCommand == null);
+        assert(plexCommand != null);
+        assert(plexCommand instanceof PlexNoOpCommand);
+        assert(plexCommand.getEvent().equals("RandomEventString"));
+    }
+
+    @DisplayName("Test NoOp command execute returns false")
+    @Test
+    public void testNoOpCommandExecuteReturnsFalse() {
+        PlexRootBean plexRootBean = getPlexRootBean("unknown.event");
+
+        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommand plexCommand = factory.getPlexCommand();
+
+        boolean result = plexCommand.execute(null, null, null);
+
+        assert(!result);
     }
 
     @Nonnull

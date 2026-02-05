@@ -1,12 +1,12 @@
-package gregochr.controllers.beans.hue;
+package gregochr.controllers.dto.hue;
 
-public class HueLightBean {
+public class HueLightDto {
     private String key;
     private String name;
     private boolean on;
     private boolean reachable;
 
-    public HueLightBean(String key, String name, boolean on, boolean reachable) {
+    public HueLightDto(String key, String name, boolean on, boolean reachable) {
         this.key = key;
         this.name = name;
         this.on = on;

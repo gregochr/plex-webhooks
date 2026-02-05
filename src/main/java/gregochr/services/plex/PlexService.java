@@ -6,7 +6,7 @@ import gregochr.commands.PlexCommandFactory;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
-import gregochr.services.plex.beans.PlexRootBean;
+import gregochr.services.plex.dto.PlexPayloadDto;
 import gregochr.services.sse.SseEventDto;
 import gregochr.services.sse.SseService;
 import org.apache.logging.log4j.LogManager;
@@ -37,7 +37,7 @@ public class PlexService {
     @RequestMapping(value = "/plex", method = RequestMethod.POST, consumes = { "multipart/form-data" } )
     public void plexEvent(@RequestParam String payload) {
         try {
-            PlexRootBean bean = new ObjectMapper().readerFor(PlexRootBean.class).readValue(payload);
+            PlexPayloadDto bean = new ObjectMapper().readerFor(PlexPayloadDto.class).readValue(payload);
             PlexCommand command = new PlexCommandFactory(bean).getPlexCommand();
 
             LogManager.getLogger(PlexService.class).info("[ Plex payload: " + payload + " ]");

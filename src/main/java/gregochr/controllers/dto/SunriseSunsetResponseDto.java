@@ -1,13 +1,13 @@
-package gregochr.controllers.beans;
+package gregochr.controllers.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SunriseSunsetRootBean {
+public class SunriseSunsetResponseDto {
     public String status;
     public String tzid;
-    public SunriseSunsetResultBean sunriseSunsetResultBean;
+    public SunriseSunsetResultDto sunriseSunsetResultDto;
 
     @JsonSetter("status")
     public void setStatus(String status) {
@@ -24,18 +24,18 @@ public class SunriseSunsetRootBean {
     public String getTzId()  { return this.tzid; }
 
     @JsonSetter("results")
-    public void setResult(SunriseSunsetResultBean sunriseSunsetResultBean) {
-        this.sunriseSunsetResultBean = sunriseSunsetResultBean;
+    public void setResult(SunriseSunsetResultDto sunriseSunsetResultDto) {
+        this.sunriseSunsetResultDto = sunriseSunsetResultDto;
     }
 
-    public SunriseSunsetResultBean getSunriseSunsetResultBean() {
-        return sunriseSunsetResultBean;
+    public SunriseSunsetResultDto getSunriseSunsetResultDto() {
+        return sunriseSunsetResultDto;
     }
 
     @Override
     public String toString() {
         return "[ Status: " + this.status + ", " +
                 "tzid: " + this.tzid + ", " +
-                sunriseSunsetResultBean.toString() + " ]";
+                sunriseSunsetResultDto.toString() + " ]";
     }
 }

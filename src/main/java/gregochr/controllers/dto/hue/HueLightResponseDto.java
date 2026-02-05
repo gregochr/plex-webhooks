@@ -1,8 +1,8 @@
-package gregochr.controllers.beans.hue;
+package gregochr.controllers.dto.hue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class HueLightResponseBean {
+public class HueLightResponseDto {
 
 }

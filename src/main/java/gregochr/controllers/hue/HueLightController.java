@@ -1,6 +1,6 @@
 package gregochr.controllers.hue;
 
-import gregochr.controllers.beans.hue.HueLightBean;
+import gregochr.controllers.dto.hue.HueLightDto;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -11,7 +11,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @Component
 public class HueLightController extends HueController {
 
-    private void setLightState(final HueLightBean light, final String body) {
+    private void setLightState(final HueLightDto light, final String body) {
         final String restURL = "https://" + this.hubId + "/clip/v2/resource/light/";
         RestClient restClient = RestClient.create();
         LogManager.getLogger(HueLightController.class).info("[ Turning light : " + light.getKey() + ", " +  body + " ]");
@@ -49,12 +49,12 @@ public class HueLightController extends HueController {
         LogManager.getLogger(HueLightController.class).info("[ Hue sceneId response : " + response.toString() + " ]");
     }
 
-    private void turnLightOff(final HueLightBean light) {
+    private void turnLightOff(final HueLightDto light) {
         final String body = "{\"on\":{\"on\":false}}";
         setLightState(light, body);
     }
 
-    private void turnLightOn(final HueLightBean light) {
+    private void turnLightOn(final HueLightDto light) {
         final String body = "{\"on\":{\"on\":true}}";
         setLightState(light, body);
     }

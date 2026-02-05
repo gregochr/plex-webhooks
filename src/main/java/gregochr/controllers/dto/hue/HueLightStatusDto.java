@@ -1,14 +1,14 @@
-package gregochr.controllers.beans.hue;
+package gregochr.controllers.dto.hue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class HueLightStatusBean {
+public class HueLightStatusDto {
     private boolean on;
 
-    @JsonSetter("oo")
-    public void setOn(boolean title) {
+    @JsonSetter("on")
+    public void setOn(boolean on) {
         this.on = on;
     }
 

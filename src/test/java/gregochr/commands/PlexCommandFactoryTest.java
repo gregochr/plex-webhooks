@@ -1,7 +1,7 @@
 package gregochr.commands;
 
-import gregochr.services.plex.beans.PlexMetadataBean;
-import gregochr.services.plex.beans.PlexRootBean;
+import gregochr.services.plex.dto.PlexMetadataDto;
+import gregochr.services.plex.dto.PlexPayloadDto;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,9 +10,9 @@ public class PlexCommandFactoryTest {
     @DisplayName("Test Create Plex Play Command")
     @Test
     public void testCreatePlexPlayCommand() {
-        PlexRootBean plexRootBean = getPlexRootBean("media.play");
+        PlexPayloadDto plexPayload = getPlexPayloadDto("media.play");
 
-        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assert(plexCommand != null);
@@ -25,9 +25,9 @@ public class PlexCommandFactoryTest {
     @DisplayName("Test Create Plex Resume Command")
     @Test
     public void testCreatePlexResumeCommand() {
-        PlexRootBean plexRootBean = getPlexRootBean("media.resume");
+        PlexPayloadDto plexPayload = getPlexPayloadDto("media.resume");
 
-        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assert(plexCommand != null);
@@ -40,9 +40,9 @@ public class PlexCommandFactoryTest {
     @DisplayName("Test Create Plex Stop Command")
     @Test
     public void testCreatePlexStopCommand() {
-        PlexRootBean plexRootBean = getPlexRootBean("media.stop");
+        PlexPayloadDto plexPayload = getPlexPayloadDto("media.stop");
 
-        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assert(plexCommand != null);
@@ -55,9 +55,9 @@ public class PlexCommandFactoryTest {
     @DisplayName("Test Create Plex Pause Command")
     @Test
     public void testCreatePlexPauseCommand() {
-        PlexRootBean plexRootBean = getPlexRootBean("media.pause");
+        PlexPayloadDto plexPayload = getPlexPayloadDto("media.pause");
 
-        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assert(plexCommand != null);
@@ -70,9 +70,9 @@ public class PlexCommandFactoryTest {
     @DisplayName("Test Create Plex Scrobble Command")
     @Test
     public void testCreatePlexScrobbleCommand() {
-        PlexRootBean plexRootBean = getPlexRootBean("media.scrobble");
+        PlexPayloadDto plexPayload = getPlexPayloadDto("media.scrobble");
 
-        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assert(plexCommand != null);
@@ -85,9 +85,9 @@ public class PlexCommandFactoryTest {
     @DisplayName("Test unknown plex event creates a NoOp command")
     @Test
     public void testPlexUnknownEvent() {
-        PlexRootBean plexRootBean = getPlexRootBean("RandomEventString");
+        PlexPayloadDto plexPayload = getPlexPayloadDto("RandomEventString");
 
-        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assert(plexCommand != null);
@@ -98,9 +98,9 @@ public class PlexCommandFactoryTest {
     @DisplayName("Test NoOp command execute returns false")
     @Test
     public void testNoOpCommandExecuteReturnsFalse() {
-        PlexRootBean plexRootBean = getPlexRootBean("unknown.event");
+        PlexPayloadDto plexPayload = getPlexPayloadDto("unknown.event");
 
-        PlexCommandFactory factory = new PlexCommandFactory(plexRootBean);
+        PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
         boolean result = plexCommand.execute(null, null, null);
@@ -109,14 +109,14 @@ public class PlexCommandFactoryTest {
     }
 
     @Nonnull
-    private static PlexRootBean getPlexRootBean(String event) {
-        PlexRootBean plexRootBean = new PlexRootBean();
-        plexRootBean.setEvent(event);
+    private static PlexPayloadDto getPlexPayloadDto(String event) {
+        PlexPayloadDto plexPayload = new PlexPayloadDto();
+        plexPayload.setEvent(event);
 
-        PlexMetadataBean plexMetadataBean = new PlexMetadataBean();
-        plexMetadataBean.setTitle("Good Will Hunting");
-        plexMetadataBean.setDuration(123);
-        plexRootBean.setMetadata(plexMetadataBean);
-        return plexRootBean;
+        PlexMetadataDto plexMetadata = new PlexMetadataDto();
+        plexMetadata.setTitle("Good Will Hunting");
+        plexMetadata.setDuration(123);
+        plexPayload.setMetadata(plexMetadata);
+        return plexPayload;
     }
 }

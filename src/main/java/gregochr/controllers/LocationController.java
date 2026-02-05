@@ -1,6 +1,6 @@
 package gregochr.controllers;
 
-import gregochr.controllers.beans.LocationRootBean;
+import gregochr.controllers.dto.LocationResponseDto;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -22,19 +22,19 @@ public class LocationController {
         return this.postCode;
     }
 
-    public LocationRootBean getLatitudeAndLogitude() {
+    public LocationResponseDto getLatitudeAndLogitude() {
         RestClient restClient = RestClient.create();
         LogManager.getLogger(LocationController.class).info("[ Postcode : {} ]", this.postCode);
 
-        LocationRootBean locationRootBean = restClient
+        LocationResponseDto locationResponse = restClient
                 .get()
                 .uri(POSTCODE_SERVICE_URL, getPostCodeFormattedForPostCodesAPI())
                 .retrieve()
-                .body(LocationRootBean.class);
+                .body(LocationResponseDto.class);
 
-        LogManager.getLogger(LocationController.class).info("[ Location: {} ]", locationRootBean);
+        LogManager.getLogger(LocationController.class).info("[ Location: {} ]", locationResponse);
 
-        return locationRootBean;
+        return locationResponse;
     }
 
     private String getPostCodeFormattedForPostCodesAPI() {

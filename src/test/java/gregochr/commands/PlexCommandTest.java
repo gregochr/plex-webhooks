@@ -2,10 +2,10 @@ package gregochr.commands;
 
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
-import gregochr.controllers.beans.LocationResultBean;
-import gregochr.controllers.beans.LocationRootBean;
-import gregochr.controllers.beans.SunriseSunsetResultBean;
-import gregochr.controllers.beans.SunriseSunsetRootBean;
+import gregochr.controllers.dto.LocationResultDto;
+import gregochr.controllers.dto.LocationResponseDto;
+import gregochr.controllers.dto.SunriseSunsetResultDto;
+import gregochr.controllers.dto.SunriseSunsetResponseDto;
 import gregochr.controllers.hue.HueSceneController;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,22 +22,22 @@ public class PlexCommandTest {
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123);
 
-        LocationRootBean locationRootBean = new LocationRootBean();
-        LocationResultBean locationResultBean = new LocationResultBean();
-        locationResultBean.setLatitude(1);
-        locationResultBean.setLongitude(1);
-        locationRootBean.setStatus(200);
-        locationRootBean.setResult(locationResultBean);
+        LocationResponseDto locationResponse = new LocationResponseDto();
+        LocationResultDto locationResult = new LocationResultDto();
+        locationResult.setLatitude(1);
+        locationResult.setLongitude(1);
+        locationResponse.setStatus(200);
+        locationResponse.setResult(locationResult);
 
-        SunriseSunsetRootBean sunriseSunsetRootBean = new SunriseSunsetRootBean();
-        SunriseSunsetResultBean sunriseSunsetResultBean = new SunriseSunsetResultBean();
-        sunriseSunsetRootBean.setStatus("200");
-        sunriseSunsetRootBean.setTzId("utc");
-        sunriseSunsetResultBean.setSunset("18:00:00");
-        sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
+        sunriseSunsetResponse.setStatus("200");
+        sunriseSunsetResponse.setTzId("utc");
+        sunriseSunsetResult.setSunset("18:00:00");
+        sunriseSunsetResponse.setResult(sunriseSunsetResult);
 
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
 
         assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController));
@@ -51,22 +51,22 @@ public class PlexCommandTest {
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123);
 
-        LocationRootBean locationRootBean = new LocationRootBean();
-        LocationResultBean locationResultBean = new LocationResultBean();
-        locationResultBean.setLatitude(1);
-        locationResultBean.setLongitude(1);
-        locationRootBean.setStatus(200);
-        locationRootBean.setResult(locationResultBean);
+        LocationResponseDto locationResponse = new LocationResponseDto();
+        LocationResultDto locationResult = new LocationResultDto();
+        locationResult.setLatitude(1);
+        locationResult.setLongitude(1);
+        locationResponse.setStatus(200);
+        locationResponse.setResult(locationResult);
 
-        SunriseSunsetRootBean sunriseSunsetRootBean = new SunriseSunsetRootBean();
-        SunriseSunsetResultBean sunriseSunsetResultBean = new SunriseSunsetResultBean();
-        sunriseSunsetRootBean.setStatus("200");
-        sunriseSunsetRootBean.setTzId("utc");
-        sunriseSunsetResultBean.setSunset("18:00:00");
-        sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
+        sunriseSunsetResponse.setStatus("200");
+        sunriseSunsetResponse.setTzId("utc");
+        sunriseSunsetResult.setSunset("18:00:00");
+        sunriseSunsetResponse.setResult(sunriseSunsetResult);
 
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
 
         assert(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController));
@@ -80,22 +80,22 @@ public class PlexCommandTest {
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123);
 
-        LocationRootBean locationRootBean = new LocationRootBean();
-        LocationResultBean locationResultBean = new LocationResultBean();
-        locationResultBean.setLatitude(1);
-        locationResultBean.setLongitude(1);
-        locationRootBean.setStatus(200);
-        locationRootBean.setResult(locationResultBean);
+        LocationResponseDto locationResponse = new LocationResponseDto();
+        LocationResultDto locationResult = new LocationResultDto();
+        locationResult.setLatitude(1);
+        locationResult.setLongitude(1);
+        locationResponse.setStatus(200);
+        locationResponse.setResult(locationResult);
 
-        SunriseSunsetRootBean sunriseSunsetRootBean = new SunriseSunsetRootBean();
-        SunriseSunsetResultBean sunriseSunsetResultBean = new SunriseSunsetResultBean();
-        sunriseSunsetRootBean.setStatus("200");
-        sunriseSunsetRootBean.setTzId("utc");
-        sunriseSunsetResultBean.setSunset("18:00:00");
-        sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
+        sunriseSunsetResponse.setStatus("200");
+        sunriseSunsetResponse.setTzId("utc");
+        sunriseSunsetResult.setSunset("18:00:00");
+        sunriseSunsetResponse.setResult(sunriseSunsetResult);
 
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
         assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController));
@@ -109,22 +109,22 @@ public class PlexCommandTest {
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123);
 
-        LocationRootBean locationRootBean = new LocationRootBean();
-        LocationResultBean locationResultBean = new LocationResultBean();
-        locationResultBean.setLatitude(1);
-        locationResultBean.setLongitude(1);
-        locationRootBean.setStatus(200);
-        locationRootBean.setResult(locationResultBean);
+        LocationResponseDto locationResponse = new LocationResponseDto();
+        LocationResultDto locationResult = new LocationResultDto();
+        locationResult.setLatitude(1);
+        locationResult.setLongitude(1);
+        locationResponse.setStatus(200);
+        locationResponse.setResult(locationResult);
 
-        SunriseSunsetRootBean sunriseSunsetRootBean = new SunriseSunsetRootBean();
-        SunriseSunsetResultBean sunriseSunsetResultBean = new SunriseSunsetResultBean();
-        sunriseSunsetRootBean.setStatus("200");
-        sunriseSunsetRootBean.setTzId("utc");
-        sunriseSunsetResultBean.setSunset("18:00:00");
-        sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
+        sunriseSunsetResponse.setStatus("200");
+        sunriseSunsetResponse.setTzId("utc");
+        sunriseSunsetResult.setSunset("18:00:00");
+        sunriseSunsetResponse.setResult(sunriseSunsetResult);
 
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
         assert(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController));
@@ -138,22 +138,22 @@ public class PlexCommandTest {
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123);
 
-        LocationRootBean locationRootBean = new LocationRootBean();
-        LocationResultBean locationResultBean = new LocationResultBean();
-        locationResultBean.setLatitude(1);
-        locationResultBean.setLongitude(1);
-        locationRootBean.setStatus(200);
-        locationRootBean.setResult(locationResultBean);
+        LocationResponseDto locationResponse = new LocationResponseDto();
+        LocationResultDto locationResult = new LocationResultDto();
+        locationResult.setLatitude(1);
+        locationResult.setLongitude(1);
+        locationResponse.setStatus(200);
+        locationResponse.setResult(locationResult);
 
-        SunriseSunsetRootBean sunriseSunsetRootBean = new SunriseSunsetRootBean();
-        SunriseSunsetResultBean sunriseSunsetResultBean = new SunriseSunsetResultBean();
-        sunriseSunsetRootBean.setStatus("200");
-        sunriseSunsetRootBean.setTzId("utc");
-        sunriseSunsetResultBean.setSunset("18:00:00");
-        sunriseSunsetRootBean.setResult(sunriseSunsetResultBean);
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
+        sunriseSunsetResponse.setStatus("200");
+        sunriseSunsetResponse.setTzId("utc");
+        sunriseSunsetResult.setSunset("18:00:00");
+        sunriseSunsetResponse.setResult(sunriseSunsetResult);
 
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationRootBean);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetRootBean);
+        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
+        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
         assert(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController));

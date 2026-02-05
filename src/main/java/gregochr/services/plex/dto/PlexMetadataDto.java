@@ -1,10 +1,10 @@
-package gregochr.services.plex.beans;
+package gregochr.services.plex.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PlexMetadataBean {
+public class PlexMetadataDto {
     public String title;
     public int duration;
 

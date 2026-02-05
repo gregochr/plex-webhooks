@@ -1,6 +1,6 @@
 package gregochr.controllers;
 
-import gregochr.controllers.beans.SunriseSunsetRootBean;
+import gregochr.controllers.dto.SunriseSunsetResponseDto;
 import jakarta.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.stereotype.Component;
@@ -23,12 +23,12 @@ public class SunriseSunsetController {
         this.clock = clock;
     }
 
-    public SunriseSunsetRootBean getSunsetTimeForToday(double latitude, double longitude) {
-        return getSunriseSunsetRootBean(latitude, longitude, "today");
+    public SunriseSunsetResponseDto getSunsetTimeForToday(double latitude, double longitude) {
+        return getSunriseSunsetResponseDto(latitude, longitude, "today");
     }
 
-    public SunriseSunsetRootBean getSunsetTimeForDate(double latitude, double longitude, String date) {
-        return getSunriseSunsetRootBean(latitude, longitude, date);
+    public SunriseSunsetResponseDto getSunsetTimeForDate(double latitude, double longitude, String date) {
+        return getSunriseSunsetResponseDto(latitude, longitude, date);
     }
 
     public boolean isAfterSunset(LocalTime sunsetTime) {
@@ -36,16 +36,16 @@ public class SunriseSunsetController {
     }
 
     @Nullable
-    private static SunriseSunsetRootBean getSunriseSunsetRootBean(double latitude, double longitude, String date) {
+    private static SunriseSunsetResponseDto getSunriseSunsetResponseDto(double latitude, double longitude, String date) {
         RestClient restClient = RestClient.create();
 
-        SunriseSunsetRootBean sunriseSunsetRootBean = restClient
+        SunriseSunsetResponseDto sunriseSunsetResponse = restClient
                 .get()
                 .uri(SUNRISE_SUNSET_SERVICE_URL, latitude, longitude, date)
                 .retrieve()
-                .body(SunriseSunsetRootBean.class);
+                .body(SunriseSunsetResponseDto.class);
 
-        LogManager.getLogger(SunriseSunsetController.class).info("[ Sunrise / sunset: " + sunriseSunsetRootBean + " ]");
-        return sunriseSunsetRootBean;
+        LogManager.getLogger(SunriseSunsetController.class).info("[ Sunrise / sunset: " + sunriseSunsetResponse + " ]");
+        return sunriseSunsetResponse;
     }
 }

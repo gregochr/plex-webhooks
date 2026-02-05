@@ -1,12 +1,12 @@
-package gregochr.services.plex.beans;
+package gregochr.services.plex.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PlexRootBean {
+public class PlexPayloadDto {
     public String event;
-    public PlexMetadataBean metadata;
+    public PlexMetadataDto metadata;
 
     @JsonSetter("event")
     public void setEvent(String event) {
@@ -15,10 +15,10 @@ public class PlexRootBean {
     public String getEvent()  { return this.event; }
 
     @JsonSetter("Metadata")
-    public void setMetadata(PlexMetadataBean metadata) {
+    public void setMetadata(PlexMetadataDto metadata) {
         this.metadata = metadata;
     }
-    public PlexMetadataBean getMetadata()  { return this.metadata; }
+    public PlexMetadataDto getMetadata()  { return this.metadata; }
 
     @Override
     public String toString() {

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plex Webhooks Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #e5a00d;
+            margin-bottom: 10px;
+        }
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .status.connected {
+            background: #1e4620;
+            color: #4ade80;
+        }
+        .status.disconnected {
+            background: #4a1c1c;
+            color: #f87171;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #2a3a5a;
+        }
+        .panel h2 {
+            margin-top: 0;
+            color: #e5a00d;
+            font-size: 18px;
+            border-bottom: 1px solid #2a3a5a;
+            padding-bottom: 10px;
+        }
+        .event-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .event-item {
+            background: #1a1a2e;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #e5a00d;
+        }
+        .event-item .event-type {
+            font-weight: bold;
+            color: #e5a00d;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+        .event-item .event-title {
+            font-size: 16px;
+            margin: 4px 0;
+        }
+        .event-item .event-time {
+            font-size: 12px;
+            color: #888;
+        }
+        .json-output {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .json-output pre {
+            margin: 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .json-key { color: #7ee787; }
+        .json-string { color: #a5d6ff; }
+        .json-number { color: #f9826c; }
+        .json-boolean { color: #ff7b72; }
+        .json-null { color: #888; }
+        .empty-state {
+            color: #666;
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Plex Webhooks Dashboard</h1>
+    <div id="status" class="status disconnected">
+        <span class="status-dot"></span>
+        <span id="status-text">Connecting...</span>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <h2>Recent Events</h2>
+            <div id="event-list" class="event-list">
+                <div class="empty-state">Waiting for Plex events...</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Latest JSON Payload</h2>
+            <div id="json-output" class="json-output">
+                <div class="empty-state">No data yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const eventList = document.getElementById('event-list');
+        const jsonOutput = document.getElementById('json-output');
+        const statusEl = document.getElementById('status');
+        const statusText = document.getElementById('status-text');
+        let events = [];
+
+        function setConnected(connected) {
+            statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
+            statusText.textContent = connected ? 'Connected' : 'Disconnected';
+        }
+
+        function syntaxHighlight(json) {
+            const str = JSON.stringify(json, null, 2);
+            return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+                function (match) {
+                    let cls = 'json-number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'json-key';
+                            match = match.slice(0, -1) + '</span>:';
+                            return '<span class="' + cls + '">' + match;
+                        } else {
+                            cls = 'json-string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'json-boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'json-null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                });
+        }
+
+        function getEventIcon(eventType) {
+            const icons = {
+                'media.play': '▶️',
+                'media.pause': '⏸️',
+                'media.resume': '▶️',
+                'media.stop': '⏹️',
+                'media.scrobble': '✅'
+            };
+            return icons[eventType] || '📺';
+        }
+
+        function formatDuration(ms) {
+            if (!ms) return '';
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            }
+            return `${minutes}m`;
+        }
+
+        function addEvent(data) {
+            const command = data.command || {};
+            events.unshift({ command, timestamp: data.timestamp });
+            if (events.length > 50) events.pop();
+
+            const eventHtml = events.map(e => `
+                <div class="event-item">
+                    <span class="event-type">${getEventIcon(e.command.event)} ${e.command.event || 'unknown'}</span>
+                    <div class="event-title">${e.command.title || 'Unknown Title'}</div>
+                    <div class="event-time">
+                        ${formatDuration(e.command.duration)}
+                        &middot;
+                        ${new Date(e.timestamp || Date.now()).toLocaleTimeString()}
+                    </div>
+                </div>
+            `).join('');
+
+            eventList.innerHTML = eventHtml;
+        }
+
+        function showToast(data) {
+            const command = data.command || {};
+            const event = command.event || 'Event';
+            const title = command.title || 'Unknown';
+
+            Toastify({
+                text: `${getEventIcon(event)} ${event.replace('media.', '').toUpperCase()}: ${title}`,
+                duration: 4000,
+                gravity: 'top',
+                position: 'right',
+                style: {
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+                    border: '1px solid #e5a00d',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                }
+            }).showToast();
+        }
+
+        function connect() {
+            const eventSource = new EventSource('/api/events');
+
+            eventSource.onopen = function() {
+                setConnected(true);
+            };
+
+            eventSource.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+
+                    // Update JSON display with raw Plex payload
+                    jsonOutput.innerHTML = '<pre>' + syntaxHighlight(data.payload) + '</pre>';
+
+                    // Add command to event list
+                    addEvent(data);
+
+                    // Show toast
+                    showToast(data);
+                } catch (err) {
+                    console.error('Failed to parse event:', err);
+                }
+            };
+
+            eventSource.onerror = function() {
+                setConnected(false);
+                eventSource.close();
+                // Reconnect after 3 seconds
+                setTimeout(connect, 3000);
+            };
+        }
+
+        connect();
+    </script>
+</body>
+</html>

@@ -117,6 +117,61 @@
             text-align: center;
             padding: 40px;
         }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            background: #16213e;
+            border: 1px solid #2a3a5a;
+            border-bottom: none;
+            color: #888;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab-button:hover {
+            background: #1e2a4a;
+            color: #ccc;
+        }
+        .tab-button.active {
+            background: #1a1a2e;
+            color: #e5a00d;
+            border-color: #e5a00d;
+            border-bottom: 1px solid #1a1a2e;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+            border-top: 1px solid #2a3a5a;
+            padding-top: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #1a1a2e;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .config-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #e5a00d;
+            cursor: pointer;
+        }
+        .config-item label {
+            cursor: pointer;
+            font-size: 15px;
+        }
     </style>
 </head>
 <body>
@@ -126,18 +181,38 @@
         <span id="status-text">Connecting...</span>
     </div>
 
-    <div class="container">
-        <div class="panel">
-            <h2>Recent Events</h2>
-            <div id="event-list" class="event-list">
-                <div class="empty-state">Waiting for Plex events...</div>
+    <div class="tabs">
+        <button class="tab-button active" data-tab="events">Events</button>
+        <button class="tab-button" data-tab="config">Real-time Config</button>
+    </div>
+
+    <div id="tab-events" class="tab-content active">
+        <div class="container">
+            <div class="panel">
+                <h2>Recent Events</h2>
+                <div id="event-list" class="event-list">
+                    <div class="empty-state">Waiting for Plex events...</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Latest JSON Payload</h2>
+                <div id="json-output" class="json-output">
+                    <div class="empty-state">No data yet</div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="panel">
-            <h2>Latest JSON Payload</h2>
-            <div id="json-output" class="json-output">
-                <div class="empty-state">No data yet</div>
+    <div id="tab-config" class="tab-content">
+        <div class="panel" style="max-width: 600px;">
+            <h2>Real-time Config</h2>
+            <div class="config-item">
+                <input type="checkbox" id="integrate-hue">
+                <label for="integrate-hue">
+                    <img src="hue-logo.png" alt="Hue" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
+                    Integrate with Hue?
+                </label>
             </div>
         </div>
     </div>
@@ -271,6 +346,41 @@
         }
 
         connect();
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById('tab-' + button.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Config management
+        const hueCheckbox = document.getElementById('integrate-hue');
+
+        // Load initial config
+        fetch('/api/config')
+            .then(res => res.json())
+            .then(config => {
+                hueCheckbox.checked = config.hueIntegrationEnabled;
+            })
+            .catch(err => console.error('Failed to load config:', err));
+
+        // Update config on checkbox change
+        hueCheckbox.addEventListener('change', () => {
+            fetch('/api/config/hue-enabled', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: hueCheckbox.checked })
+            })
+            .then(res => res.json())
+            .then(config => {
+                console.log('Config updated:', config);
+            })
+            .catch(err => console.error('Failed to update config:', err));
+        });
     </script>
 </body>
 </html>

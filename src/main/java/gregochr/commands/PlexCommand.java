@@ -3,6 +3,7 @@ package gregochr.commands;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
+import gregochr.services.config.ConfigService;
 
 public abstract class PlexCommand {
     protected String title;
@@ -27,5 +28,5 @@ public abstract class PlexCommand {
                 "Duration: " + this.duration + " ]";
     }
 
-    abstract public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController);
+    abstract public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService);
 }

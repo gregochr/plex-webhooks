@@ -103,7 +103,7 @@ public class PlexCommandFactoryTest {
         PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
-        boolean result = plexCommand.execute(null, null, null);
+        boolean result = plexCommand.execute(null, null, null, null);
 
         assert(!result);
     }

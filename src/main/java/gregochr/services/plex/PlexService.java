@@ -6,6 +6,7 @@ import gregochr.commands.PlexCommandFactory;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
+import gregochr.services.config.ConfigService;
 import gregochr.services.plex.dto.PlexPayloadDto;
 import gregochr.services.sse.SseEventDto;
 import gregochr.services.sse.SseService;
@@ -23,15 +24,18 @@ public class PlexService {
     private final LocationController locationController;
     private final SunriseSunsetController sunriseSunsetController;
     private final SseService sseService;
+    private final ConfigService configService;
 
     public PlexService(HueSceneController hueSceneController,
                        LocationController locationController,
                        SunriseSunsetController sunriseSunsetController,
-                       SseService sseService) {
+                       SseService sseService,
+                       ConfigService configService) {
         this.hueSceneController = hueSceneController;
         this.locationController = locationController;
         this.sunriseSunsetController = sunriseSunsetController;
         this.sseService = sseService;
+        this.configService = configService;
     }
 
     @RequestMapping(value = "/plex", method = RequestMethod.POST, consumes = { "multipart/form-data" } )
@@ -46,7 +50,7 @@ public class PlexService {
             // Broadcast to SSE clients
             sseService.broadcast(new SseEventDto(command, payload));
 
-            command.execute(hueSceneController, locationController, sunriseSunsetController);
+            command.execute(hueSceneController, locationController, sunriseSunsetController, configService);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

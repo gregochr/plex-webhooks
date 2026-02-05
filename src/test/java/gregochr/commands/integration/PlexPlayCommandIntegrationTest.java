@@ -4,6 +4,7 @@ import gregochr.commands.PlexPlayCommand;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
+import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,12 +23,15 @@ public class PlexPlayCommandIntegrationTest {
     @Autowired
     private SunriseSunsetController sunriseSunsetController;
 
+    @Autowired
+    private ConfigService configService;
+
     @Tag("integration")
     @DisplayName("Test Plex Play Command")
     @Test
     public void testPlexPlayCommand() {
         PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123);
 
-        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController));
+        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 }

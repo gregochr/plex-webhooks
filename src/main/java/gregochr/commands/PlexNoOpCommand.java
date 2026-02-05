@@ -3,6 +3,7 @@ package gregochr.commands;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
+import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
 
 public class PlexNoOpCommand extends PlexCommand {
@@ -19,7 +20,7 @@ public class PlexNoOpCommand extends PlexCommand {
     }
 
     @Override
-    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
+    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService) {
         LogManager.getLogger(PlexNoOpCommand.class).debug("[ Ignoring unrecognized Plex event: {} ]", unknownEvent);
         return false;
     }

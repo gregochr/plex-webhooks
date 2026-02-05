@@ -4,6 +4,7 @@ import gregochr.commands.PlexStopCommand;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
+import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -22,12 +23,15 @@ public class PlexStopCommandIntegrationTest {
     @Autowired
     private SunriseSunsetController sunriseSunsetController;
 
+    @Autowired
+    private ConfigService configService;
+
     @Tag("integration")
     @DisplayName("Test Plex Stop Command")
     @Test
     public void testPlexStopCommand() {
         PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123);
 
-        assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController));
+        assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 }

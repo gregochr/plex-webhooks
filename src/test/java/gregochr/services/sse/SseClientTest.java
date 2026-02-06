@@ -29,7 +29,7 @@ public class SseClientTest {
                 "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
                 TEST_IP, Instant.now());
 
-        assertEquals("Safari on iOS", client.getBrowserInfo());
+        assertEquals("Safari on macOS", client.getBrowserInfo());
     }
 
     @DisplayName("Detects Safari on iPad")
@@ -39,7 +39,7 @@ public class SseClientTest {
                 "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
                 TEST_IP, Instant.now());
 
-        assertEquals("Safari on iOS", client.getBrowserInfo());
+        assertEquals("Safari on macOS", client.getBrowserInfo());
     }
 
     @DisplayName("Detects Edge on Windows")

@@ -364,6 +364,39 @@
             visibility: visible;
             opacity: 1;
         }
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .status-item {
+            background: #1f1f1f;
+            border-radius: 4px;
+            padding: 14px 16px;
+        }
+        .status-item .status-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #808080;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .status-item .status-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            word-break: break-all;
+        }
+        .status-item .status-value.connected {
+            color: #4caf50;
+        }
+        .status-item .status-value.disconnected {
+            color: #cc3d3d;
+        }
+        .status-item.full-width {
+            grid-column: 1 / -1;
+        }
     </style>
 </head>
 <body>
@@ -373,7 +406,7 @@
             <path d="M10 8L18 18L10 28H16L24 18L16 8H10Z" fill="#e5a00d"/>
         </svg>
         <img th:src="@{/hue-logo.png}" alt="Hue" class="hue-header-logo">
-        <h1>Plex Webhooks Dashboard</h1>
+        <h1>Home Cinema Setup</h1>
     </div>
     <div id="status" class="status disconnected">
         <span class="status-dot"></span>
@@ -381,8 +414,9 @@
     </div>
 
     <div class="tabs">
-        <button class="tab-button active" data-tab="events">Events</button>
-        <button th:if="${adminTabEnabled}" class="tab-button" data-tab="config">Administration</button>
+        <button class="tab-button active" data-tab="events">Plex Event Monitor</button>
+        <button class="tab-button" data-tab="hue">Philips Hue</button>
+        <button th:if="${adminTabEnabled}" class="tab-button" data-tab="config">Advanced/Admin/Debug</button>
     </div>
 
     <div id="tab-events" class="tab-content active">
@@ -398,6 +432,26 @@
                 <h2>Latest JSON Payload</h2>
                 <div id="json-output" class="json-output">
                     <div class="empty-state">No data yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-hue" class="tab-content">
+        <div class="panel" style="max-width: 800px;">
+            <h2>
+                <img th:src="@{/hue-logo.png}" alt="Hue" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;">
+                Philips Hue
+            </h2>
+
+            <div class="section-title">Bridge Status</div>
+            <div id="hue-status-container">
+                <div class="empty-state">Loading...</div>
+            </div>
+
+            <div class="section-divider">
+                <div class="debug-buttons">
+                    <button class="debug-btn" id="hue-refresh-status"><span>🔄</span> Refresh</button>
                 </div>
             </div>
         </div>
@@ -607,6 +661,10 @@
                         hueCheckbox.checked = config.hueIntegrationEnabled;
                         console.log('Config updated via SSE:', config);
                     }
+                    // Update Hue Commands status in the Hue tab
+                    console.log('About to call updateHueCommandsStatus');
+                    updateHueCommandsStatus(config.hueIntegrationEnabled);
+                    console.log('Called updateHueCommandsStatus');
                 } catch (err) {
                     console.error('Failed to parse config event:', err);
                 }
@@ -670,6 +728,102 @@
                     });
             });
         });
+
+        // Hue status
+        function renderHueStatus(status) {
+            const container = document.getElementById('hue-status-container');
+            container.innerHTML = `
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-label">Status</div>
+                        <div class="status-value ${status.connected ? 'connected' : 'disconnected'}">
+                            ${status.connected ? '● Reachable' : '○ Unreachable'}
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Hue Commands</div>
+                        <div id="hue-commands-status" class="status-value ${status.integrationEnabled ? 'connected' : 'disconnected'}">
+                            ${status.integrationEnabled ? '● Active' : '○ Inactive'}
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Hub Address</div>
+                        <div class="status-value">${status.hubAddress || 'Not configured'}</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Hub ID</div>
+                        <div class="status-value">${status.hubId || 'Not configured'}</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Application Key</div>
+                        <div class="status-value" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                            <span id="app-key-value" data-secret="${status.login || ''}">${status.login ? '••••••••' : 'Not configured'}</span>
+                            ${status.login ? '<button id="app-key-toggle" onclick="toggleAppKey()" style="background:none;border:none;cursor:pointer;color:#808080;padding:0;line-height:1;" title="Show/hide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : ''}
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Key</div>
+                        <div class="status-value" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                            <span id="key-value" data-secret="${status.key || ''}">${status.key ? '••••••••' : 'Not configured'}</span>
+                            ${status.key ? '<button id="key-toggle" onclick="toggleKey()" style="background:none;border:none;cursor:pointer;color:#808080;padding:0;line-height:1;" title="Show/hide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleSecret(elementId) {
+            const el = document.getElementById(elementId);
+            const secret = el.dataset.secret;
+            if (el.textContent === secret) {
+                el.textContent = '••••••••';
+            } else {
+                el.textContent = secret;
+            }
+        }
+
+        function toggleAppKey() {
+            toggleSecret('app-key-value');
+        }
+
+        function toggleKey() {
+            toggleSecret('key-value');
+        }
+
+        function updateHueCommandsStatus(enabled) {
+            console.log('updateHueCommandsStatus called with:', enabled);
+            const el = document.getElementById('hue-commands-status');
+            console.log('hue-commands-status element:', el);
+            if (el) {
+                el.className = 'status-value ' + (enabled ? 'connected' : 'disconnected');
+                el.textContent = enabled ? '● Active' : '○ Inactive';
+            }
+        }
+
+        function fetchHueStatus() {
+            fetch('/api/hue/status')
+                .then(res => res.json())
+                .then(status => {
+                    renderHueStatus(status);
+                })
+                .catch(err => {
+                    console.error('Failed to fetch Hue status:', err);
+                    document.getElementById('hue-status-container').innerHTML =
+                        '<div class="empty-state">Failed to load Hue status</div>';
+                });
+        }
+
+        // Hue refresh button
+        document.getElementById('hue-refresh-status')?.addEventListener('click', function() {
+            this.disabled = true;
+            fetchHueStatus();
+            setTimeout(() => {
+                this.disabled = false;
+            }, 500);
+        });
+
+        // Load Hue status on page load
+        fetchHueStatus();
     </script>
 </body>
 </html>

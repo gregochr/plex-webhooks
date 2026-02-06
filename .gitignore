@@ -8,6 +8,9 @@
 # Claude Code settings
 /.claude/settings.local.json
 
+# Maven Wrapper binary (auto-downloaded)
+.mvn/wrapper/maven-wrapper.jar
+
 # Environment files
 .env
 *.env.local

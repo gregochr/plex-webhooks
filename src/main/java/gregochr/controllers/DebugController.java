@@ -4,6 +4,7 @@ import gregochr.commands.*;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,43 +30,27 @@ public class DebugController {
         this.configService = configService;
     }
 
-    @PostMapping("/play")
-    public Map<String, Object> triggerPlay(@RequestParam(defaultValue = "movie") String type) {
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering Play command with type: {} ]", type);
-        PlexCommand command = new PlexPlayCommand("Debug Test", 0, type);
-        boolean result = command.execute(hueSceneController, locationController, sunriseSunsetController, configService);
-        return Map.of("command", "play", "type", type, "success", result);
+    @PostMapping("/{command}")
+    public Map<String, Object> triggerCommand(
+            @PathVariable String command,
+            @RequestParam(defaultValue = "movie") String type) {
+
+        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering {} command with type: {} ]", command, type);
+
+        PlexCommand plexCommand = createCommand(command, type);
+        boolean result = plexCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService);
+
+        return Map.of("command", command, "type", type, "success", result);
     }
 
-    @PostMapping("/stop")
-    public Map<String, Object> triggerStop(@RequestParam(defaultValue = "movie") String type) {
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering Stop command with type: {} ]", type);
-        PlexCommand command = new PlexStopCommand("Debug Test", 0, type);
-        boolean result = command.execute(hueSceneController, locationController, sunriseSunsetController, configService);
-        return Map.of("command", "stop", "type", type, "success", result);
-    }
-
-    @PostMapping("/pause")
-    public Map<String, Object> triggerPause(@RequestParam(defaultValue = "movie") String type) {
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering Pause command with type: {} ]", type);
-        PlexCommand command = new PlexPauseCommand("Debug Test", 0, type);
-        boolean result = command.execute(hueSceneController, locationController, sunriseSunsetController, configService);
-        return Map.of("command", "pause", "type", type, "success", result);
-    }
-
-    @PostMapping("/resume")
-    public Map<String, Object> triggerResume(@RequestParam(defaultValue = "movie") String type) {
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering Resume command with type: {} ]", type);
-        PlexCommand command = new PlexResumeCommand("Debug Test", 0, type);
-        boolean result = command.execute(hueSceneController, locationController, sunriseSunsetController, configService);
-        return Map.of("command", "resume", "type", type, "success", result);
-    }
-
-    @PostMapping("/scrobble")
-    public Map<String, Object> triggerScrobble(@RequestParam(defaultValue = "movie") String type) {
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering Scrobble command with type: {} ]", type);
-        PlexCommand command = new PlexScrobbleCommand("Debug Test", 0, type);
-        boolean result = command.execute(hueSceneController, locationController, sunriseSunsetController, configService);
-        return Map.of("command", "scrobble", "type", type, "success", result);
+    private PlexCommand createCommand(String command, String type) {
+        return switch (command) {
+            case "play" -> new PlexPlayCommand("Debug Test", 0, type);
+            case "stop" -> new PlexStopCommand("Debug Test", 0, type);
+            case "pause" -> new PlexPauseCommand("Debug Test", 0, type);
+            case "resume" -> new PlexResumeCommand("Debug Test", 0, type);
+            case "scrobble" -> new PlexScrobbleCommand("Debug Test", 0, type);
+            default -> new PlexNoOpCommand(command, type);
+        };
     }
 }

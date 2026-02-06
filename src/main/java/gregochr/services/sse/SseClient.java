@@ -9,6 +9,7 @@ public record SseClient(
         String clientId,
         SseEmitter emitter,
         String userAgent,
+        String ipAddress,
         Instant connectedAt
 ) {
     public String getBrowserInfo() {

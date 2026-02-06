@@ -22,11 +22,12 @@ public class SseServiceTest {
     }
 
     private static final String TEST_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
+    private static final String TEST_IP_ADDRESS = "192.168.1.100";
 
     @DisplayName("Subscribe returns a non-null SseEmitter")
     @Test
     public void testSubscribeReturnsEmitter() {
-        SseEmitter emitter = sseService.subscribe("client-1", TEST_USER_AGENT);
+        SseEmitter emitter = sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
 
         assertNotNull(emitter);
     }
@@ -36,10 +37,10 @@ public class SseServiceTest {
     public void testSubscribeIncrementsClientCount() {
         assertEquals(0, sseService.getClientCount());
 
-        sseService.subscribe("client-1", TEST_USER_AGENT);
+        sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
         assertEquals(1, sseService.getClientCount());
 
-        sseService.subscribe("client-2", TEST_USER_AGENT);
+        sseService.subscribe("client-2", TEST_USER_AGENT, TEST_IP_ADDRESS);
         assertEquals(2, sseService.getClientCount());
     }
 
@@ -48,11 +49,11 @@ public class SseServiceTest {
     public void testSubscribeReplacesExistingClient() {
         assertEquals(0, sseService.getClientCount());
 
-        sseService.subscribe("client-1", TEST_USER_AGENT);
+        sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
         assertEquals(1, sseService.getClientCount());
 
         // Same client reconnects - should replace, not add
-        sseService.subscribe("client-1", TEST_USER_AGENT);
+        sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
         assertEquals(1, sseService.getClientCount());
     }
 
@@ -90,8 +91,8 @@ public class SseServiceTest {
     @DisplayName("Heartbeat does not throw when clients connected")
     @Test
     public void testHeartbeatWithClients() {
-        sseService.subscribe("client-1", TEST_USER_AGENT);
-        sseService.subscribe("client-2", TEST_USER_AGENT);
+        sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
+        sseService.subscribe("client-2", TEST_USER_AGENT, TEST_IP_ADDRESS);
 
         sseService.heartbeat();
 

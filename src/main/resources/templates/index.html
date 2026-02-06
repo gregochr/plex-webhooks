@@ -169,6 +169,138 @@
         .json-number { color: #6ab0f3; }
         .json-boolean { color: #cc8866; }
         .json-null { color: #808080; }
+
+        /* JSON tree viewer */
+        .json-tree {
+            font-family: 'IBM Plex Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .json-tree ul {
+            list-style: none;
+            margin: 0;
+            padding-left: 20px;
+        }
+        .json-tree > ul {
+            padding-left: 0;
+        }
+        .json-tree li {
+            position: relative;
+        }
+        .json-toggle {
+            cursor: pointer;
+            user-select: none;
+            color: #808080;
+            display: inline-block;
+            width: 14px;
+            text-align: center;
+            font-size: 10px;
+            margin-right: 2px;
+            transition: transform 0.15s;
+        }
+        .json-toggle:hover {
+            color: #e5a00d;
+        }
+        .json-toggle.collapsed {
+            transform: rotate(0deg);
+        }
+        .json-toggle.expanded {
+            transform: rotate(90deg);
+        }
+        .json-children.collapsed {
+            display: none;
+        }
+        .json-summary {
+            color: #808080;
+            font-style: italic;
+            font-size: 11px;
+        }
+        .json-bracket {
+            color: #808080;
+        }
+        .json-comma {
+            color: #808080;
+        }
+        .json-search-highlight {
+            background: rgba(229, 160, 13, 0.25);
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+        .json-search-highlight.active {
+            background: rgba(229, 160, 13, 0.7);
+            outline: 1px solid #e5a00d;
+        }
+        .json-nav-btn {
+            background: none;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: #808080;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 3px 7px;
+            transition: all 0.15s;
+        }
+        .json-nav-btn:hover:not(:disabled) {
+            border-color: #e5a00d;
+            color: #e5a00d;
+        }
+        .json-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* JSON search bar */
+        .json-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 0;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #3d3d3d;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .json-search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .json-search-wrap input {
+            background: #1f1f1f;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: #eaeaea;
+            font-family: inherit;
+            font-size: 12px;
+            padding: 4px 10px;
+            width: 160px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .json-search-wrap input:focus {
+            border-color: #e5a00d;
+        }
+        .json-search-wrap input::placeholder {
+            color: #555;
+        }
+        .json-search-wrap input:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .json-match-count {
+            font-size: 11px;
+            color: #808080;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: normal;
+            min-width: 50px;
+        }
+
         .empty-state {
             color: #808080;
             text-align: center;
@@ -429,7 +561,15 @@
             </div>
 
             <div class="panel">
-                <h2>Latest JSON Payload</h2>
+                <div class="json-panel-header">
+                    <span>Latest JSON Payload</span>
+                    <div class="json-search-wrap">
+                        <input type="text" id="json-search" placeholder="Search JSON..." disabled>
+                        <button class="json-nav-btn" id="json-prev-match" title="Previous match" disabled>&#9650;</button>
+                        <button class="json-nav-btn" id="json-next-match" title="Next match" disabled>&#9660;</button>
+                        <span id="json-match-count" class="json-match-count"></span>
+                    </div>
+                </div>
                 <div id="json-output" class="json-output">
                     <div class="empty-state">No data yet</div>
                 </div>
@@ -509,27 +649,271 @@
             statusText.textContent = connected ? 'Connected' : 'Disconnected';
         }
 
-        function syntaxHighlight(json) {
-            const str = JSON.stringify(json, null, 2);
-            return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-                function (match) {
-                    let cls = 'json-number';
-                    if (/^"/.test(match)) {
-                        if (/:$/.test(match)) {
-                            cls = 'json-key';
-                            match = match.slice(0, -1) + '</span>:';
-                            return '<span class="' + cls + '">' + match;
-                        } else {
-                            cls = 'json-string';
-                        }
-                    } else if (/true|false/.test(match)) {
-                        cls = 'json-boolean';
-                    } else if (/null/.test(match)) {
-                        cls = 'json-null';
-                    }
-                    return '<span class="' + cls + '">' + match + '</span>';
-                });
+        let currentJsonData = null;
+        const jsonSearchInput = document.getElementById('json-search');
+        const jsonMatchCount = document.getElementById('json-match-count');
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+
+        function renderJsonTree(data) {
+            const container = document.createElement('div');
+            container.className = 'json-tree';
+            const ul = document.createElement('ul');
+            ul.appendChild(buildNode(null, data, false));
+            container.appendChild(ul);
+            return container;
+        }
+
+        function buildNode(key, value, addComma) {
+            const li = document.createElement('li');
+            if (value !== null && typeof value === 'object') {
+                const isArray = Array.isArray(value);
+                const count = isArray ? value.length : Object.keys(value).length;
+                const openBracket = isArray ? '[' : '{';
+                const closeBracket = isArray ? ']' : '}';
+
+                const toggle = document.createElement('span');
+                toggle.className = 'json-toggle expanded';
+                toggle.textContent = '\u25B6';
+                li.appendChild(toggle);
+
+                if (key !== null) {
+                    const keySpan = document.createElement('span');
+                    keySpan.className = 'json-key';
+                    keySpan.textContent = '"' + key + '"';
+                    li.appendChild(keySpan);
+                    li.appendChild(document.createTextNode(': '));
+                }
+
+                const openSpan = document.createElement('span');
+                openSpan.className = 'json-bracket';
+                openSpan.textContent = openBracket;
+                li.appendChild(openSpan);
+
+                const summary = document.createElement('span');
+                summary.className = 'json-summary';
+                summary.style.display = 'none';
+                if (isArray) {
+                    summary.textContent = ' ' + count + ' item' + (count !== 1 ? 's' : '') + ' ';
+                } else {
+                    summary.textContent = ' ' + count + ' key' + (count !== 1 ? 's' : '') + ' ';
+                }
+                li.appendChild(summary);
+
+                const childrenUl = document.createElement('ul');
+                childrenUl.className = 'json-children';
+                if (isArray) {
+                    value.forEach(function(item, i) {
+                        childrenUl.appendChild(buildNode(null, item, i < value.length - 1));
+                    });
+                } else {
+                    const keys = Object.keys(value);
+                    keys.forEach(function(k, i) {
+                        childrenUl.appendChild(buildNode(k, value[k], i < keys.length - 1));
+                    });
+                }
+                li.appendChild(childrenUl);
+
+                const closeSpan = document.createElement('span');
+                closeSpan.className = 'json-bracket';
+                closeSpan.textContent = closeBracket;
+                li.appendChild(closeSpan);
+
+                if (addComma) {
+                    const comma = document.createElement('span');
+                    comma.className = 'json-comma';
+                    comma.textContent = ',';
+                    li.appendChild(comma);
+                }
+
+                toggle.addEventListener('click', function() {
+                    const isExpanded = toggle.classList.contains('expanded');
+                    if (isExpanded) {
+                        toggle.classList.remove('expanded');
+                        toggle.classList.add('collapsed');
+                        childrenUl.classList.add('collapsed');
+                        summary.style.display = 'inline';
+                    } else {
+                        toggle.classList.remove('collapsed');
+                        toggle.classList.add('expanded');
+                        childrenUl.classList.remove('collapsed');
+                        summary.style.display = 'none';
+                    }
+                });
+            } else {
+                // Leaf value
+                const spacer = document.createElement('span');
+                spacer.style.display = 'inline-block';
+                spacer.style.width = '14px';
+                spacer.style.marginRight = '2px';
+                li.appendChild(spacer);
+
+                if (key !== null) {
+                    const keySpan = document.createElement('span');
+                    keySpan.className = 'json-key';
+                    keySpan.textContent = '"' + key + '"';
+                    li.appendChild(keySpan);
+                    li.appendChild(document.createTextNode(': '));
+                }
+
+                const valSpan = document.createElement('span');
+                if (value === null) {
+                    valSpan.className = 'json-null';
+                    valSpan.textContent = 'null';
+                } else if (typeof value === 'string') {
+                    valSpan.className = 'json-string';
+                    valSpan.textContent = '"' + escapeHtml(value) + '"';
+                } else if (typeof value === 'number') {
+                    valSpan.className = 'json-number';
+                    valSpan.textContent = String(value);
+                } else if (typeof value === 'boolean') {
+                    valSpan.className = 'json-boolean';
+                    valSpan.textContent = String(value);
+                }
+                li.appendChild(valSpan);
+
+                if (addComma) {
+                    const comma = document.createElement('span');
+                    comma.className = 'json-comma';
+                    comma.textContent = ',';
+                    li.appendChild(comma);
+                }
+            }
+            return li;
+        }
+
+        // JSON search functionality
+        let jsonMatchIndex = -1;
+        let jsonMatchElements = [];
+        const jsonPrevBtn = document.getElementById('json-prev-match');
+        const jsonNextBtn = document.getElementById('json-next-match');
+
+        function updateMatchNav() {
+            const hasMatches = jsonMatchElements.length > 0;
+            jsonPrevBtn.disabled = !hasMatches;
+            jsonNextBtn.disabled = !hasMatches;
+            if (hasMatches) {
+                jsonMatchCount.textContent = (jsonMatchIndex + 1) + ' / ' + jsonMatchElements.length;
+            }
+        }
+
+        function goToMatch(index) {
+            if (jsonMatchElements.length === 0) return;
+            // Remove active class from previous
+            if (jsonMatchIndex >= 0 && jsonMatchIndex < jsonMatchElements.length) {
+                jsonMatchElements[jsonMatchIndex].classList.remove('active');
+            }
+            jsonMatchIndex = index;
+            const el = jsonMatchElements[jsonMatchIndex];
+            el.classList.add('active');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            updateMatchNav();
+        }
+
+        function searchJsonTree(query) {
+            const tree = jsonOutput.querySelector('.json-tree');
+            if (!tree) return;
+
+            // Clear previous highlights
+            tree.querySelectorAll('.json-search-highlight').forEach(function(el) {
+                const parent = el.parentNode;
+                parent.replaceChild(document.createTextNode(el.textContent), el);
+                parent.normalize();
+            });
+            jsonMatchCount.textContent = '';
+            jsonMatchElements = [];
+            jsonMatchIndex = -1;
+            jsonPrevBtn.disabled = true;
+            jsonNextBtn.disabled = true;
+
+            if (!query) return;
+
+            const lowerQuery = query.toLowerCase();
+
+            // Walk all text-bearing spans (keys, values)
+            const spans = tree.querySelectorAll('.json-key, .json-string, .json-number, .json-boolean, .json-null');
+            spans.forEach(function(span) {
+                const text = span.textContent;
+                const lowerText = text.toLowerCase();
+                const idx = lowerText.indexOf(lowerQuery);
+                if (idx === -1) return;
+
+                // Highlight all occurrences within this span
+                const frag = document.createDocumentFragment();
+                let lastIdx = 0;
+                let searchIdx = 0;
+                while (true) {
+                    const pos = lowerText.indexOf(lowerQuery, searchIdx);
+                    if (pos === -1) break;
+                    if (pos > lastIdx) {
+                        frag.appendChild(document.createTextNode(text.substring(lastIdx, pos)));
+                    }
+                    const mark = document.createElement('span');
+                    mark.className = 'json-search-highlight';
+                    mark.textContent = text.substring(pos, pos + query.length);
+                    frag.appendChild(mark);
+                    jsonMatchElements.push(mark);
+                    lastIdx = pos + query.length;
+                    searchIdx = lastIdx;
+                }
+                if (lastIdx < text.length) {
+                    frag.appendChild(document.createTextNode(text.substring(lastIdx)));
+                }
+                span.textContent = '';
+                span.appendChild(frag);
+
+                // Auto-expand parent nodes
+                let node = span.closest('li');
+                while (node) {
+                    const parentUl = node.parentElement;
+                    if (parentUl && parentUl.classList.contains('json-children') && parentUl.classList.contains('collapsed')) {
+                        parentUl.classList.remove('collapsed');
+                        const toggle = parentUl.parentElement.querySelector(':scope > .json-toggle');
+                        const summary = parentUl.parentElement.querySelector(':scope > .json-summary');
+                        if (toggle) {
+                            toggle.classList.remove('collapsed');
+                            toggle.classList.add('expanded');
+                        }
+                        if (summary) {
+                            summary.style.display = 'none';
+                        }
+                    }
+                    node = parentUl ? parentUl.closest('li') : null;
+                }
+            });
+
+            if (jsonMatchElements.length > 0) {
+                goToMatch(0);
+            } else {
+                jsonMatchCount.textContent = 'No matches';
+            }
+        }
+
+        jsonSearchInput.addEventListener('input', function() {
+            searchJsonTree(this.value.trim());
+        });
+
+        jsonSearchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && jsonMatchElements.length > 0) {
+                e.preventDefault();
+                const next = e.shiftKey
+                    ? (jsonMatchIndex - 1 + jsonMatchElements.length) % jsonMatchElements.length
+                    : (jsonMatchIndex + 1) % jsonMatchElements.length;
+                goToMatch(next);
+            }
+        });
+
+        jsonNextBtn.addEventListener('click', function() {
+            if (jsonMatchElements.length === 0) return;
+            goToMatch((jsonMatchIndex + 1) % jsonMatchElements.length);
+        });
+
+        jsonPrevBtn.addEventListener('click', function() {
+            if (jsonMatchElements.length === 0) return;
+            goToMatch((jsonMatchIndex - 1 + jsonMatchElements.length) % jsonMatchElements.length);
+        });
 
         function getEventIcon(eventType) {
             const icons = {
@@ -634,8 +1018,15 @@
                 try {
                     const data = JSON.parse(e.data);
 
-                    // Update JSON display with raw Plex payload
-                    jsonOutput.innerHTML = '<pre>' + syntaxHighlight(data.payload) + '</pre>';
+                    // Update JSON display with interactive tree
+                    currentJsonData = data.payload;
+                    jsonOutput.innerHTML = '';
+                    jsonOutput.appendChild(renderJsonTree(data.payload));
+                    jsonSearchInput.disabled = false;
+                    // Re-apply search if there's a query
+                    if (jsonSearchInput.value.trim()) {
+                        searchJsonTree(jsonSearchInput.value.trim());
+                    }
 
                     // Add command to event list
                     addEvent(data);

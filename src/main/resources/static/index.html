@@ -5,38 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plex Webhooks Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #eee;
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1f1f1f;
+            color: #eaeaea;
             margin: 0;
-            padding: 20px;
+            padding: 24px 32px;
             min-height: 100vh;
         }
         h1 {
             color: #e5a00d;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 28px;
+            letter-spacing: -0.5px;
         }
         .status {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            margin-bottom: 20px;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .status.connected {
-            background: #1e4620;
-            color: #4ade80;
+            background: rgba(204, 123, 25, 0.15);
+            color: #e5a00d;
         }
         .status.disconnected {
-            background: #4a1c1c;
-            color: #f87171;
+            background: rgba(229, 57, 53, 0.15);
+            color: #cc3d3d;
         }
         .status-dot {
             width: 8px;
@@ -47,7 +56,7 @@
         .container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 24px;
             max-width: 1400px;
         }
         @media (max-width: 900px) {
@@ -56,99 +65,129 @@
             }
         }
         .panel {
-            background: #16213e;
-            border-radius: 8px;
+            background: #282828;
+            border-radius: 4px;
             padding: 20px;
-            border: 1px solid #2a3a5a;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
         .panel h2 {
             margin-top: 0;
-            color: #e5a00d;
-            font-size: 18px;
-            border-bottom: 1px solid #2a3a5a;
-            padding-bottom: 10px;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #3d3d3d;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
         }
         .event-list {
             max-height: 400px;
             overflow-y: auto;
         }
+        .event-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .event-list::-webkit-scrollbar-track {
+            background: #1f1f1f;
+        }
+        .event-list::-webkit-scrollbar-thumb {
+            background: #4d4d4d;
+            border-radius: 3px;
+        }
         .event-item {
-            background: #1a1a2e;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 10px;
+            background: #1f1f1f;
+            border-radius: 4px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
             border-left: 3px solid #e5a00d;
+            transition: background 0.2s;
+        }
+        .event-item:hover {
+            background: #252525;
         }
         .event-item .event-type {
-            font-weight: bold;
+            font-weight: 600;
             color: #e5a00d;
             text-transform: uppercase;
-            font-size: 12px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
         }
         .event-item .event-title {
-            font-size: 16px;
-            margin: 4px 0;
+            font-size: 15px;
+            margin: 6px 0 4px 0;
+            font-weight: 600;
+            color: #ffffff;
         }
         .event-item .event-time {
             font-size: 12px;
-            color: #888;
+            color: #808080;
         }
         .json-output {
-            background: #0d1117;
-            border-radius: 6px;
-            padding: 15px;
+            background: #1f1f1f;
+            border-radius: 4px;
+            padding: 16px;
             overflow-x: auto;
             max-height: 400px;
             overflow-y: auto;
         }
+        .json-output::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .json-output::-webkit-scrollbar-track {
+            background: #282828;
+        }
+        .json-output::-webkit-scrollbar-thumb {
+            background: #4d4d4d;
+            border-radius: 3px;
+        }
         .json-output pre {
             margin: 0;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 13px;
-            line-height: 1.5;
+            font-family: 'IBM Plex Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.6;
         }
-        .json-key { color: #7ee787; }
-        .json-string { color: #a5d6ff; }
-        .json-number { color: #f9826c; }
-        .json-boolean { color: #ff7b72; }
-        .json-null { color: #888; }
+        .json-key { color: #e5a00d; }
+        .json-string { color: #7ec699; }
+        .json-number { color: #6ab0f3; }
+        .json-boolean { color: #cc8866; }
+        .json-null { color: #808080; }
         .empty-state {
-            color: #666;
+            color: #808080;
             text-align: center;
             padding: 40px;
+            font-size: 14px;
         }
         .tabs {
             display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
+            gap: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid #3d3d3d;
         }
         .tab-button {
-            background: #16213e;
-            border: 1px solid #2a3a5a;
-            border-bottom: none;
-            color: #888;
-            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: #808080;
+            padding: 14px 20px;
             cursor: pointer;
-            border-radius: 8px 8px 0 0;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
+            font-family: inherit;
             transition: all 0.2s;
+            margin-bottom: -1px;
         }
         .tab-button:hover {
-            background: #1e2a4a;
-            color: #ccc;
+            color: #ffffff;
         }
         .tab-button.active {
-            background: #1a1a2e;
             color: #e5a00d;
-            border-color: #e5a00d;
-            border-bottom: 1px solid #1a1a2e;
-            margin-bottom: -1px;
+            border-bottom-color: #e5a00d;
         }
         .tab-content {
             display: none;
-            border-top: 1px solid #2a3a5a;
-            padding-top: 20px;
+            padding-top: 24px;
         }
         .tab-content.active {
             display: block;
@@ -157,20 +196,26 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px;
-            background: #1a1a2e;
-            border-radius: 6px;
-            margin-bottom: 10px;
+            padding: 14px 16px;
+            background: #1f1f1f;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .config-item:hover {
+            background: #252525;
         }
         .config-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             accent-color: #e5a00d;
             cursor: pointer;
         }
         .config-item label {
             cursor: pointer;
-            font-size: 15px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
         }
     </style>
 </head>
@@ -183,7 +228,7 @@
 
     <div class="tabs">
         <button class="tab-button active" data-tab="events">Events</button>
-        <button class="tab-button" data-tab="config">Real-time Config</button>
+        <button class="tab-button" data-tab="config">Administration</button>
     </div>
 
     <div id="tab-events" class="tab-content active">
@@ -305,10 +350,14 @@
                 gravity: 'top',
                 position: 'right',
                 style: {
-                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-                    border: '1px solid #e5a00d',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                    background: '#282828',
+                    color: '#ffffff',
+                    borderLeft: '3px solid #e5a00d',
+                    borderRadius: '4px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                    fontFamily: "'Open Sans', sans-serif",
+                    fontWeight: '600',
+                    fontSize: '13px'
                 }
             }).showToast();
         }

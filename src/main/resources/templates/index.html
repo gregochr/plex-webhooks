@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -315,7 +315,7 @@
             <rect width="36" height="36" rx="4" fill="#1f1f1f"/>
             <path d="M10 8L18 18L10 28H16L24 18L16 8H10Z" fill="#e5a00d"/>
         </svg>
-        <img src="hue-logo.png" alt="Hue" class="hue-header-logo">
+        <img th:src="@{/hue-logo.png}" alt="Hue" class="hue-header-logo">
         <h1>Plex Webhooks Dashboard</h1>
     </div>
     <div id="status" class="status disconnected">
@@ -325,7 +325,7 @@
 
     <div class="tabs">
         <button class="tab-button active" data-tab="events">Events</button>
-        <button class="tab-button" data-tab="config">Administration</button>
+        <button th:if="${adminTabEnabled}" class="tab-button" data-tab="config">Administration</button>
     </div>
 
     <div id="tab-events" class="tab-content active">
@@ -346,15 +346,15 @@
         </div>
     </div>
 
-    <div id="tab-config" class="tab-content">
+    <div th:if="${adminTabEnabled}" id="tab-config" class="tab-content">
         <div class="panel" style="max-width: 600px;">
             <h2>Debug</h2>
 
             <div class="section-title">Configuration</div>
             <div class="config-item">
-                <input type="checkbox" id="integrate-hue">
+                <input type="checkbox" id="integrate-hue" th:checked="${hueIntegrationEnabled}">
                 <label for="integrate-hue">
-                    <img src="hue-logo.png" alt="Hue" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
+                    <img th:src="@{/hue-logo.png}" alt="Hue" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
                     Integrate with Hue?
                 </label>
             </div>
@@ -383,7 +383,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script>
+    <script th:inline="javascript">
         const eventList = document.getElementById('event-list');
         const jsonOutput = document.getElementById('json-output');
         const statusEl = document.getElementById('status');
@@ -526,30 +526,24 @@
             });
         });
 
-        // Config management
+        // Config management - checkbox is pre-populated by Thymeleaf
         const hueCheckbox = document.getElementById('integrate-hue');
 
-        // Load initial config
-        fetch('/api/config')
-            .then(res => res.json())
-            .then(config => {
-                hueCheckbox.checked = config.hueIntegrationEnabled;
-            })
-            .catch(err => console.error('Failed to load config:', err));
-
-        // Update config on checkbox change
-        hueCheckbox.addEventListener('change', () => {
-            fetch('/api/config/hue-enabled', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: hueCheckbox.checked })
-            })
-            .then(res => res.json())
-            .then(config => {
-                console.log('Config updated:', config);
-            })
-            .catch(err => console.error('Failed to update config:', err));
-        });
+        if (hueCheckbox) {
+            // Update config on checkbox change
+            hueCheckbox.addEventListener('change', () => {
+                fetch('/api/config/hue-enabled', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: hueCheckbox.checked })
+                })
+                .then(res => res.json())
+                .then(config => {
+                    console.log('Config updated:', config);
+                })
+                .catch(err => console.error('Failed to update config:', err));
+            });
+        }
 
         // Debug command buttons
         document.querySelectorAll('.debug-btn').forEach(btn => {

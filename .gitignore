@@ -1,41 +1,13 @@
-/target/test-classes/AllTests.class
-/target/classes/application.properties
-/target/test-classes/resources/application.properties
-/target/test-classes/application.properties
-/target/classes/gregochr/controllers/hue/HueController.class
-/target/classes/gregochr/controllers/beans/hue/HueLightBean.class
-/target/classes/gregochr/controllers/hue/HueLightController.class
-/target/classes/gregochr/controllers/beans/hue/HueLightResponseBean.class
-/target/classes/gregochr/controllers/beans/hue/HueLightStatusBean.class
-/target/classes/gregochr/controllers/hue/HueSceneController.class
-/target/test-classes/IntegrationTestSuite.class
-/target/classes/gregochr/controllers/LocationController.class
-/target/test-classes/gregochr/controllers/LocationControllerTest.class
-/target/classes/gregochr/controllers/beans/LocationResultBean.class
-/target/classes/gregochr/controllers/beans/LocationRootBean.class
-/target/classes/gregochr/Main.class
-/target/classes/gregochr/commands/PlexCommand.class
-/target/classes/gregochr/commands/PlexCommandFactory.class
-/target/test-classes/gregochr/commands/PlexCommandFactoryTest.class
-/target/test-classes/gregochr/commands/PlexCommandTest.class
-/target/classes/gregochr/services/plex/beans/PlexMetadataBean.class
-/target/classes/gregochr/commands/PlexPauseCommand.class
-/target/classes/gregochr/commands/PlexPlayCommand.class
-/target/test-classes/gregochr/commands/integration/PlexPlayCommandIntegrationTest.class
-/target/classes/gregochr/commands/PlexResumeCommand.class
-/target/classes/gregochr/services/plex/beans/PlexRootBean.class
-/target/test-classes/gregochr/services/plex/beans/PlexRootBeanTest.class
-/target/classes/gregochr/commands/PlexScrobbleCommand.class
-/target/classes/gregochr/services/plex/PlexService.class
-/target/test-classes/gregochr/services/plex/PlexServiceIntegrationTest.class
-/target/classes/gregochr/commands/PlexStopCommand.class
-/target/test-classes/gregochr/commands/integration/PlexStopCommandIntegrationTest.class
-/target/classes/gregochr/controllers/SunriseSunsetController.class
-/target/test-classes/gregochr/controllers/SunriseSunsetControllerTest.class
-/target/classes/gregochr/controllers/beans/SunriseSunsetResultBean.class
-/target/classes/gregochr/controllers/beans/SunriseSunsetRootBean.class
-/target/test-classes/UnitTestSuite.class
-/target/classes/gregochr/commands/PlexNoOpCommand.class
+# Maven build output
+/target/
+
+# IDE settings
+/.idea/
+*.iml
+
+# Claude Code settings
 /.claude/settings.local.json
-/target/classes/gregochr/controllers/SunriseSunsetTimeFactory.class
-/target/test-classes/gregochr/controllers/SunriseSunsetTimeFactoryTest.class
+
+# Environment files
+.env
+*.env.local

@@ -6,6 +6,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -48,6 +50,16 @@ public class SseServiceTest {
         );
 
         sseService.broadcast(event);
+
+        assertEquals(0, sseService.getClientCount());
+    }
+
+    @DisplayName("BroadcastConfig does not throw when no clients connected")
+    @Test
+    public void testBroadcastConfigWithNoClients() {
+        Map<String, Object> config = Map.of("hueIntegrationEnabled", true);
+
+        sseService.broadcastConfig(config);
 
         assertEquals(0, sseService.getClientCount());
     }

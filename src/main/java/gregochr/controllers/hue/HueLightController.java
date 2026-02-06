@@ -29,26 +29,6 @@ public class HueLightController extends HueController {
         LogManager.getLogger(HueLightController.class).info("[ Hue light response : " + response.toString() + " ]");
     }
 
-    private void setScene(final String sceneId) {
-        final String restURL = "https://" + this.hubId + "/clip/v2/resource/sceneId/";
-        final String body = "{\"recall\":{\"action\":\"active\", \"transitiontime\":50}}";
-
-        RestClient restClient = RestClient.create();
-        LogManager.getLogger(HueLightController.class).info("[ Turning sceneId : " + sceneId + ", " +  body + " ]");
-
-        ResponseEntity<Void> response = restClient
-                .put()
-                .uri(restURL + "{sceneKey}", sceneId)
-                .header("hue-application-key", this.login)
-                .contentType(APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .toBodilessEntity();
-
-        restClient.delete();
-        LogManager.getLogger(HueLightController.class).info("[ Hue sceneId response : " + response.toString() + " ]");
-    }
-
     private void turnLightOff(final HueLightDto light) {
         final String body = "{\"on\":{\"on\":false}}";
         setLightState(light, body);

@@ -571,6 +571,20 @@
                 // Reconnect after 3 seconds
                 setTimeout(connect, 3000);
             };
+
+            // Listen for config updates
+            eventSource.addEventListener('config', function(e) {
+                try {
+                    const config = JSON.parse(e.data);
+                    const hueCheckbox = document.getElementById('integrate-hue');
+                    if (hueCheckbox && config.hueIntegrationEnabled !== undefined) {
+                        hueCheckbox.checked = config.hueIntegrationEnabled;
+                        console.log('Config updated via SSE:', config);
+                    }
+                } catch (err) {
+                    console.error('Failed to parse config event:', err);
+                }
+            });
         }
 
         connect();

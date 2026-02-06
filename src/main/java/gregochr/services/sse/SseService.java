@@ -15,6 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class SseService {
     private static final Logger LOGGER = LogManager.getLogger(SseService.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final long SSE_TIMEOUT = 24 * 60 * 60 * 1000L; // 24 hours
 
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
@@ -44,11 +45,19 @@ public class SseService {
     }
 
     public void broadcast(SseEventDto event) {
-        LOGGER.debug("Broadcasting to {} clients", emitters.size());
+        broadcastEvent("message", event);
+    }
+
+    public void broadcastConfig(Object config) {
+        broadcastEvent("config", config);
+    }
+
+    private void broadcastEvent(String eventName, Object data) {
+        LOGGER.debug("Broadcasting '{}' event to {} clients", eventName, emitters.size());
 
         String json;
         try {
-            json = new ObjectMapper().writeValueAsString(event);
+            json = OBJECT_MAPPER.writeValueAsString(data);
         } catch (JsonProcessingException e) {
             LOGGER.error("Failed to serialize event: {}", e.getMessage());
             return;
@@ -57,6 +66,7 @@ public class SseService {
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event()
+                        .name(eventName)
                         .data(json, MediaType.APPLICATION_JSON));
             } catch (IOException e) {
                 LOGGER.debug("Failed to send to client, removing: {}", e.getMessage());

@@ -35,9 +35,9 @@ public class DebugController {
             @PathVariable String command,
             @RequestParam(defaultValue = "movie") String type) {
 
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering {} command with type: {} ]", command, type);
-
         PlexCommand plexCommand = createCommand(command, type);
+        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering {} command with type: {} ]", plexCommand, type);
+
         boolean result = plexCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService);
 
         return Map.of("command", command, "type", type, "success", result);
@@ -45,11 +45,11 @@ public class DebugController {
 
     private PlexCommand createCommand(String command, String type) {
         return switch (command) {
-            case "play" -> new PlexPlayCommand("Debug Test", 0, type);
-            case "stop" -> new PlexStopCommand("Debug Test", 0, type);
-            case "pause" -> new PlexPauseCommand("Debug Test", 0, type);
-            case "resume" -> new PlexResumeCommand("Debug Test", 0, type);
-            case "scrobble" -> new PlexScrobbleCommand("Debug Test", 0, type);
+            case "play" -> new PlexPlayCommand("Debug Play Command Test", 0, type);
+            case "stop" -> new PlexStopCommand("Debug Stop Command Test", 0, type);
+            case "pause" -> new PlexPauseCommand("Debug Pause Test", 0, type);
+            case "resume" -> new PlexResumeCommand("Debug Resume Test", 0, type);
+            case "scrobble" -> new PlexScrobbleCommand("Debug Scrobble Test", 0, type);
             default -> new PlexNoOpCommand(command, type);
         };
     }

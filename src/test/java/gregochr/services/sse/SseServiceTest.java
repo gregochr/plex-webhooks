@@ -21,24 +21,39 @@ public class SseServiceTest {
         sseService = new SseService();
     }
 
+    private static final String TEST_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
+
     @DisplayName("Subscribe returns a non-null SseEmitter")
     @Test
     public void testSubscribeReturnsEmitter() {
-        SseEmitter emitter = sseService.subscribe();
+        SseEmitter emitter = sseService.subscribe("client-1", TEST_USER_AGENT);
 
         assertNotNull(emitter);
     }
 
-    @DisplayName("Subscribe increments client count")
+    @DisplayName("Subscribe increments client count for different clients")
     @Test
     public void testSubscribeIncrementsClientCount() {
         assertEquals(0, sseService.getClientCount());
 
-        sseService.subscribe();
+        sseService.subscribe("client-1", TEST_USER_AGENT);
         assertEquals(1, sseService.getClientCount());
 
-        sseService.subscribe();
+        sseService.subscribe("client-2", TEST_USER_AGENT);
         assertEquals(2, sseService.getClientCount());
+    }
+
+    @DisplayName("Subscribe replaces existing connection for same client")
+    @Test
+    public void testSubscribeReplacesExistingClient() {
+        assertEquals(0, sseService.getClientCount());
+
+        sseService.subscribe("client-1", TEST_USER_AGENT);
+        assertEquals(1, sseService.getClientCount());
+
+        // Same client reconnects - should replace, not add
+        sseService.subscribe("client-1", TEST_USER_AGENT);
+        assertEquals(1, sseService.getClientCount());
     }
 
     @DisplayName("Broadcast does not throw when no clients connected")
@@ -62,5 +77,25 @@ public class SseServiceTest {
         sseService.broadcastConfig(config);
 
         assertEquals(0, sseService.getClientCount());
+    }
+
+    @DisplayName("Heartbeat does not throw when no clients connected")
+    @Test
+    public void testHeartbeatWithNoClients() {
+        sseService.heartbeat();
+
+        assertEquals(0, sseService.getClientCount());
+    }
+
+    @DisplayName("Heartbeat does not throw when clients connected")
+    @Test
+    public void testHeartbeatWithClients() {
+        sseService.subscribe("client-1", TEST_USER_AGENT);
+        sseService.subscribe("client-2", TEST_USER_AGENT);
+
+        sseService.heartbeat();
+
+        // Clients may be removed if send fails, but method should not throw
+        // In unit test context, emitters aren't connected to real clients
     }
 }

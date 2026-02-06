@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plex Webhooks Dashboard</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -541,11 +542,35 @@
             }).showToast();
         }
 
+        // Generate or retrieve client ID for SSE connection tracking
+        function getClientId() {
+            let clientId = sessionStorage.getItem('sseClientId');
+            if (!clientId) {
+                clientId = 'client-' + Math.random().toString(36).substring(2, 11);
+                sessionStorage.setItem('sseClientId', clientId);
+            }
+            return clientId;
+        }
+
         function connect() {
-            const eventSource = new EventSource('/api/events');
+            const clientId = getClientId();
+            console.log('SSE: Attempting to connect...', clientId);
+            const eventSource = new EventSource('/api/events?clientId=' + encodeURIComponent(clientId));
 
             eventSource.onopen = function() {
+                console.log('SSE: Connected');
                 setConnected(true);
+                // Fetch current config on connect/reconnect
+                fetch('/api/config')
+                    .then(res => res.json())
+                    .then(config => {
+                        const hueCheckbox = document.getElementById('integrate-hue');
+                        if (hueCheckbox && config.hueIntegrationEnabled !== undefined) {
+                            hueCheckbox.checked = config.hueIntegrationEnabled;
+                            console.log('Config synced on connect:', config);
+                        }
+                    })
+                    .catch(err => console.error('Failed to fetch config:', err));
             };
 
             eventSource.onmessage = function(e) {
@@ -565,7 +590,8 @@
                 }
             };
 
-            eventSource.onerror = function() {
+            eventSource.onerror = function(e) {
+                console.log('SSE: Error, will reconnect in 3s', e);
                 setConnected(false);
                 eventSource.close();
                 // Reconnect after 3 seconds

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 public class PlexMetadataDto {
     public String title;
     public int duration;
+    public String type;
 
     @JsonSetter("title")
     public void setTitle(String title) {
@@ -22,9 +23,17 @@ public class PlexMetadataDto {
 
     public int getDuration()  { return this.duration; }
 
+    @JsonSetter("type")
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getType()  { return this.type; }
+
     @Override
     public String toString() {
         return "[ Title: " + this.title + ", "
-                + "Duration: " + this.duration + " ]";
+                + "Duration: " + this.duration + ", " +
+                "Type: " + this.type + "]";
     }
 }

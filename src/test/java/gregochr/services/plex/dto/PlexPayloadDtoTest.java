@@ -17,6 +17,7 @@ public class PlexPayloadDtoTest {
             assert(plexPayload.getEvent().compareTo("media.stop") == 0);
             assert(plexPayload.getMetadata().getTitle().compareTo("Good Will Hunting") == 0);
             assert(plexPayload.getMetadata().getDuration() == 7620000);
+            assert(plexPayload.getMetadata().getType().compareTo("movie") == 0);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -33,6 +34,7 @@ public class PlexPayloadDtoTest {
 
             assert(plexPayload.getEvent().compareTo("media.play") == 0);
             assert(plexPayload.getMetadata().getTitle().compareTo("Good Will Hunting") == 0);
+            assert(plexPayload.getMetadata().getType().compareTo("movie") == 0);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -48,6 +50,7 @@ public class PlexPayloadDtoTest {
             PlexPayloadDto plexPayload = objectMapper.readValue(pausePayload, PlexPayloadDto.class);
 
             assert(plexPayload.getEvent().compareTo("media.pause") == 0);
+            assert(plexPayload.getMetadata().getType().compareTo("movie") == 0);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -63,6 +66,7 @@ public class PlexPayloadDtoTest {
             PlexPayloadDto plexPayload = objectMapper.readValue(resumePayload, PlexPayloadDto.class);
 
             assert(plexPayload.getEvent().compareTo("media.resume") == 0);
+            assert(plexPayload.getMetadata().getType().compareTo("movie") == 0);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

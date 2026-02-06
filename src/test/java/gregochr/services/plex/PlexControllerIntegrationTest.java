@@ -8,9 +8,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @DisplayName("Plex Service Integration Tests")
 @SpringBootTest
-public class PlexServiceIntegrationTest {
+public class PlexControllerIntegrationTest {
     @Autowired
-    private PlexService service;
+    private PlexController service;
 
     @Tag("integration")
     @DisplayName("Start playback test")

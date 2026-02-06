@@ -3,14 +3,13 @@ package gregochr.commands;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
-import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
 
 public class PlexPauseCommand  extends PlexCommand  {
     private static final String EVENT = "media.pause";
 
-    public PlexPauseCommand(String title, int duration) {
-        super(title, duration);
+    public PlexPauseCommand(String title, int duration, String type) {
+        super(title, duration, type);
     }
 
     @Override
@@ -19,12 +18,8 @@ public class PlexPauseCommand  extends PlexCommand  {
     }
 
     @Override
-    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService) {
-        if (!configService.isHueIntegrationEnabled()) {
-            LogManager.getLogger(PlexPauseCommand.class).info("[ Hue integration disabled, skipping ]");
-            return false;
-        }
-
+    protected boolean doExecute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
+        LogManager.getLogger(PlexPauseCommand.class).info("[ Executing Plex Scrobble Command: {} ]", this);
         return hueSceneController.stopMovieLightScene();
     }
 }

@@ -27,10 +27,19 @@ public class PlexStopCommandIntegrationTest {
     private ConfigService configService;
 
     @Tag("integration")
-    @DisplayName("Test Plex Stop Command")
+    @DisplayName("Test Plex Stop Movie Command")
     @Test
-    public void testPlexStopCommand() {
-        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123);
+    public void testPlexStopMovieCommand() {
+        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "movie");
+
+        assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+    }
+
+    @Tag("integration")
+    @DisplayName("Test Plex Stop TV Show Command")
+    @Test
+    public void testPlexStopTVShowCommand() {
+        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "episode");
 
         assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }

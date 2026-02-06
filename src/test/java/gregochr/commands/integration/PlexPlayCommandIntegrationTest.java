@@ -27,11 +27,21 @@ public class PlexPlayCommandIntegrationTest {
     private ConfigService configService;
 
     @Tag("integration")
-    @DisplayName("Test Plex Play Command")
+    @DisplayName("Test Plex Play Movie Command")
     @Test
-    public void testPlexPlayCommand() {
-        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123);
+    public void testPlexPlayMovieCommand() {
+        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "movie");
 
         assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
+
+    @Tag("integration")
+    @DisplayName("Test Plex Play TV Show Command")
+    @Test
+    public void testPlexPlayTVShowCommand() {
+        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "episode");
+
+        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+    }
+
 }

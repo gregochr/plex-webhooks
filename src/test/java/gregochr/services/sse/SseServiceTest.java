@@ -43,7 +43,7 @@ public class SseServiceTest {
     @Test
     public void testBroadcastWithNoClients() {
         SseEventDto event = new SseEventDto(
-                new PlexPlayCommand("Test Movie", 7200000),
+                new PlexPlayCommand("Test Movie", 7200000, "movie"),
                 "{\"event\":\"media.play\"}"
         );
 

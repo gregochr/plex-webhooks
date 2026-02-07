@@ -1124,7 +1124,11 @@
         });
 
         // Hue status
+        let hueBridgeConnected = false;
+
         function renderHueStatus(status) {
+            hueBridgeConnected = status.connected;
+            const hueCommandsActive = status.connected && status.integrationEnabled;
             const container = document.getElementById('hue-status-container');
             container.innerHTML = `
                 <div class="status-grid">
@@ -1136,8 +1140,8 @@
                     </div>
                     <div class="status-item">
                         <div class="status-label">Hue Commands</div>
-                        <div id="hue-commands-status" class="status-value ${status.integrationEnabled ? 'connected' : 'disconnected'}">
-                            ${status.integrationEnabled ? '● Active' : '○ Inactive'}
+                        <div id="hue-commands-status" class="status-value ${hueCommandsActive ? 'connected' : 'disconnected'}">
+                            ${hueCommandsActive ? '● Active' : '○ Inactive'}
                         </div>
                     </div>
                     <div class="status-item">
@@ -1178,12 +1182,26 @@
         }
 
         function updateHueCommandsStatus(enabled) {
-            console.log('updateHueCommandsStatus called with:', enabled);
+            console.log('updateHueCommandsStatus called with:', enabled, 'bridgeConnected:', hueBridgeConnected);
+            const active = hueBridgeConnected && enabled;
             const el = document.getElementById('hue-commands-status');
             console.log('hue-commands-status element:', el);
             if (el) {
-                el.className = 'status-value ' + (enabled ? 'connected' : 'disconnected');
-                el.textContent = enabled ? '● Active' : '○ Inactive';
+                el.className = 'status-value ' + (active ? 'connected' : 'disconnected');
+                el.textContent = active ? '● Active' : '○ Inactive';
+            }
+            updateHueCheckboxState(enabled);
+        }
+
+        function updateHueCheckboxState(integrationEnabled) {
+            const hueCheckbox = document.getElementById('integrate-hue');
+            if (!hueCheckbox) return;
+            if (hueBridgeConnected) {
+                hueCheckbox.disabled = false;
+                hueCheckbox.checked = integrationEnabled;
+            } else {
+                hueCheckbox.checked = false;
+                hueCheckbox.disabled = true;
             }
         }
 
@@ -1192,6 +1210,7 @@
                 .then(res => res.json())
                 .then(status => {
                     renderHueStatus(status);
+                    updateHueCheckboxState(status.integrationEnabled);
                 })
                 .catch(err => {
                     console.error('Failed to fetch Hue status:', err);

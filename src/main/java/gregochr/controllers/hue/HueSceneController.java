@@ -4,7 +4,6 @@ import org.apache.logging.log4j.LogManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClient;
 
 import org.springframework.stereotype.Component;
 
@@ -19,7 +18,6 @@ public class HueSceneController extends HueController {
     private static final String RECALL_ACTIVE_BODY = "{\"recall\":{\"action\":\"active\", \"duration\":" + SCENE_TRANSITION_DURATION_10_SECONDS + "}}";
 
     private boolean setScene(final String sceneId) {
-        RestClient restClient = RestClient.create();
         LogManager.getLogger(HueSceneController.class).info("[ Turning sceneId : " + sceneId + " ]");
 
         ResponseEntity<Void> response = restClient

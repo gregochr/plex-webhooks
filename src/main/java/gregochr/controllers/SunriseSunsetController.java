@@ -3,6 +3,7 @@ package gregochr.controllers;
 import gregochr.controllers.dto.SunriseSunsetResponseDto;
 import jakarta.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -14,6 +15,9 @@ public class SunriseSunsetController {
     private static final String SUNRISE_SUNSET_SERVICE_URL = "https://api.sunrise-sunset.org/json?lat={lat}&lng={lng}&date={date}";
 
     private final Clock clock;
+
+    @Autowired
+    private RestClient restClient;
 
     public SunriseSunsetController() {
         this(Clock.systemDefaultZone());
@@ -36,9 +40,7 @@ public class SunriseSunsetController {
     }
 
     @Nullable
-    private static SunriseSunsetResponseDto getSunriseSunsetResponseDto(double latitude, double longitude, String date) {
-        RestClient restClient = RestClient.create();
-
+    private SunriseSunsetResponseDto getSunriseSunsetResponseDto(double latitude, double longitude, String date) {
         SunriseSunsetResponseDto sunriseSunsetResponse = restClient
                 .get()
                 .uri(SUNRISE_SUNSET_SERVICE_URL, latitude, longitude, date)

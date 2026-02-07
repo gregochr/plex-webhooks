@@ -4,7 +4,6 @@ import gregochr.controllers.dto.hue.HueLightDto;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -13,7 +12,6 @@ public class HueLightController extends HueController {
 
     private void setLightState(final HueLightDto light, final String body) {
         final String restURL = "https://" + this.hubId + "/clip/v2/resource/light/";
-        RestClient restClient = RestClient.create();
         LogManager.getLogger(HueLightController.class).info("[ Turning light : " + light.getKey() + ", " +  body + " ]");
 
         ResponseEntity<Void> response = restClient
@@ -25,7 +23,6 @@ public class HueLightController extends HueController {
                 .retrieve()
                 .toBodilessEntity();
 
-        restClient.delete();
         LogManager.getLogger(HueLightController.class).info("[ Hue light response : " + response.toString() + " ]");
     }
 

@@ -19,7 +19,7 @@ public class PlexPauseCommand  extends PlexCommand  {
 
     @Override
     protected boolean doExecute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
-        LogManager.getLogger(PlexPauseCommand.class).info("[ Executing Plex Scrobble Command: {} ]", this);
+        LogManager.getLogger(PlexPauseCommand.class).info("[ Executing Plex Pause Command: {} ]", this);
         return hueSceneController.stopMovieLightScene();
     }
 }

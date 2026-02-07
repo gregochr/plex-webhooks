@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.util.Map;
@@ -44,7 +43,6 @@ public class HueStatusController extends HueController {
             String url = "https://" + hubId + "/clip/v2/resource/bridge";
             LOGGER.debug("Testing Hue bridge connection: {}", url);
 
-            RestClient restClient = RestClient.create();
             ResponseEntity<String> response = restClient
                     .get()
                     .uri(url)

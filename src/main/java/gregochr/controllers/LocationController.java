@@ -2,6 +2,7 @@ package gregochr.controllers;
 
 import gregochr.controllers.dto.LocationResponseDto;
 import org.apache.logging.log4j.LogManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -14,6 +15,9 @@ public class LocationController {
     @Value("${postcode}")
     private String postCode;
 
+    @Autowired
+    private RestClient restClient;
+
     public void setPostCode(String postCode) {
         this.postCode = postCode;
     }
@@ -23,7 +27,6 @@ public class LocationController {
     }
 
     public LocationResponseDto getLatitudeAndLogitude() {
-        RestClient restClient = RestClient.create();
         LogManager.getLogger(LocationController.class).info("[ Postcode : {} ]", this.postCode);
 
         LocationResponseDto locationResponse = restClient

@@ -19,7 +19,7 @@ public class PlexResumeCommand extends PlexCommand  {
 
     @Override
     protected boolean doExecute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
-        LogManager.getLogger(PlexResumeCommand.class).info("[ Executing Plex Scrobble Command: {} ]", this);
+        LogManager.getLogger(PlexResumeCommand.class).info("[ Executing Plex Resume Command: {} ]", this);
         return hueSceneController.startMovieLightScene();
     }
 }

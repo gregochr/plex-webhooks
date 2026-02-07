@@ -4,6 +4,7 @@ import gregochr.services.config.ConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 @Component
 public abstract class HueController {
@@ -18,6 +19,9 @@ public abstract class HueController {
 
     @Value("${hue.key}")
     protected String key;
+
+    @Autowired
+    protected RestClient restClient;
 
     @Autowired
     private ConfigService configService;

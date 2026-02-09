@@ -529,6 +529,7 @@
         .status-item.full-width {
             grid-column: 1 / -1;
         }
+        .hue-resources-disabled { opacity: 0.4; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -592,6 +593,22 @@
             <div class="section-divider">
                 <div class="debug-buttons">
                     <button class="debug-btn" id="hue-refresh-status"><span>🔄</span> Refresh</button>
+                </div>
+            </div>
+
+            <div id="hue-resources-section" class="section-divider hue-resources-disabled">
+                <div class="json-panel-header">
+                    <span>Bridge Resources</span>
+                    <div class="json-search-wrap">
+                        <input type="text" id="hue-resource-search" placeholder="Search resources..." disabled>
+                        <button class="json-nav-btn" id="hue-resource-prev-match" title="Previous match" disabled>&#9650;</button>
+                        <button class="json-nav-btn" id="hue-resource-next-match" title="Next match" disabled>&#9660;</button>
+                        <span id="hue-resource-match-count" class="json-match-count"></span>
+                        <button class="json-nav-btn" id="hue-resource-copy" title="Copy JSON" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                    </div>
+                </div>
+                <div id="hue-resource-output" class="json-output">
+                    <div class="empty-state">Hue bridge not connected</div>
                 </div>
             </div>
         </div>
@@ -675,25 +692,27 @@
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        function renderJsonTree(data) {
+        function renderJsonTree(data, collapseDepth) {
+            if (collapseDepth === undefined) collapseDepth = Infinity;
             const container = document.createElement('div');
             container.className = 'json-tree';
             const ul = document.createElement('ul');
-            ul.appendChild(buildNode(null, data, false));
+            ul.appendChild(buildNode(null, data, false, 0, collapseDepth));
             container.appendChild(ul);
             return container;
         }
 
-        function buildNode(key, value, addComma) {
+        function buildNode(key, value, addComma, depth, collapseDepth) {
             const li = document.createElement('li');
             if (value !== null && typeof value === 'object') {
                 const isArray = Array.isArray(value);
                 const count = isArray ? value.length : Object.keys(value).length;
                 const openBracket = isArray ? '[' : '{';
                 const closeBracket = isArray ? ']' : '}';
+                const startCollapsed = depth >= collapseDepth;
 
                 const toggle = document.createElement('span');
-                toggle.className = 'json-toggle expanded';
+                toggle.className = 'json-toggle ' + (startCollapsed ? 'collapsed' : 'expanded');
                 toggle.textContent = '\u25B6';
                 li.appendChild(toggle);
 
@@ -712,7 +731,7 @@
 
                 const summary = document.createElement('span');
                 summary.className = 'json-summary';
-                summary.style.display = 'none';
+                summary.style.display = startCollapsed ? 'inline' : 'none';
                 if (isArray) {
                     summary.textContent = ' ' + count + ' item' + (count !== 1 ? 's' : '') + ' ';
                 } else {
@@ -721,15 +740,15 @@
                 li.appendChild(summary);
 
                 const childrenUl = document.createElement('ul');
-                childrenUl.className = 'json-children';
+                childrenUl.className = 'json-children' + (startCollapsed ? ' collapsed' : '');
                 if (isArray) {
                     value.forEach(function(item, i) {
-                        childrenUl.appendChild(buildNode(null, item, i < value.length - 1));
+                        childrenUl.appendChild(buildNode(null, item, i < value.length - 1, depth + 1, collapseDepth));
                     });
                 } else {
                     const keys = Object.keys(value);
                     keys.forEach(function(k, i) {
-                        childrenUl.appendChild(buildNode(k, value[k], i < keys.length - 1));
+                        childrenUl.appendChild(buildNode(k, value[k], i < keys.length - 1, depth + 1, collapseDepth));
                     });
                 }
                 li.appendChild(childrenUl);
@@ -802,135 +821,157 @@
             return li;
         }
 
-        // JSON search functionality
-        let jsonMatchIndex = -1;
-        let jsonMatchElements = [];
-        const jsonPrevBtn = document.getElementById('json-prev-match');
-        const jsonNextBtn = document.getElementById('json-next-match');
+        // Reusable JSON search factory
+        function createJsonSearch(config) {
+            let matchIndex = -1;
+            let matchElements = [];
 
-        function updateMatchNav() {
-            const hasMatches = jsonMatchElements.length > 0;
-            jsonPrevBtn.disabled = !hasMatches;
-            jsonNextBtn.disabled = !hasMatches;
-            if (hasMatches) {
-                jsonMatchCount.textContent = (jsonMatchIndex + 1) + ' / ' + jsonMatchElements.length;
-            }
-        }
-
-        function goToMatch(index) {
-            if (jsonMatchElements.length === 0) return;
-            // Remove active class from previous
-            if (jsonMatchIndex >= 0 && jsonMatchIndex < jsonMatchElements.length) {
-                jsonMatchElements[jsonMatchIndex].classList.remove('active');
-            }
-            jsonMatchIndex = index;
-            const el = jsonMatchElements[jsonMatchIndex];
-            el.classList.add('active');
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            updateMatchNav();
-        }
-
-        function searchJsonTree(query) {
-            const tree = jsonOutput.querySelector('.json-tree');
-            if (!tree) return;
-
-            // Clear previous highlights
-            tree.querySelectorAll('.json-search-highlight').forEach(function(el) {
-                const parent = el.parentNode;
-                parent.replaceChild(document.createTextNode(el.textContent), el);
-                parent.normalize();
-            });
-            jsonMatchCount.textContent = '';
-            jsonMatchElements = [];
-            jsonMatchIndex = -1;
-            jsonPrevBtn.disabled = true;
-            jsonNextBtn.disabled = true;
-
-            if (!query) return;
-
-            const lowerQuery = query.toLowerCase();
-
-            // Walk all text-bearing spans (keys, values)
-            const spans = tree.querySelectorAll('.json-key, .json-string, .json-number, .json-boolean, .json-null');
-            spans.forEach(function(span) {
-                const text = span.textContent;
-                const lowerText = text.toLowerCase();
-                const idx = lowerText.indexOf(lowerQuery);
-                if (idx === -1) return;
-
-                // Highlight all occurrences within this span
-                const frag = document.createDocumentFragment();
-                let lastIdx = 0;
-                let searchIdx = 0;
-                while (true) {
-                    const pos = lowerText.indexOf(lowerQuery, searchIdx);
-                    if (pos === -1) break;
-                    if (pos > lastIdx) {
-                        frag.appendChild(document.createTextNode(text.substring(lastIdx, pos)));
-                    }
-                    const mark = document.createElement('span');
-                    mark.className = 'json-search-highlight';
-                    mark.textContent = text.substring(pos, pos + query.length);
-                    frag.appendChild(mark);
-                    jsonMatchElements.push(mark);
-                    lastIdx = pos + query.length;
-                    searchIdx = lastIdx;
+            function updateNav() {
+                const hasMatches = matchElements.length > 0;
+                config.prevBtn.disabled = !hasMatches;
+                config.nextBtn.disabled = !hasMatches;
+                if (hasMatches) {
+                    config.matchCountEl.textContent = (matchIndex + 1) + ' / ' + matchElements.length;
                 }
-                if (lastIdx < text.length) {
-                    frag.appendChild(document.createTextNode(text.substring(lastIdx)));
-                }
-                span.textContent = '';
-                span.appendChild(frag);
+            }
 
-                // Auto-expand parent nodes
-                let node = span.closest('li');
-                while (node) {
-                    const parentUl = node.parentElement;
-                    if (parentUl && parentUl.classList.contains('json-children') && parentUl.classList.contains('collapsed')) {
-                        parentUl.classList.remove('collapsed');
-                        const toggle = parentUl.parentElement.querySelector(':scope > .json-toggle');
-                        const summary = parentUl.parentElement.querySelector(':scope > .json-summary');
-                        if (toggle) {
-                            toggle.classList.remove('collapsed');
-                            toggle.classList.add('expanded');
+            function goTo(index) {
+                if (matchElements.length === 0) return;
+                if (matchIndex >= 0 && matchIndex < matchElements.length) {
+                    matchElements[matchIndex].classList.remove('active');
+                }
+                matchIndex = index;
+                const el = matchElements[matchIndex];
+                el.classList.add('active');
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                updateNav();
+            }
+
+            function search(query) {
+                const tree = config.container.querySelector('.json-tree');
+                if (!tree) return;
+
+                tree.querySelectorAll('.json-search-highlight').forEach(function(el) {
+                    const parent = el.parentNode;
+                    parent.replaceChild(document.createTextNode(el.textContent), el);
+                    parent.normalize();
+                });
+                config.matchCountEl.textContent = '';
+                matchElements = [];
+                matchIndex = -1;
+                config.prevBtn.disabled = true;
+                config.nextBtn.disabled = true;
+
+                if (!query) return;
+
+                const lowerQuery = query.toLowerCase();
+                const spans = tree.querySelectorAll('.json-key, .json-string, .json-number, .json-boolean, .json-null');
+                spans.forEach(function(span) {
+                    const text = span.textContent;
+                    const lowerText = text.toLowerCase();
+                    if (lowerText.indexOf(lowerQuery) === -1) return;
+
+                    const frag = document.createDocumentFragment();
+                    let lastIdx = 0;
+                    let searchIdx = 0;
+                    while (true) {
+                        const pos = lowerText.indexOf(lowerQuery, searchIdx);
+                        if (pos === -1) break;
+                        if (pos > lastIdx) {
+                            frag.appendChild(document.createTextNode(text.substring(lastIdx, pos)));
                         }
-                        if (summary) {
-                            summary.style.display = 'none';
-                        }
+                        const mark = document.createElement('span');
+                        mark.className = 'json-search-highlight';
+                        mark.textContent = text.substring(pos, pos + query.length);
+                        frag.appendChild(mark);
+                        matchElements.push(mark);
+                        lastIdx = pos + query.length;
+                        searchIdx = lastIdx;
                     }
-                    node = parentUl ? parentUl.closest('li') : null;
+                    if (lastIdx < text.length) {
+                        frag.appendChild(document.createTextNode(text.substring(lastIdx)));
+                    }
+                    span.textContent = '';
+                    span.appendChild(frag);
+
+                    let node = span.closest('li');
+                    while (node) {
+                        const parentUl = node.parentElement;
+                        if (parentUl && parentUl.classList.contains('json-children') && parentUl.classList.contains('collapsed')) {
+                            parentUl.classList.remove('collapsed');
+                            const toggle = parentUl.parentElement.querySelector(':scope > .json-toggle');
+                            const summary = parentUl.parentElement.querySelector(':scope > .json-summary');
+                            if (toggle) {
+                                toggle.classList.remove('collapsed');
+                                toggle.classList.add('expanded');
+                            }
+                            if (summary) {
+                                summary.style.display = 'none';
+                            }
+                        }
+                        node = parentUl ? parentUl.closest('li') : null;
+                    }
+                });
+
+                if (matchElements.length > 0) {
+                    goTo(0);
+                } else {
+                    config.matchCountEl.textContent = 'No matches';
+                }
+            }
+
+            config.searchInput.addEventListener('input', function() {
+                search(this.value.trim());
+            });
+
+            config.searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && matchElements.length > 0) {
+                    e.preventDefault();
+                    const next = e.shiftKey
+                        ? (matchIndex - 1 + matchElements.length) % matchElements.length
+                        : (matchIndex + 1) % matchElements.length;
+                    goTo(next);
                 }
             });
 
-            if (jsonMatchElements.length > 0) {
-                goToMatch(0);
-            } else {
-                jsonMatchCount.textContent = 'No matches';
-            }
+            config.nextBtn.addEventListener('click', function() {
+                if (matchElements.length === 0) return;
+                goTo((matchIndex + 1) % matchElements.length);
+            });
+
+            config.prevBtn.addEventListener('click', function() {
+                if (matchElements.length === 0) return;
+                goTo((matchIndex - 1 + matchElements.length) % matchElements.length);
+            });
+
+            return { search: search };
         }
 
-        jsonSearchInput.addEventListener('input', function() {
-            searchJsonTree(this.value.trim());
+        const plexJsonSearch = createJsonSearch({
+            container:    jsonOutput,
+            searchInput:  document.getElementById('json-search'),
+            prevBtn:      document.getElementById('json-prev-match'),
+            nextBtn:      document.getElementById('json-next-match'),
+            matchCountEl: document.getElementById('json-match-count')
         });
 
-        jsonSearchInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && jsonMatchElements.length > 0) {
-                e.preventDefault();
-                const next = e.shiftKey
-                    ? (jsonMatchIndex - 1 + jsonMatchElements.length) % jsonMatchElements.length
-                    : (jsonMatchIndex + 1) % jsonMatchElements.length;
-                goToMatch(next);
-            }
+        const hueResourceSearch = createJsonSearch({
+            container:    document.getElementById('hue-resource-output'),
+            searchInput:  document.getElementById('hue-resource-search'),
+            prevBtn:      document.getElementById('hue-resource-prev-match'),
+            nextBtn:      document.getElementById('hue-resource-next-match'),
+            matchCountEl: document.getElementById('hue-resource-match-count')
         });
 
-        jsonNextBtn.addEventListener('click', function() {
-            if (jsonMatchElements.length === 0) return;
-            goToMatch((jsonMatchIndex + 1) % jsonMatchElements.length);
-        });
-
-        jsonPrevBtn.addEventListener('click', function() {
-            if (jsonMatchElements.length === 0) return;
-            goToMatch((jsonMatchIndex - 1 + jsonMatchElements.length) % jsonMatchElements.length);
+        document.getElementById('hue-resource-copy').addEventListener('click', function() {
+            const output = document.getElementById('hue-resource-output');
+            const text = output.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('hue-resource-copy');
+                const original = btn.innerHTML;
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+                setTimeout(() => { btn.innerHTML = original; }, 1500);
+            });
         });
 
         function getEventIcon(eventType) {
@@ -1043,7 +1084,7 @@
                     jsonSearchInput.disabled = false;
                     // Re-apply search if there's a query
                     if (jsonSearchInput.value.trim()) {
-                        searchJsonTree(jsonSearchInput.value.trim());
+                        plexJsonSearch.search(jsonSearchInput.value.trim());
                     }
 
                     // Add command to event list
@@ -1111,6 +1152,9 @@
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 button.classList.add('active');
                 document.getElementById('tab-' + button.dataset.tab).classList.add('active');
+                if (button.dataset.tab === 'hue' && hueBridgeConnected) {
+                    fetchHueResources();
+                }
             });
         });
 
@@ -1164,8 +1208,27 @@
         let hueBridgeConnected = false;
 
         function renderHueStatus(status) {
+            const wasConnected = hueBridgeConnected;
             hueBridgeConnected = status.connected;
             const hueCommandsActive = status.connected && status.integrationEnabled;
+
+            // Toggle Bridge Resources section
+            const resourceSection = document.getElementById('hue-resources-section');
+            const resourceSearchInput = document.getElementById('hue-resource-search');
+            if (status.connected) {
+                resourceSection.classList.remove('hue-resources-disabled');
+                // Fetch resources when bridge becomes connected while Smart Lighting tab is active
+                const hueTab = document.getElementById('tab-hue');
+                if (hueTab && hueTab.classList.contains('active') && !wasConnected) {
+                    fetchHueResources();
+                }
+            } else {
+                resourceSection.classList.add('hue-resources-disabled');
+                resourceSearchInput.disabled = true;
+                document.getElementById('hue-resource-copy').disabled = true;
+                document.getElementById('hue-resource-output').innerHTML =
+                    '<div class="empty-state">Hue bridge not connected</div>';
+            }
             const container = document.getElementById('hue-status-container');
             container.innerHTML = `
                 <div class="status-grid">
@@ -1240,6 +1303,29 @@
                 hueCheckbox.checked = false;
                 hueCheckbox.disabled = true;
             }
+        }
+
+        function fetchHueResources() {
+            const output = document.getElementById('hue-resource-output');
+            const searchInput = document.getElementById('hue-resource-search');
+            fetch('/api/hue/resources')
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    output.innerHTML = '';
+                    output.appendChild(renderJsonTree(data, 1));
+                    searchInput.disabled = false;
+                    document.getElementById('hue-resource-copy').disabled = false;
+                    if (searchInput.value.trim()) {
+                        hueResourceSearch.search(searchInput.value.trim());
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to fetch Hue resources:', err);
+                    output.innerHTML = '<div class="empty-state">Failed to load Hue resources</div>';
+                });
         }
 
         function fetchHueStatus() {

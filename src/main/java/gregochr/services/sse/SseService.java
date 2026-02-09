@@ -76,6 +76,14 @@ public class SseService {
         broadcastEvent("config", config);
     }
 
+    public void broadcastHueStatus(Object status) {
+        broadcastEvent("hue-status", status);
+    }
+
+    public void broadcastDirigeraStatus(Object status) {
+        broadcastEvent("dirigera-status", status);
+    }
+
     private void broadcastEvent(String eventName, Object data) {
         LogManager.getLogger(SseService.class).info("Broadcasting '{}' event to {} clients", eventName, this.clients.size());
 

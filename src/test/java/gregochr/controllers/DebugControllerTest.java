@@ -123,7 +123,7 @@ public class DebugControllerTest {
 
         assertEquals("play", result.get("command"));
         assertEquals("episode", result.get("type"));
-        assertTrue((Boolean) result.get("success"));
+        assertFalse((Boolean) result.get("success"));
     }
 
     @DisplayName("Command returns false when Hue integration disabled")

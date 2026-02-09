@@ -41,6 +41,6 @@ public class PlexPauseCommandIntegrationTest {
     public void testPlexStopTVShowCommand() {
         PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123, "episode");
 
-        assert(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assert(!plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 }

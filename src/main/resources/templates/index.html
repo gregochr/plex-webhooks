@@ -547,7 +547,7 @@
 
     <div class="tabs">
         <button class="tab-button active" data-tab="events"><svg style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" viewBox="0 0 36 36" fill="none"><path d="M10 8L18 18L10 28H16L24 18L16 8H10Z" fill="#e5a00d"/></svg>Plex Event Monitor</button>
-        <button class="tab-button" data-tab="hue"><img th:src="@{/hue-logo.png}" alt="Hue" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;">Philips Hue</button>
+        <button class="tab-button" data-tab="hue"><svg style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>Smart Lighting</button>
         <button th:if="${adminTabEnabled}" class="tab-button" data-tab="config"><svg style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Advanced/Admin/Debug</button>
     </div>
 
@@ -592,6 +592,24 @@
             <div class="section-divider">
                 <div class="debug-buttons">
                     <button class="debug-btn" id="hue-refresh-status"><span>🔄</span> Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="max-width: 800px; margin-top: 24px;">
+            <h2>
+                <svg style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;" viewBox="0 0 24 24" fill="none" stroke="#0058a3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L4 9.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9.5L12 3z"/></svg>
+                IKEA DIRIGERA
+            </h2>
+
+            <div class="section-title">Hub Status</div>
+            <div id="dirigera-status-container">
+                <div class="empty-state">Loading...</div>
+            </div>
+
+            <div class="section-divider">
+                <div class="debug-buttons">
+                    <button class="debug-btn" id="dirigera-refresh-status"><span>🔄</span> Refresh</button>
                 </div>
             </div>
         </div>
@@ -1046,7 +1064,26 @@
                 setTimeout(connect, 3000);
             };
 
-            // Listen for config updates
+            // Listen for Hue status updates
+            eventSource.addEventListener('hue-status', function(e) {
+                try {
+                    const status = JSON.parse(e.data);
+                    renderHueStatus(status);
+                } catch (err) {
+                    console.error('Failed to parse Hue status event:', err);
+                }
+            });
+
+            // Listen for DIRIGERA status updates
+            eventSource.addEventListener('dirigera-status', function(e) {
+                try {
+                    const status = JSON.parse(e.data);
+                    renderDirigeraStatus(status);
+                } catch (err) {
+                    console.error('Failed to parse DIRIGERA status event:', err);
+                }
+            });
+
             eventSource.addEventListener('config', function(e) {
                 try {
                     const config = JSON.parse(e.data);
@@ -1228,8 +1265,49 @@
             }, 500);
         });
 
-        // Load Hue status on page load
+        // DIRIGERA status
+        function renderDirigeraStatus(status) {
+            const container = document.getElementById('dirigera-status-container');
+            container.innerHTML = `
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-label">Status</div>
+                        <div class="status-value ${status.reachable ? 'connected' : 'disconnected'}">
+                            ${status.reachable ? '● Reachable' : '○ Unreachable'}
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-label">Hub Address</div>
+                        <div class="status-value">${status.hubAddress || 'Not configured'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function fetchDirigeraStatus() {
+            fetch('/api/dirigera/status')
+                .then(res => res.json())
+                .then(status => {
+                    renderDirigeraStatus(status);
+                })
+                .catch(err => {
+                    console.error('Failed to fetch DIRIGERA status:', err);
+                    document.getElementById('dirigera-status-container').innerHTML =
+                        '<div class="empty-state">Failed to load DIRIGERA status</div>';
+                });
+        }
+
+        document.getElementById('dirigera-refresh-status')?.addEventListener('click', function() {
+            this.disabled = true;
+            fetchDirigeraStatus();
+            setTimeout(() => {
+                this.disabled = false;
+            }, 500);
+        });
+
+        // Load statuses on page load
         fetchHueStatus();
+        fetchDirigeraStatus();
     </script>
 </body>
 </html>

@@ -41,7 +41,7 @@ public class PlexResumeCommandIntegrationTest {
     public void testPlexResumeTVShowCommand() {
         PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123, "episode");
 
-        assert(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assert(!plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 
 }

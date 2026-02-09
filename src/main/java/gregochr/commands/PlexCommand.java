@@ -37,6 +37,11 @@ public abstract class PlexCommand {
             LogManager.getLogger(getClass()).info("[ Hue integration disabled, skipping ]");
             return false;
         }
+
+        if (!this.type.equals("movie")) {
+            LogManager.getLogger(getClass()).info("[ PlexCommand ignores media type {$1}, skipping ]", this.type);
+            return false;
+        }
         return doExecute(hueSceneController, locationController, sunriseSunsetController);
     }
 

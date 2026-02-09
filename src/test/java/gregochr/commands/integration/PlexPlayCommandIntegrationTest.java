@@ -41,7 +41,7 @@ public class PlexPlayCommandIntegrationTest {
     public void testPlexPlayTVShowCommand() {
         PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "episode");
 
-        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assert(!plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 
 }

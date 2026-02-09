@@ -46,6 +46,16 @@ public class PlexCommandTest {
         assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).startMovieLightScene();
     }
+    @DisplayName("Test Plex Play TV Show Command")
+    @Test
+    public void testPlexPlayTVShowCommand() {
+        ConfigService configService = mock(ConfigService.class);
+        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "episode");
+
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+
+        assert(!plexPlayCommand.execute(null, null, null, configService));
+    }
     @DisplayName("Test Plex Resume Movie Command")
     @Test
     public void testPlexResumeMovieCommand() {
@@ -76,6 +86,16 @@ public class PlexCommandTest {
 
         assert(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).startMovieLightScene();
+    }
+    @DisplayName("Test Plex Resume TV Show Command")
+    @Test
+    public void testPlexResumeTVShowCommand() {
+        ConfigService configService = mock(ConfigService.class);
+        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123, "episode");
+
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+
+        assert(!plexResumeCommand.execute(null, null, null, configService));
     }
     @DisplayName("Test Plex Stop Movie Command")
     @Test
@@ -108,6 +128,16 @@ public class PlexCommandTest {
         assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).stopMovieLightScene();
     }
+    @DisplayName("Test Plex Stop TV Show Command")
+    @Test
+    public void testPlexStopTVShowCommand() {
+        ConfigService configService = mock(ConfigService.class);
+        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "episode");
+
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+
+        assert(!plexStopCommand.execute(null, null, null, configService));
+    }
     @DisplayName("Test Plex Pause Movie Command")
     @Test
     public void testPlexPauseMovieCommand() {
@@ -139,6 +169,16 @@ public class PlexCommandTest {
         assert(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).stopMovieLightScene();
     }
+    @DisplayName("Test Plex Pause TV Show Command")
+    @Test
+    public void testPlexPauseTVShowCommand() {
+        ConfigService configService = mock(ConfigService.class);
+        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123, "episode");
+
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+
+        assert(!plexPauseCommand.execute(null, null, null, configService));
+    }
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
@@ -169,6 +209,16 @@ public class PlexCommandTest {
 
         assert(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).stopMovieLightScene();
+    }
+    @DisplayName("Test Plex Scrobble TV Show Command")
+    @Test
+    public void testPlexScrobbleTVShowCommand() {
+        ConfigService configService = mock(ConfigService.class);
+        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "episode");
+
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+
+        assert(!plexScrobbleCommand.execute(null, null, null, configService));
     }
 
     @DisplayName("Test Plex Play Movie Command skips Hue when disabled")

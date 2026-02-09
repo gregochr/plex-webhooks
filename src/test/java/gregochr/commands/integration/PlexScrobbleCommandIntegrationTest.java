@@ -41,6 +41,6 @@ public class PlexScrobbleCommandIntegrationTest {
     public void testPlexScrobbleTVShowCommand() {
         PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "episode");
 
-        assert(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assert(!plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 }

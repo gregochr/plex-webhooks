@@ -4,6 +4,7 @@ import gregochr.commands.*;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/debug")
 public class DebugController {
+    private static final Logger LOGGER = LogManager.getLogger(DebugController.class);
     private final HueSceneController hueSceneController;
     private final LocationController locationController;
     private final SunriseSunsetController sunriseSunsetController;
@@ -36,7 +38,7 @@ public class DebugController {
             @RequestParam(defaultValue = "movie") String type) {
 
         PlexCommand plexCommand = createCommand(command, type);
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering {} command with type: {} ]", plexCommand, type);
+        LOGGER.info("[ Debug: Triggering {} command with type: {} ]", plexCommand, type);
 
         boolean result = plexCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService);
 

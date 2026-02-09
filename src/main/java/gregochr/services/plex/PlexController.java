@@ -11,6 +11,7 @@ import gregochr.services.plex.dto.PlexPayloadDto;
 import gregochr.services.sse.SseEventDto;
 import gregochr.services.sse.SseService;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,6 +21,8 @@ import java.io.IOException;
 
 @RestController
 public class PlexController {
+    private static final Logger LOGGER = LogManager.getLogger(PlexController.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final HueSceneController hueSceneController;
     private final LocationController locationController;
     private final SunriseSunsetController sunriseSunsetController;
@@ -41,11 +44,11 @@ public class PlexController {
     @RequestMapping(value = "/plex", method = RequestMethod.POST, consumes = { "multipart/form-data" } )
     public void plexEvent(@RequestParam String payload) {
         try {
-            PlexPayloadDto bean = new ObjectMapper().readerFor(PlexPayloadDto.class).readValue(payload);
+            PlexPayloadDto bean = OBJECT_MAPPER.readerFor(PlexPayloadDto.class).readValue(payload);
             PlexCommand command = new PlexCommandFactory(bean).getPlexCommand();
 
-            LogManager.getLogger(PlexController.class).info("[ Plex payload: " + payload + " ]");
-            LogManager.getLogger(PlexController.class).info("[ Plex command: " + command + " ]");
+            LOGGER.info("[ Plex payload: {} ]", payload);
+            LOGGER.info("[ Plex command: {} ]", command);
 
             // Broadcast to SSE clients
             sseService.broadcast(new SseEventDto(command, payload));

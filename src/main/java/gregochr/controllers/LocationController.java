@@ -2,6 +2,7 @@ package gregochr.controllers;
 
 import gregochr.controllers.dto.LocationResponseDto;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -9,7 +10,9 @@ import org.springframework.web.client.RestClient;
 
 @Component
 public class LocationController {
+    private static final Logger LOGGER = LogManager.getLogger(LocationController.class);
     private static final String POSTCODE_SERVICE_URL = "https://api.postcodes.io/postcodes/{postCode}";
+    private static final RestClient REST_CLIENT = RestClient.create();
 
     @Value("${postcode}")
     private String postCode;
@@ -23,16 +26,15 @@ public class LocationController {
     }
 
     public LocationResponseDto getLatitudeAndLogitude() {
-        RestClient restClient = RestClient.create();
-        LogManager.getLogger(LocationController.class).info("[ Postcode : {} ]", this.postCode);
+        LOGGER.info("[ Postcode : {} ]", this.postCode);
 
-        LocationResponseDto locationResponse = restClient
+        LocationResponseDto locationResponse = REST_CLIENT
                 .get()
                 .uri(POSTCODE_SERVICE_URL, getPostCodeFormattedForPostCodesAPI())
                 .retrieve()
                 .body(LocationResponseDto.class);
 
-        LogManager.getLogger(LocationController.class).info("[ Location: {} ]", locationResponse);
+        LOGGER.info("[ Location: {} ]", locationResponse);
 
         return locationResponse;
     }

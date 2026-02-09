@@ -2,7 +2,6 @@ package gregochr.services.sse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gregochr.services.plex.PlexController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.MediaType;
@@ -27,7 +26,7 @@ public class SseService {
         // Close any existing connection for this client (reconnect scenario)
         SseClient existingClient = this.clients.remove(clientId);
         if (existingClient != null) {
-            LogManager.getLogger(SseService.class).info("SSE client reconnecting: {} ({}) from {}", clientId, existingClient.getBrowserInfo(), existingClient.ipAddress());
+            LOGGER.info("SSE client reconnecting: {} ({}) from {}", clientId, existingClient.getBrowserInfo(), existingClient.ipAddress());
             existingClient.emitter().complete();
         }
 
@@ -36,25 +35,25 @@ public class SseService {
         emitter.onCompletion(() -> {
             // Only log if client still exists (not a replacement)
             if (this.clients.remove(clientId) != null) {
-                LogManager.getLogger(SseService.class).info("SSE client disconnected (completion): {}", clientId);
+                LOGGER.info("SSE client disconnected (completion): {}", clientId);
             }
         });
 
         emitter.onTimeout(() -> {
             if (this.clients.remove(clientId) != null) {
-                LogManager.getLogger(SseService.class).info("SSE client disconnected (timeout): {}", clientId);
+                LOGGER.info("SSE client disconnected (timeout): {}", clientId);
             }
         });
 
         emitter.onError(e -> {
             if (this.clients.remove(clientId) != null) {
-                LogManager.getLogger(SseService.class).info("SSE client disconnected (error): {} - {}", clientId, e.getMessage());
+                LOGGER.info("SSE client disconnected (error): {} - {}", clientId, e.getMessage());
             }
         });
 
         SseClient client = new SseClient(clientId, emitter, userAgent, ipAddress, Instant.now());
         clients.put(clientId, client);
-        LogManager.getLogger(SseService.class).info("SSE client connected: {} ({}) from {}. Total clients: {}", clientId, client.getBrowserInfo(), ipAddress, clients.size());
+        LOGGER.info("SSE client connected: {} ({}) from {}. Total clients: {}", clientId, client.getBrowserInfo(), ipAddress, clients.size());
 
         // Send initial event to trigger browser's onopen
         try {
@@ -62,7 +61,7 @@ public class SseService {
                     .name("connected")
                     .data("{}", MediaType.APPLICATION_JSON));
         } catch (IOException e) {
-            LogManager.getLogger(SseService.class).info("Failed to send initial event: {}", e.getMessage());
+            LOGGER.info("Failed to send initial event: {}", e.getMessage());
         }
 
         return emitter;
@@ -85,13 +84,13 @@ public class SseService {
     }
 
     private void broadcastEvent(String eventName, Object data) {
-        LogManager.getLogger(SseService.class).info("Broadcasting '{}' event to {} clients", eventName, this.clients.size());
+        LOGGER.info("Broadcasting '{}' event to {} clients", eventName, this.clients.size());
 
         String json;
         try {
             json = OBJECT_MAPPER.writeValueAsString(data);
         } catch (JsonProcessingException e) {
-            LogManager.getLogger(SseService.class).info("Failed to serialize event: {}", e.getMessage());
+            LOGGER.info("Failed to serialize event: {}", e.getMessage());
             return;
         }
 
@@ -101,7 +100,7 @@ public class SseService {
                         .name(eventName)
                         .data(json, MediaType.APPLICATION_JSON));
             } catch (IOException e) {
-                LogManager.getLogger(SseService.class).info("Failed to send to client {}, removing: {}", clientId, e.getMessage());
+                LOGGER.info("Failed to send to client {}, removing: {}", clientId, e.getMessage());
                 this.clients.remove(clientId);
             }
         });
@@ -111,21 +110,21 @@ public class SseService {
         return this.clients.size();
     }
 
-    @Scheduled(fixedRate = 10000) // Every 30 seconds
+    @Scheduled(fixedRateString = "${sse.heartbeat-interval}")
     public void heartbeat() {
         if (this.clients.isEmpty()) {
-            LogManager.getLogger(SseService.class).info("No clients to receive heartbeats");
+            LOGGER.info("No clients to receive heartbeats");
             return;
         }
-        LogManager.getLogger(SseService.class).info("Sending heartbeat to {} clients", this.clients.size());
+        LOGGER.info("Sending heartbeat to {} clients", this.clients.size());
         this.clients.forEach((clientId, client) -> {
             try {
-                LogManager.getLogger(SseService.class).info("Sending heartbeat to {} ({})", clientId, client.toString());
+                LOGGER.info("Sending heartbeat to {} ({})", clientId, client.toString());
                 client.emitter().send(SseEmitter.event()
                         .name("heartbeat")
                         .data("{}", MediaType.APPLICATION_JSON));
             } catch (IOException e) {
-                LogManager.getLogger(SseService.class).info("Heartbeat failed for client {}, removing: {}", clientId, e.getMessage());
+                LOGGER.info("Heartbeat failed for client {}, removing: {}", clientId, e.getMessage());
                 this.clients.remove(clientId);
             }
         });

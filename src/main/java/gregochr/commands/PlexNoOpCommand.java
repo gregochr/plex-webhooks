@@ -4,8 +4,10 @@ import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PlexNoOpCommand extends PlexCommand {
+    private static final Logger LOGGER = LogManager.getLogger(PlexNoOpCommand.class);
     private final String unknownEvent;
 
     public PlexNoOpCommand(String unknownEvent, String unknownType) {
@@ -21,7 +23,7 @@ public class PlexNoOpCommand extends PlexCommand {
 
     @Override
     protected boolean doExecute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
-        LogManager.getLogger(PlexNoOpCommand.class).debug("[ Ignoring unrecognized Plex event: {} ]", this );
+        LOGGER.debug("[ Ignoring unrecognized Plex event: {} ]", this);
         return false;
     }
 }

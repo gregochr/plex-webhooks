@@ -19,12 +19,12 @@ public class HueLightDto {
         return this.name;
     }
 
-    public String isOn() { return this.on ? "On" : "Off"; }
+    public boolean isOn() { return this.on; }
 
-    public String isReachable() { return this.reachable ? "Yes" : "No"; }
+    public boolean isReachable() { return this.reachable; }
 
     @Override
     public String toString() {
-        return "Key:" + getKey() + ", Name: " + this.getName() + ", State: " + this.isOn() + ", Reachable: " + this.isReachable() + "\n";
+        return "Key:" + getKey() + ", Name: " + getName() + ", State: " + (on ? "On" : "Off") + ", Reachable: " + (reachable ? "Yes" : "No") + "\n";
     }
 }

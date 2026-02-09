@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 public class PlexScrobbleCommandIntegrationTest {
 
@@ -32,7 +35,7 @@ public class PlexScrobbleCommandIntegrationTest {
     public void testPlexScrobbleMovieCommand() {
         PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "movie");
 
-        assert(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 
     @Tag("integration")
@@ -41,6 +44,6 @@ public class PlexScrobbleCommandIntegrationTest {
     public void testPlexScrobbleTVShowCommand() {
         PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "episode");
 
-        assert(!plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 }

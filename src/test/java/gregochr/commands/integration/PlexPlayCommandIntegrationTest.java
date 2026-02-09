@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 public class PlexPlayCommandIntegrationTest {
 
@@ -32,7 +35,7 @@ public class PlexPlayCommandIntegrationTest {
     public void testPlexPlayMovieCommand() {
         PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "movie");
 
-        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 
     @Tag("integration")
@@ -41,7 +44,7 @@ public class PlexPlayCommandIntegrationTest {
     public void testPlexPlayTVShowCommand() {
         PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "episode");
 
-        assert(!plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertFalse(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
 
 }

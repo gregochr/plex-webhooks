@@ -18,6 +18,7 @@ import java.util.Map;
 @RequestMapping("/api/hue")
 public class HueStatusController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueStatusController.class);
+    private static final RestClient REST_CLIENT = RestClient.create();
 
     @Autowired
     private SseService sseService;
@@ -61,8 +62,7 @@ public class HueStatusController extends HueController {
             String url = "https://" + hubId + "/clip/v2/resource/bridge";
             LOGGER.debug("Testing Hue bridge connection: {}", url);
 
-            RestClient restClient = RestClient.create();
-            ResponseEntity<String> response = restClient
+            ResponseEntity<String> response = REST_CLIENT
                     .get()
                     .uri(url)
                     .header("hue-application-key", login)

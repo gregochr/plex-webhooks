@@ -39,7 +39,7 @@ public abstract class PlexCommand {
         }
 
         if (!this.type.equals("movie")) {
-            LogManager.getLogger(getClass()).info("[ PlexCommand ignores media type {$1}, skipping ]", this.type);
+            LogManager.getLogger(getClass()).info("[ PlexCommand ignores media type {}, skipping ]", this.type);
             return false;
         }
         return doExecute(hueSceneController, locationController, sunriseSunsetController);

@@ -80,6 +80,26 @@ public class SseServiceTest {
         assertEquals(0, sseService.getClientCount());
     }
 
+    @DisplayName("BroadcastHueStatus does not throw when no clients connected")
+    @Test
+    public void testBroadcastHueStatusWithNoClients() {
+        Map<String, Object> status = Map.of("connected", true, "hubAddress", "192.168.4.38");
+
+        sseService.broadcastHueStatus(status);
+
+        assertEquals(0, sseService.getClientCount());
+    }
+
+    @DisplayName("BroadcastDirigeraStatus does not throw when no clients connected")
+    @Test
+    public void testBroadcastDirigeraStatusWithNoClients() {
+        Map<String, Object> status = Map.of("reachable", true, "hubAddress", "192.168.4.34");
+
+        sseService.broadcastDirigeraStatus(status);
+
+        assertEquals(0, sseService.getClientCount());
+    }
+
     @DisplayName("Heartbeat does not throw when no clients connected")
     @Test
     public void testHeartbeatWithNoClients() {

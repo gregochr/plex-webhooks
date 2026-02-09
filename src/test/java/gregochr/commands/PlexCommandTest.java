@@ -11,6 +11,8 @@ import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 public class PlexCommandTest {
@@ -43,7 +45,7 @@ public class PlexCommandTest {
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).startMovieLightScene();
     }
     @DisplayName("Test Plex Play TV Show Command")
@@ -54,7 +56,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(!plexPlayCommand.execute(null, null, null, configService));
+        assertFalse(plexPlayCommand.execute(null, null, null, configService));
     }
     @DisplayName("Test Plex Resume Movie Command")
     @Test
@@ -84,7 +86,7 @@ public class PlexCommandTest {
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).startMovieLightScene();
     }
     @DisplayName("Test Plex Resume TV Show Command")
@@ -95,7 +97,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(!plexResumeCommand.execute(null, null, null, configService));
+        assertFalse(plexResumeCommand.execute(null, null, null, configService));
     }
     @DisplayName("Test Plex Stop Movie Command")
     @Test
@@ -125,7 +127,7 @@ public class PlexCommandTest {
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Stop TV Show Command")
@@ -136,7 +138,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(!plexStopCommand.execute(null, null, null, configService));
+        assertFalse(plexStopCommand.execute(null, null, null, configService));
     }
     @DisplayName("Test Plex Pause Movie Command")
     @Test
@@ -166,7 +168,7 @@ public class PlexCommandTest {
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Pause TV Show Command")
@@ -177,7 +179,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(!plexPauseCommand.execute(null, null, null, configService));
+        assertFalse(plexPauseCommand.execute(null, null, null, configService));
     }
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
@@ -207,7 +209,7 @@ public class PlexCommandTest {
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Scrobble TV Show Command")
@@ -218,7 +220,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
-        assert(!plexScrobbleCommand.execute(null, null, null, configService));
+        assertFalse(plexScrobbleCommand.execute(null, null, null, configService));
     }
 
     @DisplayName("Test Plex Play Movie Command skips Hue when disabled")
@@ -230,7 +232,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assert(!plexPlayCommand.execute(hueSceneController, null, null, configService));
+        assertFalse(plexPlayCommand.execute(hueSceneController, null, null, configService));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -243,7 +245,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assert(!plexStopCommand.execute(hueSceneController, null, null, configService));
+        assertFalse(plexStopCommand.execute(hueSceneController, null, null, configService));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -256,7 +258,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assert(!plexPauseCommand.execute(hueSceneController, null, null, configService));
+        assertFalse(plexPauseCommand.execute(hueSceneController, null, null, configService));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -269,7 +271,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assert(!plexResumeCommand.execute(hueSceneController, null, null, configService));
+        assertFalse(plexResumeCommand.execute(hueSceneController, null, null, configService));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -282,7 +284,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assert(!plexScrobbleCommand.execute(hueSceneController, null, null, configService));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, null, null, configService));
         verifyNoMoreInteractions(hueSceneController);
     }
 }

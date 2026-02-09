@@ -3,6 +3,7 @@ package gregochr.controllers;
 import gregochr.controllers.dto.SunriseSunsetResponseDto;
 import jakarta.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -35,17 +36,18 @@ public class SunriseSunsetController {
         return LocalTime.now(clock).isAfter(sunsetTime);
     }
 
+    private static final Logger LOGGER = LogManager.getLogger(SunriseSunsetController.class);
+    private static final RestClient REST_CLIENT = RestClient.create();
+
     @Nullable
     private static SunriseSunsetResponseDto getSunriseSunsetResponseDto(double latitude, double longitude, String date) {
-        RestClient restClient = RestClient.create();
-
-        SunriseSunsetResponseDto sunriseSunsetResponse = restClient
+        SunriseSunsetResponseDto sunriseSunsetResponse = REST_CLIENT
                 .get()
                 .uri(SUNRISE_SUNSET_SERVICE_URL, latitude, longitude, date)
                 .retrieve()
                 .body(SunriseSunsetResponseDto.class);
 
-        LogManager.getLogger(SunriseSunsetController.class).info("[ Sunrise / sunset: " + sunriseSunsetResponse + " ]");
+        LOGGER.info("[ Sunrise / sunset: {} ]", sunriseSunsetResponse);
         return sunriseSunsetResponse;
     }
 }

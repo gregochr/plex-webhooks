@@ -1,6 +1,7 @@
 package gregochr.services.sse;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Instant;
@@ -12,11 +13,13 @@ public record SseClient(
         String ipAddress,
         Instant connectedAt
 ) {
+    private static final Logger LOGGER = LogManager.getLogger(SseClient.class);
+
     public String getBrowserInfo() {
         if (userAgent == null || userAgent.isEmpty()) {
             return "Unknown";
         } else {
-            LogManager.getLogger(SseClient.class).info("[ User agent: " + userAgent + " ]");
+            LOGGER.info("[ User agent: {} ]", userAgent);
         }
 
         String browser = "Unknown";

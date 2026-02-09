@@ -4,8 +4,10 @@ import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PlexResumeCommand extends PlexCommand  {
+    private static final Logger LOGGER = LogManager.getLogger(PlexResumeCommand.class);
     private static final String EVENT = "media.resume";
 
     public PlexResumeCommand(String title, int duration, String type) {
@@ -19,7 +21,7 @@ public class PlexResumeCommand extends PlexCommand  {
 
     @Override
     protected boolean doExecute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController) {
-        LogManager.getLogger(PlexResumeCommand.class).info("[ Executing Plex Scrobble Command: {} ]", this);
+        LOGGER.info("[ Executing Plex Resume Command: {} ]", this);
         return hueSceneController.startMovieLightScene();
     }
 }

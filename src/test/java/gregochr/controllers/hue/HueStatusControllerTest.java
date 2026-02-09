@@ -1,6 +1,7 @@
 package gregochr.controllers.hue;
 
 import gregochr.services.config.ConfigService;
+import gregochr.services.sse.SseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,16 +14,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
 
 @DisplayName("Hue Status Controller Tests")
 public class HueStatusControllerTest {
 
     private HueStatusController controller;
     private ConfigService configService;
+    private SseService sseService;
 
     @BeforeEach
     public void setUp() throws Exception {
         configService = mock(ConfigService.class);
+        sseService = mock(SseService.class);
         controller = new HueStatusController();
 
         // Set protected fields from HueController
@@ -35,6 +41,11 @@ public class HueStatusControllerTest {
         Field configField = HueController.class.getDeclaredField("configService");
         configField.setAccessible(true);
         configField.set(controller, configService);
+
+        // Set private sseService via reflection
+        Field sseField = HueStatusController.class.getDeclaredField("sseService");
+        sseField.setAccessible(true);
+        sseField.set(controller, sseService);
     }
 
     @DisplayName("getStatus returns all expected fields")
@@ -116,5 +127,26 @@ public class HueStatusControllerTest {
         Map<String, Object> result = controller.testConnectionEndpoint();
 
         assertFalse((Boolean) result.get("connected"));
+    }
+
+    @DisplayName("broadcastStatus broadcasts when clients are connected")
+    @Test
+    public void testBroadcastStatusWithClients() {
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(sseService.getClientCount()).thenReturn(1);
+
+        controller.broadcastStatus();
+
+        verify(sseService).broadcastHueStatus(any());
+    }
+
+    @DisplayName("broadcastStatus skips broadcast when no clients are connected")
+    @Test
+    public void testBroadcastStatusNoClients() {
+        when(sseService.getClientCount()).thenReturn(0);
+
+        controller.broadcastStatus();
+
+        verify(sseService, never()).broadcastHueStatus(any());
     }
 }

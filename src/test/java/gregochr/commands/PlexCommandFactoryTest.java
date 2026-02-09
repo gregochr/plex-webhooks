@@ -21,7 +21,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexPlayCommand.class, plexCommand);
+        assertEquals(PlexEvent.PLAY, plexCommand.getPlexEvent());
         assertEquals("media.play", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -37,7 +37,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexPlayCommand.class, plexCommand);
+        assertEquals(PlexEvent.PLAY, plexCommand.getPlexEvent());
         assertEquals("media.play", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -53,7 +53,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexResumeCommand.class, plexCommand);
+        assertEquals(PlexEvent.RESUME, plexCommand.getPlexEvent());
         assertEquals("media.resume", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -68,7 +68,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexResumeCommand.class, plexCommand);
+        assertEquals(PlexEvent.RESUME, plexCommand.getPlexEvent());
         assertEquals("media.resume", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -84,7 +84,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexStopCommand.class, plexCommand);
+        assertEquals(PlexEvent.STOP, plexCommand.getPlexEvent());
         assertEquals("media.stop", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -100,7 +100,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexStopCommand.class, plexCommand);
+        assertEquals(PlexEvent.STOP, plexCommand.getPlexEvent());
         assertEquals("media.stop", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -116,7 +116,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexPauseCommand.class, plexCommand);
+        assertEquals(PlexEvent.PAUSE, plexCommand.getPlexEvent());
         assertEquals("media.pause", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -132,7 +132,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexPauseCommand.class, plexCommand);
+        assertEquals(PlexEvent.PAUSE, plexCommand.getPlexEvent());
         assertEquals("media.pause", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -148,7 +148,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexScrobbleCommand.class, plexCommand);
+        assertEquals(PlexEvent.SCROBBLE, plexCommand.getPlexEvent());
         assertEquals("media.scrobble", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -164,7 +164,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexScrobbleCommand.class, plexCommand);
+        assertEquals(PlexEvent.SCROBBLE, plexCommand.getPlexEvent());
         assertEquals("media.scrobble", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
@@ -180,7 +180,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexNoOpCommand.class, plexCommand);
+        assertNull(plexCommand.getPlexEvent());
         assertEquals("RandomEventString", plexCommand.getEvent());
         assertEquals("movie", plexCommand.getType());
     }
@@ -194,7 +194,7 @@ public class PlexCommandFactoryTest {
         PlexCommand plexCommand = factory.getPlexCommand();
 
         assertNotNull(plexCommand);
-        assertInstanceOf(PlexNoOpCommand.class, plexCommand);
+        assertNull(plexCommand.getPlexEvent());
         assertEquals("media.play", plexCommand.getEvent());
         assertEquals("RandomTypeString", plexCommand.getType());
     }

@@ -1,6 +1,7 @@
 package gregochr.commands.integration;
 
-import gregochr.commands.PlexPlayCommand;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexEvent;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -33,7 +34,7 @@ public class PlexPlayCommandIntegrationTest {
     @DisplayName("Test Plex Play Movie Command")
     @Test
     public void testPlexPlayMovieCommand() {
-        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, "movie");
 
         assertTrue(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
@@ -42,7 +43,7 @@ public class PlexPlayCommandIntegrationTest {
     @DisplayName("Test Plex Play TV Show Command")
     @Test
     public void testPlexPlayTVShowCommand() {
-        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, "episode");
 
         assertFalse(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }

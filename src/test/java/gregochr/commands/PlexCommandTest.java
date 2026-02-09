@@ -24,7 +24,7 @@ public class PlexCommandTest {
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, "movie");
 
         LocationResponseDto locationResponse = new LocationResponseDto();
         LocationResultDto locationResult = new LocationResultDto();
@@ -52,7 +52,7 @@ public class PlexCommandTest {
     @Test
     public void testPlexPlayTVShowCommand() {
         ConfigService configService = mock(ConfigService.class);
-        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, "episode");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
@@ -65,7 +65,7 @@ public class PlexCommandTest {
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, "movie");
 
         LocationResponseDto locationResponse = new LocationResponseDto();
         LocationResultDto locationResult = new LocationResultDto();
@@ -93,7 +93,7 @@ public class PlexCommandTest {
     @Test
     public void testPlexResumeTVShowCommand() {
         ConfigService configService = mock(ConfigService.class);
-        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, "episode");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
@@ -106,7 +106,7 @@ public class PlexCommandTest {
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, "movie");
 
         LocationResponseDto locationResponse = new LocationResponseDto();
         LocationResultDto locationResult = new LocationResultDto();
@@ -134,7 +134,7 @@ public class PlexCommandTest {
     @Test
     public void testPlexStopTVShowCommand() {
         ConfigService configService = mock(ConfigService.class);
-        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, "episode");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
@@ -147,7 +147,7 @@ public class PlexCommandTest {
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, "movie");
 
         LocationResponseDto locationResponse = new LocationResponseDto();
         LocationResultDto locationResult = new LocationResultDto();
@@ -175,7 +175,7 @@ public class PlexCommandTest {
     @Test
     public void testPlexPauseTVShowCommand() {
         ConfigService configService = mock(ConfigService.class);
-        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, "episode");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
@@ -188,7 +188,7 @@ public class PlexCommandTest {
         LocationController locationController = mock(LocationController.class);
         SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, "movie");
 
         LocationResponseDto locationResponse = new LocationResponseDto();
         LocationResultDto locationResult = new LocationResultDto();
@@ -216,7 +216,7 @@ public class PlexCommandTest {
     @Test
     public void testPlexScrobbleTVShowCommand() {
         ConfigService configService = mock(ConfigService.class);
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, "episode");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
@@ -228,7 +228,7 @@ public class PlexCommandTest {
     public void testPlexPlayMovieCommandSkipsHueWhenDisabled() {
         HueSceneController hueSceneController = mock(HueSceneController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexPlayCommand plexPlayCommand = new PlexPlayCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, "movie");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
@@ -241,7 +241,7 @@ public class PlexCommandTest {
     public void testPlexStopMovieCommandSkipsHueWhenDisabled() {
         HueSceneController hueSceneController = mock(HueSceneController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, "movie");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
@@ -254,7 +254,7 @@ public class PlexCommandTest {
     public void testPlexPauseMovieCommandSkipsHueWhenDisabled() {
         HueSceneController hueSceneController = mock(HueSceneController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, "movie");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
@@ -267,7 +267,7 @@ public class PlexCommandTest {
     public void testPlexResumeMovieCommandSkipsHueWhenDisabled() {
         HueSceneController hueSceneController = mock(HueSceneController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, "movie");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
@@ -280,7 +280,7 @@ public class PlexCommandTest {
     public void testPlexScrobbleMovieCommandSkipsHueWhenDisabled() {
         HueSceneController hueSceneController = mock(HueSceneController.class);
         ConfigService configService = mock(ConfigService.class);
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, "movie");
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 

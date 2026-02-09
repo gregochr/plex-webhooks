@@ -1,6 +1,7 @@
 package gregochr.controllers;
 
-import gregochr.commands.*;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexEvent;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
@@ -47,12 +48,12 @@ public class DebugController {
 
     private PlexCommand createCommand(String command, String type) {
         return switch (command) {
-            case "play" -> new PlexPlayCommand("Debug Play Command Test", 0, type);
-            case "stop" -> new PlexStopCommand("Debug Stop Command Test", 0, type);
-            case "pause" -> new PlexPauseCommand("Debug Pause Test", 0, type);
-            case "resume" -> new PlexResumeCommand("Debug Resume Test", 0, type);
-            case "scrobble" -> new PlexScrobbleCommand("Debug Scrobble Test", 0, type);
-            default -> new PlexNoOpCommand(command, type);
+            case "play" -> new PlexCommand(PlexEvent.PLAY, "Debug Play Command Test", 0, type);
+            case "stop" -> new PlexCommand(PlexEvent.STOP, "Debug Stop Command Test", 0, type);
+            case "pause" -> new PlexCommand(PlexEvent.PAUSE, "Debug Pause Test", 0, type);
+            case "resume" -> new PlexCommand(PlexEvent.RESUME, "Debug Resume Test", 0, type);
+            case "scrobble" -> new PlexCommand(PlexEvent.SCROBBLE, "Debug Scrobble Test", 0, type);
+            default -> new PlexCommand(command, type);
         };
     }
 }

@@ -1,6 +1,7 @@
 package gregochr.commands.integration;
 
-import gregochr.commands.PlexResumeCommand;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexEvent;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -33,7 +34,7 @@ public class PlexResumeCommandIntegrationTest {
     @DisplayName("Test Plex Resume Movie Command")
     @Test
     public void testPlexResumeMovieCommand() {
-        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, "movie");
 
         assertTrue(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
@@ -42,7 +43,7 @@ public class PlexResumeCommandIntegrationTest {
     @DisplayName("Test Plex Resume TV Show Command")
     @Test
     public void testPlexResumeTVShowCommand() {
-        PlexResumeCommand plexResumeCommand = new PlexResumeCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, "episode");
 
         assertFalse(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }

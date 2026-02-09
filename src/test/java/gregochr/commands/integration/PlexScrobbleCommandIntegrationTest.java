@@ -1,6 +1,7 @@
 package gregochr.commands.integration;
 
-import gregochr.commands.PlexScrobbleCommand;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexEvent;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -33,7 +34,7 @@ public class PlexScrobbleCommandIntegrationTest {
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, "movie");
 
         assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
@@ -42,7 +43,7 @@ public class PlexScrobbleCommandIntegrationTest {
     @DisplayName("Test Plex Scrobble TV Show Command")
     @Test
     public void testPlexScrobbleTVShowCommand() {
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, "episode");
 
         assertFalse(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }

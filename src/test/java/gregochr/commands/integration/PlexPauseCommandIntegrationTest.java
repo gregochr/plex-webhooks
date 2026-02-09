@@ -1,6 +1,7 @@
 package gregochr.commands.integration;
 
-import gregochr.commands.PlexPauseCommand;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexEvent;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -33,7 +34,7 @@ public class PlexPauseCommandIntegrationTest {
     @DisplayName("Test Plex Pause Movie Command")
     @Test
     public void testPlexStopMovieCommand() {
-        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, "movie");
 
         assertTrue(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }
@@ -42,7 +43,7 @@ public class PlexPauseCommandIntegrationTest {
     @DisplayName("Test Plex Pause TV Show Command")
     @Test
     public void testPlexStopTVShowCommand() {
-        PlexPauseCommand plexPauseCommand = new PlexPauseCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, "episode");
 
         assertFalse(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
     }

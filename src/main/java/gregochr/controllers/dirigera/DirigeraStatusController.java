@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Map;
@@ -45,7 +46,8 @@ public class DirigeraStatusController {
         boolean reachable = testConnection();
         return Map.of(
                 "hubAddress", hubAddress,
-                "reachable", reachable
+                "reachable", reachable,
+                "timestamp", Instant.now().toString()
         );
     }
 

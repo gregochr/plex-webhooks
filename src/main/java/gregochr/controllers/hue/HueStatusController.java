@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.time.Instant;
 import java.util.Map;
 
 @RestController
@@ -53,7 +54,8 @@ public class HueStatusController extends HueController {
                 "login", login,
                 "key", key,
                 "integrationEnabled", isHueIntegrationEnabled(),
-                "connected", connected
+                "connected", connected,
+                "timestamp", Instant.now().toString()
         );
     }
 

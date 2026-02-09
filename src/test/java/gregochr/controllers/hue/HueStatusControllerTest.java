@@ -61,6 +61,7 @@ public class HueStatusControllerTest {
         assertTrue(status.containsKey("key"));
         assertTrue(status.containsKey("connected"));
         assertTrue(status.containsKey("integrationEnabled"));
+        assertTrue(status.containsKey("timestamp"));
     }
 
     @DisplayName("getStatus returns integrationEnabled true when enabled")

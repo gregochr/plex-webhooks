@@ -32,24 +32,11 @@ public class SseService {
 
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
-        emitter.onCompletion(() -> {
-            // Only log if client still exists (not a replacement)
-            if (this.clients.remove(clientId) != null) {
-                LOGGER.info("SSE client disconnected (completion): {}", clientId);
-            }
-        });
+        emitter.onCompletion(() -> removeIfSameEmitter(clientId, emitter, "completion"));
 
-        emitter.onTimeout(() -> {
-            if (this.clients.remove(clientId) != null) {
-                LOGGER.info("SSE client disconnected (timeout): {}", clientId);
-            }
-        });
+        emitter.onTimeout(() -> removeIfSameEmitter(clientId, emitter, "timeout"));
 
-        emitter.onError(e -> {
-            if (this.clients.remove(clientId) != null) {
-                LOGGER.info("SSE client disconnected (error): {} - {}", clientId, e.getMessage());
-            }
-        });
+        emitter.onError(e -> removeIfSameEmitter(clientId, emitter, "error: " + e.getMessage()));
 
         SseClient client = new SseClient(clientId, emitter, userAgent, ipAddress, Instant.now());
         clients.put(clientId, client);
@@ -108,6 +95,16 @@ public class SseService {
 
     public int getClientCount() {
         return this.clients.size();
+    }
+
+    void removeIfSameEmitter(String clientId, SseEmitter emitter, String reason) {
+        clients.computeIfPresent(clientId, (id, client) -> {
+            if (client.emitter() == emitter) {
+                LOGGER.info("SSE client disconnected ({}): {}", reason, clientId);
+                return null;
+            }
+            return client;
+        });
     }
 
     @Scheduled(fixedRateString = "${sse.heartbeat-interval}")

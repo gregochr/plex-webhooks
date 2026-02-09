@@ -1172,7 +1172,7 @@
                     <div class="status-item">
                         <div class="status-label">Status</div>
                         <div class="status-value ${status.connected ? 'connected' : 'disconnected'}">
-                            ${status.connected ? '● Reachable' : '○ Unreachable'}
+                            ${status.connected ? '● Reachable' : '○ Unreachable'} <span style="color:#666;font-weight:400;font-size:12px;"> (@ ${new Date(status.timestamp).toLocaleTimeString()})</span>
                         </div>
                     </div>
                     <div class="status-item">
@@ -1273,7 +1273,7 @@
                     <div class="status-item">
                         <div class="status-label">Status</div>
                         <div class="status-value ${status.reachable ? 'connected' : 'disconnected'}">
-                            ${status.reachable ? '● Reachable' : '○ Unreachable'}
+                            ${status.reachable ? '● Reachable' : '○ Unreachable'} <span style="color:#666;font-weight:400;font-size:12px;"> (@${new Date(status.timestamp).toLocaleTimeString()})</span>
                         </div>
                     </div>
                     <div class="status-item">

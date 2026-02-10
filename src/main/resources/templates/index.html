@@ -530,6 +530,9 @@
             grid-column: 1 / -1;
         }
         .hue-resources-disabled { opacity: 0.4; pointer-events: none; }
+        #hue-resource-output {
+            max-height: 600px;
+        }
     </style>
 </head>
 <body>
@@ -598,7 +601,7 @@
 
             <div id="hue-resources-section" class="section-divider hue-resources-disabled">
                 <div class="json-panel-header">
-                    <span>Bridge Resources</span>
+                    <span id="hue-resources-heading">Bridge Resources</span>
                     <div class="json-search-wrap">
                         <input type="text" id="hue-resource-search" placeholder="Search resources..." disabled>
                         <button class="json-nav-btn" id="hue-resource-prev-match" title="Previous match" disabled>&#9650;</button>
@@ -607,6 +610,7 @@
                         <button class="json-nav-btn" id="hue-resource-copy" title="Copy JSON" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                     </div>
                 </div>
+                <div id="hue-resource-type-filter" class="radio-group" style="flex-wrap: wrap; gap: 8px 16px; margin: 8px 0;"></div>
                 <div id="hue-resource-output" class="json-output">
                     <div class="empty-state">Hue bridge not connected</div>
                 </div>
@@ -643,6 +647,10 @@
                     <img th:src="@{/hue-logo.png}" alt="Hue" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
                     Integrate with Hue?
                 </label>
+            </div>
+            <div class="config-item">
+                <input type="checkbox" id="show-all-hue-types">
+                <label for="show-all-hue-types">Show all Hue resource types</label>
             </div>
 
             <div class="section-divider">
@@ -1206,6 +1214,8 @@
 
         // Hue status
         let hueBridgeConnected = false;
+        let hueResourceData = null;
+        let showAllHueTypes = localStorage.getItem('showAllHueTypes') === 'true';
 
         function renderHueStatus(status) {
             const wasConnected = hueBridgeConnected;
@@ -1228,6 +1238,8 @@
                 document.getElementById('hue-resource-copy').disabled = true;
                 document.getElementById('hue-resource-output').innerHTML =
                     '<div class="empty-state">Hue bridge not connected</div>';
+                document.getElementById('hue-resource-type-filter').innerHTML = '';
+                hueResourceData = null;
             }
             const container = document.getElementById('hue-status-container');
             container.innerHTML = `
@@ -1305,6 +1317,57 @@
             }
         }
 
+        function renderHueResourceFilter(data) {
+            const container = document.getElementById('hue-resource-type-filter');
+            container.innerHTML = '';
+            const types = [...new Set((data.data || []).map(r => r.type))].sort();
+
+            const allItem = document.createElement('div');
+            allItem.className = 'radio-item';
+            allItem.innerHTML = '<input type="radio" id="hue-rt-all" name="hue-resource-type" value="all" checked><label for="hue-rt-all">All</label>';
+            allItem.querySelector('input').addEventListener('change', applyHueResourceFilter);
+            container.appendChild(allItem);
+
+            types.forEach(type => {
+                const item = document.createElement('div');
+                item.className = 'radio-item';
+                const id = 'hue-rt-' + type;
+                const label = type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                item.innerHTML = '<input type="radio" id="' + id + '" name="hue-resource-type" value="' + type + '"><label for="' + id + '">' + label + '</label>';
+                item.querySelector('input').addEventListener('change', applyHueResourceFilter);
+                container.appendChild(item);
+            });
+
+            container.style.display = showAllHueTypes ? '' : 'none';
+        }
+
+        function applyHueResourceFilter() {
+            if (!hueResourceData) return;
+            const filterContainer = document.getElementById('hue-resource-type-filter');
+            document.getElementById('hue-resources-heading').textContent = showAllHueTypes ? 'Bridge Resources' : 'Available Scenes';
+            if (!showAllHueTypes) {
+                filterContainer.style.display = 'none';
+                const filtered = { errors: hueResourceData.errors || [], data: (hueResourceData.data || []).filter(r => r.type === 'scene') };
+                const output = document.getElementById('hue-resource-output');
+                output.innerHTML = '';
+                output.appendChild(renderJsonTree(filtered, 1));
+            } else {
+                filterContainer.style.display = '';
+                const selected = document.querySelector('input[name="hue-resource-type"]:checked');
+                const value = selected ? selected.value : 'all';
+                const filtered = value === 'all'
+                    ? hueResourceData
+                    : { errors: hueResourceData.errors || [], data: hueResourceData.data.filter(r => r.type === value) };
+                const output = document.getElementById('hue-resource-output');
+                output.innerHTML = '';
+                output.appendChild(renderJsonTree(filtered, 1));
+            }
+            const searchInput = document.getElementById('hue-resource-search');
+            if (searchInput.value.trim()) {
+                hueResourceSearch.search(searchInput.value.trim());
+            }
+        }
+
         function fetchHueResources() {
             const output = document.getElementById('hue-resource-output');
             const searchInput = document.getElementById('hue-resource-search');
@@ -1314,13 +1377,11 @@
                     return res.json();
                 })
                 .then(data => {
-                    output.innerHTML = '';
-                    output.appendChild(renderJsonTree(data, 1));
+                    hueResourceData = data;
+                    renderHueResourceFilter(data);
+                    applyHueResourceFilter();
                     searchInput.disabled = false;
                     document.getElementById('hue-resource-copy').disabled = false;
-                    if (searchInput.value.trim()) {
-                        hueResourceSearch.search(searchInput.value.trim());
-                    }
                 })
                 .catch(err => {
                     console.error('Failed to fetch Hue resources:', err);
@@ -1350,6 +1411,17 @@
                 this.disabled = false;
             }, 500);
         });
+
+        // "Show all Hue resource types" checkbox (localStorage toggle)
+        const showAllHueTypesCheckbox = document.getElementById('show-all-hue-types');
+        if (showAllHueTypesCheckbox) {
+            showAllHueTypesCheckbox.checked = showAllHueTypes;
+            showAllHueTypesCheckbox.addEventListener('change', function() {
+                showAllHueTypes = this.checked;
+                localStorage.setItem('showAllHueTypes', showAllHueTypes);
+                applyHueResourceFilter();
+            });
+        }
 
         // DIRIGERA status
         function renderDirigeraStatus(status) {

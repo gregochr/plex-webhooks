@@ -1,23 +1,26 @@
 package gregochr.controllers.hue;
 
 import gregochr.services.config.ConfigService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
-@Component
 public abstract class HueController {
-    @Value("${hue.hub-address}")
-    protected String hubAddress;
+    protected static final String HUE_APPLICATION_KEY_HEADER = "hue-application-key";
 
-    @Value("${hue.hub-id}")
-    protected String hubId;
+    protected final String hubAddress;
+    protected final String hubId;
+    protected final String applicationKey;
+    private final ConfigService configService;
 
-    @Value("${hue.application-key}")
-    protected String applicationKey;
-
-    @Autowired
-    private ConfigService configService;
+    protected HueController(
+            @Value("${hue.hub-address}") String hubAddress,
+            @Value("${hue.hub-id}") String hubId,
+            @Value("${hue.application-key}") String applicationKey,
+            ConfigService configService) {
+        this.hubAddress = hubAddress;
+        this.hubId = hubId;
+        this.applicationKey = applicationKey;
+        this.configService = configService;
+    }
 
     public boolean isHueIntegrationEnabled() {
         return configService.isHueIntegrationEnabled();

@@ -1,9 +1,10 @@
 package gregochr.controllers.hue;
 
+import gregochr.services.config.ConfigService;
 import gregochr.services.sse.SseService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,8 +22,17 @@ public class HueStatusController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueStatusController.class);
     private static final RestClient REST_CLIENT = RestClient.create();
 
-    @Autowired
-    private SseService sseService;
+    private final SseService sseService;
+
+    public HueStatusController(
+            @Value("${hue.hub-address}") String hubAddress,
+            @Value("${hue.hub-id}") String hubId,
+            @Value("${hue.application-key}") String applicationKey,
+            ConfigService configService,
+            SseService sseService) {
+        super(hubAddress, hubId, applicationKey, configService);
+        this.sseService = sseService;
+    }
 
     @GetMapping("/status")
     public Map<String, Object> getStatus() {
@@ -66,7 +76,7 @@ public class HueStatusController extends HueController {
             ResponseEntity<String> response = REST_CLIENT
                     .get()
                     .uri(url)
-                    .header("hue-application-key", applicationKey)
+                    .header(HUE_APPLICATION_KEY_HEADER, applicationKey)
                     .retrieve()
                     .toEntity(String.class);
 

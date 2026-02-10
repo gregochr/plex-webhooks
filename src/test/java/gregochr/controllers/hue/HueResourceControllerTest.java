@@ -7,8 +7,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
-import java.lang.reflect.Field;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -21,18 +19,13 @@ public class HueResourceControllerTest {
     private HueResourceController controller;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         ConfigService configService = mock(ConfigService.class);
-        controller = new HueResourceController();
-
-        // Set protected fields from HueController
-        controller.hubAddress = "192.168.1.100";
-        controller.hubId = "001788fffe7107c8";
-        controller.applicationKey = "TestApplicationKey1234";
-        // Set private configService via reflection
-        Field configField = HueController.class.getDeclaredField("configService");
-        configField.setAccessible(true);
-        configField.set(controller, configService);
+        controller = new HueResourceController(
+                "192.168.1.100",
+                "001788fffe7107c8",
+                "TestApplicationKey1234",
+                configService);
     }
 
     @DisplayName("getResources returns 503 when bridge is unreachable")

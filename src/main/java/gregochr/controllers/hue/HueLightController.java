@@ -1,8 +1,10 @@
 package gregochr.controllers.hue;
 
 import gregochr.controllers.dto.hue.HueLightDto;
+import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -14,6 +16,14 @@ public class HueLightController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueLightController.class);
     private static final RestClient REST_CLIENT = RestClient.create();
 
+    public HueLightController(
+            @Value("${hue.hub-address}") String hubAddress,
+            @Value("${hue.hub-id}") String hubId,
+            @Value("${hue.application-key}") String applicationKey,
+            ConfigService configService) {
+        super(hubAddress, hubId, applicationKey, configService);
+    }
+
     private void setLightState(final HueLightDto light, final String body) {
         final String restURL = "https://" + this.hubId + "/clip/v2/resource/light/";
         LOGGER.info("[ Turning light: {}, {} ]", light.getKey(), body);
@@ -21,7 +31,7 @@ public class HueLightController extends HueController {
         ResponseEntity<Void> response = REST_CLIENT
                 .put()
                 .uri(restURL + "{lightKey}", light.getKey())
-                .header("hue-application-key", this.applicationKey)
+                .header(HUE_APPLICATION_KEY_HEADER, this.applicationKey)
                 .contentType(APPLICATION_JSON)
                 .body(body)
                 .retrieve()

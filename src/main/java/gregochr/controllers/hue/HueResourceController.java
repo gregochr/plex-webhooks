@@ -3,8 +3,10 @@ package gregochr.controllers.hue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gregochr.controllers.dto.hue.HueResourceResponseDto;
+import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +22,14 @@ public class HueResourceController extends HueController {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String RESOURCE_URL = "https://{hubId}/clip/v2/resource";
 
+    public HueResourceController(
+            @Value("${hue.hub-address}") String hubAddress,
+            @Value("${hue.hub-id}") String hubId,
+            @Value("${hue.application-key}") String applicationKey,
+            ConfigService configService) {
+        super(hubAddress, hubId, applicationKey, configService);
+    }
+
     @GetMapping(value = "/resources", produces = "application/json")
     public ResponseEntity<String> getResources() {
         try {
@@ -28,7 +38,7 @@ public class HueResourceController extends HueController {
             ResponseEntity<String> response = REST_CLIENT
                     .get()
                     .uri(RESOURCE_URL, hubId)
-                    .header("hue-application-key", applicationKey)
+                    .header(HUE_APPLICATION_KEY_HEADER, applicationKey)
                     .retrieve()
                     .toEntity(String.class);
 

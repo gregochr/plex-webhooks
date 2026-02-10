@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,24 +25,15 @@ public class HueStatusControllerTest {
     private SseService sseService;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         configService = mock(ConfigService.class);
         sseService = mock(SseService.class);
-        controller = new HueStatusController();
-
-        // Set protected fields from HueController
-        controller.hubAddress = "192.168.1.100";
-        controller.hubId = "001788fffe7107c8";
-        controller.applicationKey = "TestApplicationKey1234";
-        // Set private configService via reflection
-        Field configField = HueController.class.getDeclaredField("configService");
-        configField.setAccessible(true);
-        configField.set(controller, configService);
-
-        // Set private sseService via reflection
-        Field sseField = HueStatusController.class.getDeclaredField("sseService");
-        sseField.setAccessible(true);
-        sseField.set(controller, sseService);
+        controller = new HueStatusController(
+                "192.168.1.100",
+                "001788fffe7107c8",
+                "TestApplicationKey1234",
+                configService,
+                sseService);
     }
 
     @DisplayName("getStatus returns all expected fields")

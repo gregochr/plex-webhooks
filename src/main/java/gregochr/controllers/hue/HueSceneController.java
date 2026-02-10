@@ -28,7 +28,7 @@ public class HueSceneController extends HueController {
         ResponseEntity<Void> response = REST_CLIENT
                 .put()
                 .uri(SCENE_URL, this.hubId, sceneId)
-                .header("hue-application-key", this.login)
+                .header("hue-application-key", this.applicationKey)
                 .contentType(APPLICATION_JSON)
                 .body(RECALL_ACTIVE_BODY)
                 .retrieve()

@@ -28,9 +28,7 @@ public class HueResourceControllerTest {
         // Set protected fields from HueController
         controller.hubAddress = "192.168.1.100";
         controller.hubId = "001788fffe7107c8";
-        controller.login = "TestApplicationKey1234";
-        controller.key = "ABCDEF1234567890";
-
+        controller.applicationKey = "TestApplicationKey1234";
         // Set private configService via reflection
         Field configField = HueController.class.getDeclaredField("configService");
         configField.setAccessible(true);

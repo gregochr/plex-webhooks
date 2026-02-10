@@ -21,7 +21,7 @@ public class HueLightController extends HueController {
         ResponseEntity<Void> response = REST_CLIENT
                 .put()
                 .uri(restURL + "{lightKey}", light.getKey())
-                .header("hue-application-key", this.login)
+                .header("hue-application-key", this.applicationKey)
                 .contentType(APPLICATION_JSON)
                 .body(body)
                 .retrieve()

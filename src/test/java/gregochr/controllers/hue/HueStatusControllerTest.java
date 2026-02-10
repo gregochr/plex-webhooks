@@ -34,9 +34,7 @@ public class HueStatusControllerTest {
         // Set protected fields from HueController
         controller.hubAddress = "192.168.1.100";
         controller.hubId = "001788fffe7107c8";
-        controller.login = "TestApplicationKey1234";
-        controller.key = "ABCDEF1234567890";
-
+        controller.applicationKey = "TestApplicationKey1234";
         // Set private configService via reflection
         Field configField = HueController.class.getDeclaredField("configService");
         configField.setAccessible(true);
@@ -57,8 +55,7 @@ public class HueStatusControllerTest {
 
         assertEquals("192.168.1.100", status.get("hubAddress"));
         assertEquals("001788fffe7107c8", status.get("hubId"));
-        assertEquals("TestApplicationKey1234", status.get("login"));
-        assertTrue(status.containsKey("key"));
+        assertEquals("TestApplicationKey1234", status.get("applicationKey"));
         assertTrue(status.containsKey("connected"));
         assertTrue(status.containsKey("integrationEnabled"));
         assertTrue(status.containsKey("timestamp"));
@@ -91,17 +88,7 @@ public class HueStatusControllerTest {
 
         Map<String, Object> status = controller.getStatus();
 
-        assertEquals("TestApplicationKey1234", status.get("login"));
-    }
-
-    @DisplayName("getStatus sends key unmasked")
-    @Test
-    public void testGetStatusKeyUnmasked() {
-        when(configService.isHueIntegrationEnabled()).thenReturn(true);
-
-        Map<String, Object> status = controller.getStatus();
-
-        assertEquals("ABCDEF1234567890", status.get("key"));
+        assertEquals("TestApplicationKey1234", status.get("applicationKey"));
     }
 
     @DisplayName("getStatus returns connected false when bridge unreachable")

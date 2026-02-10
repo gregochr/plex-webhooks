@@ -28,7 +28,7 @@ public class HueResourceController extends HueController {
             ResponseEntity<String> response = REST_CLIENT
                     .get()
                     .uri(RESOURCE_URL, hubId)
-                    .header("hue-application-key", login)
+                    .header("hue-application-key", applicationKey)
                     .retrieve()
                     .toEntity(String.class);
 

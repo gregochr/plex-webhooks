@@ -51,8 +51,7 @@ public class HueStatusController extends HueController {
         return Map.of(
                 "hubAddress", hubAddress,
                 "hubId", hubId,
-                "login", login,
-                "key", key,
+                "applicationKey", applicationKey,
                 "integrationEnabled", isHueIntegrationEnabled(),
                 "connected", connected,
                 "timestamp", Instant.now().toString()
@@ -67,7 +66,7 @@ public class HueStatusController extends HueController {
             ResponseEntity<String> response = REST_CLIENT
                     .get()
                     .uri(url)
-                    .header("hue-application-key", login)
+                    .header("hue-application-key", applicationKey)
                     .retrieve()
                     .toEntity(String.class);
 

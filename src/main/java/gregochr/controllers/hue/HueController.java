@@ -13,11 +13,8 @@ public abstract class HueController {
     @Value("${hue.hub-id}")
     protected String hubId;
 
-    @Value("${hue.login}")
-    protected String login;
-
-    @Value("${hue.key}")
-    protected String key;
+    @Value("${hue.application-key}")
+    protected String applicationKey;
 
     @Autowired
     private ConfigService configService;

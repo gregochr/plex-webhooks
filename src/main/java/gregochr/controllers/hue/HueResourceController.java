@@ -11,16 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 @RestController
 @RequestMapping("/api/hue")
 public class HueResourceController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueResourceController.class);
-    private static final RestClient REST_CLIENT = RestClient.create();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final String RESOURCE_URL = "https://{hubId}/clip/v2/resource";
 
     public HueResourceController(
             @Value("${hue.hub-address}") String hubAddress,
@@ -35,10 +32,9 @@ public class HueResourceController extends HueController {
         try {
             LOGGER.info("[ Fetching all Hue resources from hub: {} ]", hubId);
 
-            ResponseEntity<String> response = REST_CLIENT
+            ResponseEntity<String> response = restClient
                     .get()
-                    .uri(RESOURCE_URL, hubId)
-                    .header(HUE_APPLICATION_KEY_HEADER, applicationKey)
+                    .uri("")
                     .retrieve()
                     .toEntity(String.class);
 

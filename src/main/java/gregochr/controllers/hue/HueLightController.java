@@ -7,14 +7,12 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @Component
 public class HueLightController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueLightController.class);
-    private static final RestClient REST_CLIENT = RestClient.create();
 
     public HueLightController(
             @Value("${hue.hub-address}") String hubAddress,
@@ -25,13 +23,11 @@ public class HueLightController extends HueController {
     }
 
     private void setLightState(final HueLightDto light, final String body) {
-        final String restURL = "https://" + this.hubId + "/clip/v2/resource/light/";
         LOGGER.info("[ Turning light: {}, {} ]", light.getKey(), body);
 
-        ResponseEntity<Void> response = REST_CLIENT
+        ResponseEntity<Void> response = restClient
                 .put()
-                .uri(restURL + "{lightKey}", light.getKey())
-                .header(HUE_APPLICATION_KEY_HEADER, this.applicationKey)
+                .uri("/light/{lightKey}", light.getKey())
                 .contentType(APPLICATION_JSON)
                 .body(body)
                 .retrieve()

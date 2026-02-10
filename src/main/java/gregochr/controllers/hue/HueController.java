@@ -2,13 +2,13 @@ package gregochr.controllers.hue;
 
 import gregochr.services.config.ConfigService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestClient;
 
 public abstract class HueController {
-    protected static final String HUE_APPLICATION_KEY_HEADER = "hue-application-key";
-
     protected final String hubAddress;
     protected final String hubId;
     protected final String applicationKey;
+    protected final RestClient restClient;
     private final ConfigService configService;
 
     protected HueController(
@@ -20,6 +20,10 @@ public abstract class HueController {
         this.hubId = hubId;
         this.applicationKey = applicationKey;
         this.configService = configService;
+        this.restClient = RestClient.builder()
+                .baseUrl("https://" + hubId + "/clip/v2/resource")
+                .defaultHeader("hue-application-key", applicationKey)
+                .build();
     }
 
     public boolean isHueIntegrationEnabled() {

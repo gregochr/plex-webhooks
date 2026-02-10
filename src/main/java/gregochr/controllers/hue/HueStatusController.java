@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.time.Instant;
@@ -20,7 +19,6 @@ import java.util.Map;
 @RequestMapping("/api/hue")
 public class HueStatusController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueStatusController.class);
-    private static final RestClient REST_CLIENT = RestClient.create();
 
     private final SseService sseService;
 
@@ -70,13 +68,11 @@ public class HueStatusController extends HueController {
 
     private boolean testConnection() {
         try {
-            String url = "https://" + hubId + "/clip/v2/resource/bridge";
-            LOGGER.debug("Testing Hue bridge connection: {}", url);
+            LOGGER.debug("Testing Hue bridge connection: {}", hubId);
 
-            ResponseEntity<String> response = REST_CLIENT
+            ResponseEntity<String> response = restClient
                     .get()
-                    .uri(url)
-                    .header(HUE_APPLICATION_KEY_HEADER, applicationKey)
+                    .uri("/bridge")
                     .retrieve()
                     .toEntity(String.class);
 

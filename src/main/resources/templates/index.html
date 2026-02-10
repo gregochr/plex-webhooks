@@ -533,6 +533,21 @@
         #hue-resource-output {
             max-height: 600px;
         }
+        .hue-detail-field {
+            width: 100%;
+            background: #1f1f1f;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: #eaeaea;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            padding: 8px 10px;
+            outline: none;
+        }
+        .hue-resource-selected {
+            background: rgba(229, 160, 13, 0.1) !important;
+            border-left: 2px solid #e5a00d;
+        }
     </style>
 </head>
 <body>
@@ -613,6 +628,16 @@
                 <div id="hue-resource-type-filter" class="radio-group" style="flex-wrap: wrap; gap: 8px 16px; margin: 8px 0;"></div>
                 <div id="hue-resource-output" class="json-output">
                     <div class="empty-state">Hue bridge not connected</div>
+                </div>
+                <div id="hue-selected-resource" style="display: flex; gap: 12px; margin-top: 12px;">
+                    <div style="flex: 1;">
+                        <div class="status-label" style="margin-bottom: 4px;">Name</div>
+                        <input type="text" id="hue-selected-name" class="hue-detail-field" readonly placeholder="Click a resource to select">
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="status-label" style="margin-bottom: 4px;">ID</div>
+                        <input type="text" id="hue-selected-id" class="hue-detail-field" readonly>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1239,6 +1264,8 @@
                 document.getElementById('hue-resource-output').innerHTML =
                     '<div class="empty-state">Hue bridge not connected</div>';
                 document.getElementById('hue-resource-type-filter').innerHTML = '';
+                document.getElementById('hue-selected-name').value = '';
+                document.getElementById('hue-selected-id').value = '';
                 hueResourceData = null;
             }
             const container = document.getElementById('hue-status-container');
@@ -1341,8 +1368,39 @@
             container.style.display = showAllHueTypes ? '' : 'none';
         }
 
+        function attachResourceClickHandlers(filteredData) {
+            const output = document.getElementById('hue-resource-output');
+            const dataArray = filteredData.data || [];
+            // Find the "data" key's children UL — it's the array inside the top-level object
+            // Structure: #hue-resource-output > div.json-tree > ul > li (root obj) > ul (root keys) > li > span.json-key
+            const topKeys = output.querySelectorAll('.json-tree > ul > li > ul > li > span.json-key');
+            let dataUl = null;
+            topKeys.forEach(span => {
+                if (span.textContent.trim().replace(/"/g, '') === 'data') {
+                    const li = span.closest('li');
+                    if (li) dataUl = li.querySelector(':scope > ul');
+                }
+            });
+            if (!dataUl) return;
+            const resourceLis = dataUl.querySelectorAll(':scope > li');
+            resourceLis.forEach((li, index) => {
+                li.style.cursor = 'pointer';
+                li.addEventListener('click', function(e) {
+                    if (e.target.closest('.json-toggle')) return;
+                    e.stopPropagation();
+                    resourceLis.forEach(sib => sib.classList.remove('hue-resource-selected'));
+                    li.classList.add('hue-resource-selected');
+                    const resource = dataArray[index];
+                    document.getElementById('hue-selected-name').value = resource?.metadata?.name || '';
+                    document.getElementById('hue-selected-id').value = resource?.id || '';
+                });
+            });
+        }
+
         function applyHueResourceFilter() {
             if (!hueResourceData) return;
+            document.getElementById('hue-selected-name').value = '';
+            document.getElementById('hue-selected-id').value = '';
             const filterContainer = document.getElementById('hue-resource-type-filter');
             document.getElementById('hue-resources-heading').textContent = showAllHueTypes ? 'Bridge Resources' : 'Available Scenes';
             if (!showAllHueTypes) {
@@ -1351,6 +1409,7 @@
                 const output = document.getElementById('hue-resource-output');
                 output.innerHTML = '';
                 output.appendChild(renderJsonTree(filtered, 1));
+                attachResourceClickHandlers(filtered);
             } else {
                 filterContainer.style.display = '';
                 const selected = document.querySelector('input[name="hue-resource-type"]:checked');
@@ -1361,6 +1420,7 @@
                 const output = document.getElementById('hue-resource-output');
                 output.innerHTML = '';
                 output.appendChild(renderJsonTree(filtered, 1));
+                attachResourceClickHandlers(filtered);
             }
             const searchInput = document.getElementById('hue-resource-search');
             if (searchInput.value.trim()) {

@@ -548,6 +548,30 @@
             background: rgba(229, 160, 13, 0.1) !important;
             border-left: 2px solid #e5a00d;
         }
+        .config-text-input {
+            background: #1f1f1f;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: #eaeaea;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 13px;
+            padding: 8px 12px;
+            outline: none;
+            width: 260px;
+            margin-left: auto;
+        }
+        .config-item-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            white-space: nowrap;
+        }
+        .config-item-label .duration-suffix {
+            font-size: 11px;
+            font-weight: 400;
+            color: #808080;
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
@@ -567,6 +591,7 @@
     <div class="tabs">
         <button class="tab-button active" data-tab="events"><svg style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" viewBox="0 0 36 36" fill="none"><path d="M10 8L18 18L10 28H16L24 18L16 8H10Z" fill="#e5a00d"/></svg>Plex Event Monitor</button>
         <button class="tab-button" data-tab="hue"><svg style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>Smart Lighting</button>
+        <button class="tab-button" data-tab="app-config"><svg style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Configuration</button>
         <button th:if="${adminTabEnabled}" class="tab-button" data-tab="config"><svg style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Advanced/Admin/Debug</button>
     </div>
 
@@ -657,6 +682,27 @@
                 <div class="debug-buttons">
                     <button class="debug-btn" id="dirigera-refresh-status"><span>🔄</span> Refresh</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-app-config" class="tab-content">
+        <div th:each="section : ${configSections}" class="panel" style="max-width: 700px; margin-bottom: 24px;">
+            <h2 th:text="${section.title}">Section Title</h2>
+            <div th:each="item : ${section.items}" class="config-item">
+                <!-- Boolean items -->
+                <th:block th:if="${item.type == 'boolean'}">
+                    <input type="checkbox" th:id="${item.key}" th:checked="${item.value == 'true'}" disabled>
+                    <label th:for="${item.key}" th:text="${item.label}" style="cursor: default;">Label</label>
+                </th:block>
+                <!-- Number and text items -->
+                <th:block th:if="${item.type != 'boolean'}">
+                    <span class="config-item-label">
+                        <span th:text="${item.label}">Label</span>
+                        <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
+                    </span>
+                    <input type="text" class="config-text-input" th:value="${item.displayValue}" readonly>
+                </th:block>
             </div>
         </div>
     </div>

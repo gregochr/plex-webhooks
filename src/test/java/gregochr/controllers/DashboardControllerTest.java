@@ -1,10 +1,13 @@
 package gregochr.controllers;
 
 import gregochr.services.config.ConfigService;
+import gregochr.services.config.ConfigurationViewService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ui.Model;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -15,16 +18,19 @@ import static org.mockito.Mockito.when;
 public class DashboardControllerTest {
 
     private ConfigService configService;
+    private ConfigurationViewService configurationViewService;
     private Model model;
 
     @BeforeEach
     public void setUp() {
         configService = mock(ConfigService.class);
+        configurationViewService = mock(ConfigurationViewService.class);
+        when(configurationViewService.getConfigurationSections()).thenReturn(List.of());
         model = mock(Model.class);
     }
 
     private DashboardController createController(boolean adminTabEnabled) {
-        return new DashboardController(configService, adminTabEnabled);
+        return new DashboardController(configService, configurationViewService, adminTabEnabled);
     }
 
     @DisplayName("Dashboard returns index view name")

@@ -1,7 +1,9 @@
 package gregochr.commands.integration;
 
 import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -30,21 +32,24 @@ public class PlexScrobbleCommandIntegrationTest {
     @Autowired
     private ConfigService configService;
 
+    @Autowired
+    private PlexCommandConfig plexCommandConfig;
+
     @Tag("integration")
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
-        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, "movie");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 
     @Tag("integration")
     @DisplayName("Test Plex Scrobble TV Show Command")
     @Test
     public void testPlexScrobbleTVShowCommand() {
-        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, "episode");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
-        assertFalse(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 }

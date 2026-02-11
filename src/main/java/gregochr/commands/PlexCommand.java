@@ -14,22 +14,22 @@ public class PlexCommand {
     private final String event;
     private final String title;
     private final int duration;
-    private final String type;
+    private final PlexMediaType mediaType;
 
-    public PlexCommand(PlexEvent plexEvent, String title, int duration, String type) {
+    public PlexCommand(PlexEvent plexEvent, String title, int duration, PlexMediaType mediaType) {
         this.plexEvent = plexEvent;
         this.event = plexEvent.getEvent();
         this.title = title;
         this.duration = duration;
-        this.type = type;
+        this.mediaType = mediaType;
     }
 
-    public PlexCommand(String unknownEvent, String type) {
+    public PlexCommand(String unknownEvent, PlexMediaType mediaType) {
         this.plexEvent = null;
         this.event = unknownEvent;
         this.title = "";
         this.duration = 0;
-        this.type = type;
+        this.mediaType = mediaType;
     }
 
     public String getEvent() {
@@ -48,8 +48,8 @@ public class PlexCommand {
         return duration;
     }
 
-    public String getType() {
-        return type;
+    public PlexMediaType getMediaType() {
+        return mediaType;
     }
 
     @Override
@@ -57,22 +57,22 @@ public class PlexCommand {
         return "[ Event: " + this.event + ", " +
                 "Title: " + this.title + ", " +
                 "Duration: " + this.duration +
-                ", Type: " + this.type + " ]";
+                ", Type: " + (this.mediaType != null ? this.mediaType.getType() : "unknown") + " ]";
     }
 
-    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService) {
+    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService, PlexCommandConfig plexCommandConfig) {
         if (!configService.isHueIntegrationEnabled()) {
             LOGGER.info("[ Hue integration disabled, skipping ]");
             return false;
         }
 
-        if (!this.type.equals("movie")) {
-            LOGGER.info("[ PlexCommand ignores media type {}, skipping ]", this.type);
+        if (plexEvent == null) {
+            LOGGER.debug("[ Ignoring unrecognized Plex event: {} ]", this);
             return false;
         }
 
-        if (plexEvent == null) {
-            LOGGER.debug("[ Ignoring unrecognized Plex event: {} ]", this);
+        if (!plexCommandConfig.isCommandEnabled(plexEvent, mediaType)) {
+            LOGGER.info("[ Plex {} command disabled for type {}, skipping ]", plexEvent.name(), mediaType);
             return false;
         }
 

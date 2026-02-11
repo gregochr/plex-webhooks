@@ -1,7 +1,9 @@
 package gregochr.commands.integration;
 
 import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -30,22 +32,25 @@ public class PlexPlayCommandIntegrationTest {
     @Autowired
     private ConfigService configService;
 
+    @Autowired
+    private PlexCommandConfig plexCommandConfig;
+
     @Tag("integration")
     @DisplayName("Test Plex Play Movie Command")
     @Test
     public void testPlexPlayMovieCommand() {
-        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, "movie");
+        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        assertTrue(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 
     @Tag("integration")
     @DisplayName("Test Plex Play TV Show Command")
     @Test
     public void testPlexPlayTVShowCommand() {
-        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, "episode");
+        PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
-        assertFalse(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertFalse(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 
 }

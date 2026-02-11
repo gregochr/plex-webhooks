@@ -2,6 +2,7 @@ package gregochr.services.plex;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexCommandFactory;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
@@ -28,17 +29,20 @@ public class PlexController {
     private final SunriseSunsetController sunriseSunsetController;
     private final SseService sseService;
     private final ConfigService configService;
+    private final PlexCommandConfig plexCommandConfig;
 
     public PlexController(HueSceneController hueSceneController,
                           LocationController locationController,
                           SunriseSunsetController sunriseSunsetController,
                           SseService sseService,
-                          ConfigService configService) {
+                          ConfigService configService,
+                          PlexCommandConfig plexCommandConfig) {
         this.hueSceneController = hueSceneController;
         this.locationController = locationController;
         this.sunriseSunsetController = sunriseSunsetController;
         this.sseService = sseService;
         this.configService = configService;
+        this.plexCommandConfig = plexCommandConfig;
     }
 
     @RequestMapping(value = "/plex", method = RequestMethod.POST, consumes = { "multipart/form-data" } )
@@ -53,7 +57,7 @@ public class PlexController {
             // Broadcast to SSE clients
             sseService.broadcast(new SseEventDto(command, payload));
 
-            command.execute(hueSceneController, locationController, sunriseSunsetController, configService);
+            command.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

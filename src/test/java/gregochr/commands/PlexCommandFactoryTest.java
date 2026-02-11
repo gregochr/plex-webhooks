@@ -25,7 +25,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.play", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("movie", plexCommand.getType());
+        assertEquals(PlexMediaType.MOVIE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Play TV Show Command")
@@ -41,7 +41,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.play", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("episode", plexCommand.getType());
+        assertEquals(PlexMediaType.EPISODE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Resume Movie Command")
@@ -57,7 +57,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.resume", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("movie", plexCommand.getType());
+        assertEquals(PlexMediaType.MOVIE, plexCommand.getMediaType());
     }
     @DisplayName("Test Create Plex Resume TV Show Command")
     @Test
@@ -72,7 +72,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.resume", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("episode", plexCommand.getType());
+        assertEquals(PlexMediaType.EPISODE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Stop Movie Command")
@@ -88,7 +88,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.stop", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("movie", plexCommand.getType());
+        assertEquals(PlexMediaType.MOVIE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Stop TV Show Command")
@@ -104,7 +104,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.stop", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("episode", plexCommand.getType());
+        assertEquals(PlexMediaType.EPISODE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Pause Movie Command")
@@ -120,7 +120,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.pause", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("movie", plexCommand.getType());
+        assertEquals(PlexMediaType.MOVIE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Pause TV Show Command")
@@ -136,7 +136,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.pause", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("episode", plexCommand.getType());
+        assertEquals(PlexMediaType.EPISODE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Scrobble Movie Command")
@@ -152,7 +152,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.scrobble", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("movie", plexCommand.getType());
+        assertEquals(PlexMediaType.MOVIE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test Create Plex Scrobble TV Show Command")
@@ -168,7 +168,7 @@ public class PlexCommandFactoryTest {
         assertEquals("media.scrobble", plexCommand.getEvent());
         assertEquals("Good Will Hunting", plexCommand.getTitle());
         assertEquals(123, plexCommand.getDuration());
-        assertEquals("episode", plexCommand.getType());
+        assertEquals(PlexMediaType.EPISODE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test unknown plex event creates a NoOp command")
@@ -182,7 +182,7 @@ public class PlexCommandFactoryTest {
         assertNotNull(plexCommand);
         assertNull(plexCommand.getPlexEvent());
         assertEquals("RandomEventString", plexCommand.getEvent());
-        assertEquals("movie", plexCommand.getType());
+        assertEquals(PlexMediaType.MOVIE, plexCommand.getMediaType());
     }
 
     @DisplayName("Test unknown plex type creates a NoOp command")
@@ -196,7 +196,7 @@ public class PlexCommandFactoryTest {
         assertNotNull(plexCommand);
         assertNull(plexCommand.getPlexEvent());
         assertEquals("media.play", plexCommand.getEvent());
-        assertEquals("RandomTypeString", plexCommand.getType());
+        assertNull(plexCommand.getMediaType());
     }
 
     @DisplayName("Test NoOp command execute returns false")
@@ -204,12 +204,13 @@ public class PlexCommandFactoryTest {
     public void testNoOpCommandExecuteReturnsFalse() {
         PlexPayloadDto plexPayload = getPlexPayloadDto("unknown.event", "movie");
         ConfigService configService = mock(ConfigService.class);
+        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
         PlexCommandFactory factory = new PlexCommandFactory(plexPayload);
         PlexCommand plexCommand = factory.getPlexCommand();
 
-        boolean result = plexCommand.execute(null, null, null, configService);
+        boolean result = plexCommand.execute(null, null, null, configService, plexCommandConfig);
 
         assertFalse(result);
     }

@@ -2,6 +2,8 @@ package gregochr.commands;
 
 import gregochr.services.plex.dto.PlexPayloadDto;
 
+import java.util.Optional;
+
 public class PlexCommandFactory {
     private final PlexPayloadDto plexPayload;
 
@@ -15,11 +17,12 @@ public class PlexCommandFactory {
         String type = this.plexPayload.getMetadata().getType();
         String event = this.plexPayload.getEvent();
 
-        if ("movie".equals(type) || "episode".equals(type)) {
+        Optional<PlexMediaType> mediaType = PlexMediaType.fromType(type);
+        if (mediaType.isPresent()) {
             return PlexEvent.fromEvent(event)
-                    .map(plexEvent -> new PlexCommand(plexEvent, title, duration, type))
-                    .orElse(new PlexCommand(event, type));
+                    .map(plexEvent -> new PlexCommand(plexEvent, title, duration, mediaType.get()))
+                    .orElse(new PlexCommand(event, mediaType.get()));
         }
-        return new PlexCommand(event, type);
+        return new PlexCommand(event, null);
     }
 }

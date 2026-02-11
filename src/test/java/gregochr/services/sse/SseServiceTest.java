@@ -2,6 +2,7 @@ package gregochr.services.sse;
 
 import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,7 +63,7 @@ public class SseServiceTest {
     @Test
     public void testBroadcastWithNoClients() {
         SseEventDto event = new SseEventDto(
-                new PlexCommand(PlexEvent.PLAY, "Test Movie", 7200000, "movie"),
+                new PlexCommand(PlexEvent.PLAY, "Test Movie", 7200000, PlexMediaType.MOVIE),
                 "{\"event\":\"media.play\"}"
         );
 

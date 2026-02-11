@@ -1,5 +1,8 @@
 package gregochr.controllers;
 
+import gregochr.commands.PlexCommandConfig;
+import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +26,7 @@ public class DebugControllerTest {
     private LocationController locationController;
     private SunriseSunsetController sunriseSunsetController;
     private ConfigService configService;
+    private PlexCommandConfig plexCommandConfig;
     private DebugController debugController;
 
     @BeforeEach
@@ -31,13 +35,15 @@ public class DebugControllerTest {
         locationController = mock(LocationController.class);
         sunriseSunsetController = mock(SunriseSunsetController.class);
         configService = mock(ConfigService.class);
-        debugController = new DebugController(hueSceneController, locationController, sunriseSunsetController, configService);
+        plexCommandConfig = mock(PlexCommandConfig.class);
+        debugController = new DebugController(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig);
     }
 
     @DisplayName("Play command triggers startMovieLightScene")
     @Test
     public void testPlayCommand() {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE)).thenReturn(true);
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
 
         Map<String, Object> result = debugController.triggerCommand("play", "movie");
@@ -52,6 +58,7 @@ public class DebugControllerTest {
     @Test
     public void testStopCommand() {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.STOP, PlexMediaType.MOVIE)).thenReturn(true);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
         Map<String, Object> result = debugController.triggerCommand("stop", "movie");
@@ -65,6 +72,7 @@ public class DebugControllerTest {
     @Test
     public void testPauseCommand() {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.MOVIE)).thenReturn(true);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
         Map<String, Object> result = debugController.triggerCommand("pause", "movie");
@@ -78,6 +86,7 @@ public class DebugControllerTest {
     @Test
     public void testResumeCommand() {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.MOVIE)).thenReturn(true);
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
 
         Map<String, Object> result = debugController.triggerCommand("resume", "movie");
@@ -91,6 +100,7 @@ public class DebugControllerTest {
     @Test
     public void testScrobbleCommand() {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.MOVIE)).thenReturn(true);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
 
         Map<String, Object> result = debugController.triggerCommand("scrobble", "movie");

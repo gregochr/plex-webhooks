@@ -572,6 +572,39 @@
             color: #808080;
             margin-left: 4px;
         }
+        .sub-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #3d3d3d;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .sub-tab-button {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: #808080;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s;
+            margin-bottom: -1px;
+        }
+        .sub-tab-button:hover {
+            color: #ffffff;
+        }
+        .sub-tab-button.active {
+            color: #e5a00d;
+            border-bottom-color: #e5a00d;
+        }
+        .sub-tab-content {
+            display: none;
+        }
+        .sub-tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -687,22 +720,34 @@
     </div>
 
     <div id="tab-app-config" class="tab-content">
-        <div th:each="section : ${configSections}" class="panel" style="max-width: 700px; margin-bottom: 24px;">
-            <h2 th:text="${section.title}">Section Title</h2>
-            <div th:each="item : ${section.items}" class="config-item">
-                <!-- Boolean items -->
-                <th:block th:if="${item.type == 'boolean'}">
-                    <input type="checkbox" th:id="${item.key}" th:checked="${item.value == 'true'}" disabled>
-                    <label th:for="${item.key}" th:text="${item.label}" style="cursor: default;">Label</label>
-                </th:block>
-                <!-- Number and text items -->
-                <th:block th:if="${item.type != 'boolean'}">
-                    <span class="config-item-label">
-                        <span th:text="${item.label}">Label</span>
-                        <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
-                    </span>
-                    <input type="text" class="config-text-input" th:value="${item.displayValue}" readonly>
-                </th:block>
+        <div class="sub-tabs">
+            <button th:each="section, stat : ${configSections}"
+                    class="sub-tab-button"
+                    th:classappend="${stat.first} ? ' active'"
+                    th:data-subtab="${'config-section-' + stat.index}"
+                    th:text="${section.title}">Section</button>
+        </div>
+        <div th:each="section, stat : ${configSections}"
+             class="sub-tab-content"
+             th:classappend="${stat.first} ? ' active'"
+             th:id="${'sub-tab-config-section-' + stat.index}">
+            <div class="panel" style="max-width: 700px;">
+                <h2 th:text="${section.title}">Section Title</h2>
+                <div th:each="item : ${section.items}" class="config-item">
+                    <!-- Boolean items -->
+                    <th:block th:if="${item.type == 'boolean'}">
+                        <input type="checkbox" th:id="${item.key}" th:checked="${item.value == 'true'}" disabled>
+                        <label th:for="${item.key}" th:text="${item.label}" style="cursor: default;">Label</label>
+                    </th:block>
+                    <!-- Number and text items -->
+                    <th:block th:if="${item.type != 'boolean'}">
+                        <span class="config-item-label">
+                            <span th:text="${item.label}">Label</span>
+                            <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
+                        </span>
+                        <input type="text" class="config-text-input" th:value="${item.displayValue}" readonly>
+                    </th:block>
+                </div>
             </div>
         </div>
     </div>
@@ -1234,6 +1279,17 @@
                 if (button.dataset.tab === 'hue' && hueBridgeConnected) {
                     fetchHueResources();
                 }
+            });
+        });
+
+        // Sub-tab switching (Configuration tab)
+        document.querySelectorAll('.sub-tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const parent = button.closest('.tab-content');
+                parent.querySelectorAll('.sub-tab-button').forEach(b => b.classList.remove('active'));
+                parent.querySelectorAll('.sub-tab-content').forEach(c => c.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById('sub-tab-' + button.dataset.subtab).classList.add('active');
             });
         });
 

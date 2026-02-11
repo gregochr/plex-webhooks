@@ -80,8 +80,13 @@
             gap: 24px;
             margin-bottom: 40px;
         }
-        .hero-logos img {
+        .hero-plex {
             height: 56px;
+            opacity: 0.9;
+            mix-blend-mode: lighten;
+        }
+        .hero-hue {
+            height: 40px;
             opacity: 0.9;
             mix-blend-mode: lighten;
         }
@@ -260,9 +265,9 @@
 
     <main>
         <div class="hero-logos">
-            <img src="plex-logo-2022.svg" alt="Plex">
+            <img class="hero-plex" src="plex-logo-2022.svg" alt="Plex">
             <span class="connector">+</span>
-            <img src="philips-hue-logo.png" alt="Philips Hue">
+            <img class="hero-hue" src="philips-hue-logo.png" alt="Philips Hue">
         </div>
 
         <h2>Lights. Camera. <span>Automatic.</span></h2>
@@ -276,7 +281,7 @@
             <div class="features">
                 <div class="feature">
                     <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    <span>Auto-dim HUE lights when starting or stopping your media in Plex</span>
+                    <span>Automatically dim Philips Hue lights when starting or stopping your media in Plex</span>
                 </div>
                 <div class="feature">
                     <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
@@ -292,7 +297,7 @@
                 </div>
                 <div class="feature">
                     <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                    <span>Real-time dashboard with live Plex event monitor and configuration</span>
+                    <span>Real-time dashboard with a live Plex event monitor</span>
                 </div>
                 <div class="feature">
                     <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>

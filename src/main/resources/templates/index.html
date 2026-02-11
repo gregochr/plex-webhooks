@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plex Webhooks Dashboard</title>
+    <title>CineLight</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,20 +28,36 @@
             margin-bottom: 8px;
         }
         .plex-logo {
-            width: 36px;
-            height: 36px;
+            width: 44px;
+            height: 44px;
         }
         .hue-header-logo {
-            width: 28px;
-            height: 28px;
+            width: 34px;
+            height: 34px;
             opacity: 0.8;
         }
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
         h1 {
-            color: #e5a00d;
             margin: 0;
             font-weight: 700;
-            font-size: 28px;
-            letter-spacing: -0.5px;
+            font-size: 52px;
+            letter-spacing: -1px;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .brand-tagline {
+            font-size: 11px;
+            color: #999;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-top: 2px;
         }
         .status {
             display: inline-flex;
@@ -613,8 +629,11 @@
             <rect width="36" height="36" rx="4" fill="#1f1f1f"/>
             <path d="M10 8L18 18L10 28H16L24 18L16 8H10Z" fill="#e5a00d"/>
         </svg>
-        <img th:src="@{/hue-logo.png}" alt="Hue" class="hue-header-logo">
-        <h1>Home Cinema Setup</h1>
+        <img th:src="@{/philips-hue-logo.png}" alt="Hue" class="hue-header-logo">
+        <div class="brand-text">
+            <h1>CineLight</h1>
+            <span class="brand-tagline">Smart Cinema Lighting at Home</span>
+        </div>
     </div>
     <div id="status" class="status disconnected">
         <span class="status-dot"></span>
@@ -657,7 +676,7 @@
     <div id="tab-hue" class="tab-content">
         <div class="panel" style="max-width: 800px;">
             <h2>
-                <img th:src="@{/hue-logo.png}" alt="Hue" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;">
+                <img th:src="@{/philips-hue-logo.png}" alt="Hue" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;">
                 Philips Hue
             </h2>
 
@@ -760,7 +779,7 @@
             <div class="config-item">
                 <input type="checkbox" id="integrate-hue" th:checked="${hueIntegrationEnabled}">
                 <label for="integrate-hue">
-                    <img th:src="@{/hue-logo.png}" alt="Hue" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
+                    <img th:src="@{/philips-hue-logo.png}" alt="Hue" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
                     Integrate with Hue?
                 </label>
             </div>

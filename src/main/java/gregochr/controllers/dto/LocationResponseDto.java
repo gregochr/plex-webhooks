@@ -26,7 +26,6 @@ public class LocationResponseDto {
 
     @Override
     public String toString() {
-        return "[ Status: " + Integer.toString(status) + ", " +
-                locationResultDto.toString() + " ]";
+        return String.format("[ Status: %d, %s ]", status, locationResultDto);
     }
 }

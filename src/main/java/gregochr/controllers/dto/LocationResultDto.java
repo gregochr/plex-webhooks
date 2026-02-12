@@ -24,7 +24,6 @@ public class LocationResultDto {
 
     @Override
     public String toString() {
-        return "[ Latitude: " + this.latitude + ", "
-                + "Longitude: " + this.longitude + " ]";
+        return String.format("[ Latitude: %s, Longitude: %s ]", this.latitude, this.longitude);
     }
 }

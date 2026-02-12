@@ -25,6 +25,7 @@ public class HueLightDto {
 
     @Override
     public String toString() {
-        return "Key:" + getKey() + ", Name: " + getName() + ", State: " + (on ? "On" : "Off") + ", Reachable: " + (reachable ? "Yes" : "No") + "\n";
+        return String.format("Key:%s, Name: %s, State: %s, Reachable: %s%n",
+                getKey(), getName(), on ? "On" : "Off", reachable ? "Yes" : "No");
     }
 }

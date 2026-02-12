@@ -54,10 +54,9 @@ public class PlexCommand {
 
     @Override
     public String toString() {
-        return "[ Event: " + this.event + ", " +
-                "Title: " + this.title + ", " +
-                "Duration: " + this.duration +
-                ", Type: " + (this.mediaType != null ? this.mediaType.getType() : "unknown") + " ]";
+        return String.format("[ Event: %s, Title: %s, Duration: %d, Type: %s ]",
+                this.event, this.title, this.duration,
+                this.mediaType != null ? this.mediaType.getType() : "unknown");
     }
 
     public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService, PlexCommandConfig plexCommandConfig) {

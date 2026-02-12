@@ -22,7 +22,6 @@ public class PlexPayloadDto {
 
     @Override
     public String toString() {
-        return "[ Event: " + event  + ", "
-                + this.metadata.toString() + " ]";
+        return String.format("[ Event: %s, %s ]", event, this.metadata);
     }
 }

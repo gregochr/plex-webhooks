@@ -621,6 +621,51 @@
         .sub-tab-content.active {
             display: block;
         }
+        .coffee-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #3d3d3d;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .coffee-link:hover {
+            background: #3d3d3d;
+        }
+        .coffee-link svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .header-coffee {
+            margin-left: auto;
+        }
+        .bottom-coffee-section {
+            margin-top: 48px;
+            padding: 32px 0;
+            border-top: 1px solid #2a2a2a;
+            text-align: center;
+        }
+        .bottom-coffee-section p {
+            font-size: 14px;
+            color: #808080;
+            margin-bottom: 16px;
+        }
+        .bottom-coffee-section .coffee-link {
+            padding: 12px 24px;
+            font-size: 14px;
+        }
+        .bottom-coffee-section .coffee-link svg {
+            width: 22px;
+            height: 22px;
+        }
     </style>
 </head>
 <body>
@@ -634,6 +679,10 @@
             <h1>CineLight</h1>
             <span class="brand-tagline">Smart Cinema Lighting at Home</span>
         </div>
+        <a class="coffee-link header-coffee" href="https://buymeacoffee.com/gregorychris" target="_blank" rel="noopener" title="If you find CineLight useful or fun, please consider buying me a coffee.">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 19h14a1 1 0 0 0 1-1V9H3v9a1 1 0 0 0 1 1z" fill="#e0e0e0"/><path d="M19 9h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2" stroke="#e0e0e0" stroke-width="1.5" fill="none"/><path d="M7 3c0 0 .5-1 1.5-1S10 3 10 3" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round"/><path d="M11 3c0 0 .5-1 1.5-1S14 3 14 3" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round"/><path d="M3 9h16V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v2z" fill="#e0e0e0"/><path d="M6 22h10" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Buy me a coffee
+        </a>
     </div>
     <div id="status" class="status disconnected">
         <span class="status-dot"></span>
@@ -812,6 +861,14 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="bottom-coffee-section">
+        <p>If you find CineLight useful or fun, please consider buying me a coffee.</p>
+        <a class="coffee-link" href="https://buymeacoffee.com/gregorychris" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 19h14a1 1 0 0 0 1-1V9H3v9a1 1 0 0 0 1 1z" fill="#e0e0e0"/><path d="M19 9h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-2" stroke="#e0e0e0" stroke-width="1.5" fill="none"/><path d="M7 3c0 0 .5-1 1.5-1S10 3 10 3" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round"/><path d="M11 3c0 0 .5-1 1.5-1S14 3 14 3" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round"/><path d="M3 9h16V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v2z" fill="#e0e0e0"/><path d="M6 22h10" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Buy me a coffee
+        </a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>

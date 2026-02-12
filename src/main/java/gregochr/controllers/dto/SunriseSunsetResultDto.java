@@ -24,7 +24,6 @@ public class SunriseSunsetResultDto {
 
     @Override
     public String toString() {
-        return "[ Sunrise: " + this.sunrise + ", "
-                + "Sunset: " + this.sunset + " ]";
+        return String.format("[ Sunrise: %s, Sunset: %s ]", this.sunrise, this.sunset);
     }
 }

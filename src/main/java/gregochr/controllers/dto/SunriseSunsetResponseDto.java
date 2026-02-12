@@ -34,8 +34,7 @@ public class SunriseSunsetResponseDto {
 
     @Override
     public String toString() {
-        return "[ Status: " + this.status + ", " +
-                "tzid: " + this.tzid + ", " +
-                sunriseSunsetResultDto.toString() + " ]";
+        return String.format("[ Status: %s, tzid: %s, %s ]",
+                this.status, this.tzid, sunriseSunsetResultDto);
     }
 }

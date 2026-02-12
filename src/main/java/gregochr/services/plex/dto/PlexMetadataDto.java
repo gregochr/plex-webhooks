@@ -32,8 +32,7 @@ public class PlexMetadataDto {
 
     @Override
     public String toString() {
-        return "[ Title: " + this.title + ", "
-                + "Duration: " + this.duration + ", " +
-                "Type: " + this.type + "]";
+        return String.format("[ Title: %s, Duration: %d, Type: %s ]",
+                this.title, this.duration, this.type);
     }
 }

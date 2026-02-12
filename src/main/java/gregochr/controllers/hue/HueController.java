@@ -1,30 +1,30 @@
 package gregochr.controllers.hue;
 
 import gregochr.services.config.ConfigService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-@Component
 public abstract class HueController {
-    @Value("${hue.hub-address}")
-    protected String hubAddress;
+    protected final String hubAddress;
+    protected final String hubId;
+    protected final String applicationKey;
+    protected final RestClient restClient;
+    private final ConfigService configService;
 
-    @Value("${hue.hub-id}")
-    protected String hubId;
-
-    @Value("${hue.login}")
-    protected String login;
-
-    @Value("${hue.key}")
-    protected String key;
-
-    @Autowired
-    protected RestClient restClient;
-
-    @Autowired
-    private ConfigService configService;
+    protected HueController(
+            @Value("${hue.hub-address}") String hubAddress,
+            @Value("${hue.hub-id}") String hubId,
+            @Value("${hue.application-key}") String applicationKey,
+            ConfigService configService) {
+        this.hubAddress = hubAddress;
+        this.hubId = hubId;
+        this.applicationKey = applicationKey;
+        this.configService = configService;
+        this.restClient = RestClient.builder()
+                .baseUrl("https://" + hubId + "/clip/v2/resource")
+                .defaultHeader("hue-application-key", applicationKey)
+                .build();
+    }
 
     public boolean isHueIntegrationEnabled() {
         return configService.isHueIntegrationEnabled();

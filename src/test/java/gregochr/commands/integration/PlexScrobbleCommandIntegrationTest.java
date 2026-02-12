@@ -1,6 +1,9 @@
 package gregochr.commands.integration;
 
-import gregochr.commands.PlexScrobbleCommand;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexCommandConfig;
+import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -10,6 +13,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 public class PlexScrobbleCommandIntegrationTest {
@@ -26,21 +32,24 @@ public class PlexScrobbleCommandIntegrationTest {
     @Autowired
     private ConfigService configService;
 
+    @Autowired
+    private PlexCommandConfig plexCommandConfig;
+
     @Tag("integration")
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        assert(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 
     @Tag("integration")
     @DisplayName("Test Plex Scrobble TV Show Command")
     @Test
     public void testPlexScrobbleTVShowCommand() {
-        PlexScrobbleCommand plexScrobbleCommand = new PlexScrobbleCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
-        assert(!plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 }

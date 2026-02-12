@@ -5,45 +5,78 @@ import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public abstract class PlexCommand {
-    protected String title;
-    protected int duration;
-    protected String type;
+public class PlexCommand {
+    private static final Logger LOGGER = LogManager.getLogger(PlexCommand.class);
 
-    public PlexCommand(String title, int duration, String type) {
+    private final PlexEvent plexEvent;
+    private final String event;
+    private final String title;
+    private final int duration;
+    private final PlexMediaType mediaType;
+
+    public PlexCommand(PlexEvent plexEvent, String title, int duration, PlexMediaType mediaType) {
+        this.plexEvent = plexEvent;
+        this.event = plexEvent.getEvent();
         this.title = title;
         this.duration = duration;
-        this.type = type;
+        this.mediaType = mediaType;
     }
 
-    public abstract String getEvent();
+    public PlexCommand(String unknownEvent, PlexMediaType mediaType) {
+        this.plexEvent = null;
+        this.event = unknownEvent;
+        this.title = "";
+        this.duration = 0;
+        this.mediaType = mediaType;
+    }
+
+    public String getEvent() {
+        return event;
+    }
+
+    public PlexEvent getPlexEvent() {
+        return plexEvent;
+    }
 
     public String getTitle() {
-        return this.title;
+        return title;
     }
-    public int getDuration() { return this.duration; }
-    public String getType() { return this.type; }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public PlexMediaType getMediaType() {
+        return mediaType;
+    }
 
     @Override
     public String toString() {
-        return "[ Event: " + this.getEvent() + ", " +
+        return "[ Event: " + this.event + ", " +
                 "Title: " + this.title + ", " +
                 "Duration: " + this.duration +
-                ", Type: " + this.type + " ]";
+                ", Type: " + (this.mediaType != null ? this.mediaType.getType() : "unknown") + " ]";
     }
-    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService) {
+
+    public boolean execute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController, ConfigService configService, PlexCommandConfig plexCommandConfig) {
         if (!configService.isHueIntegrationEnabled()) {
-            LogManager.getLogger(getClass()).info("[ Hue integration disabled, skipping ]");
+            LOGGER.info("[ Hue integration disabled, skipping ]");
             return false;
         }
 
-        if (!this.type.equals("movie")) {
-            LogManager.getLogger(getClass()).info("[ PlexCommand ignores media type {$1}, skipping ]", this.type);
+        if (plexEvent == null) {
+            LOGGER.debug("[ Ignoring unrecognized Plex event: {} ]", this);
             return false;
         }
-        return doExecute(hueSceneController, locationController, sunriseSunsetController);
+
+        if (!plexCommandConfig.isCommandEnabled(plexEvent, mediaType)) {
+            LOGGER.info("[ Plex {} command disabled for type {}, skipping ]", plexEvent.name(), mediaType);
+            return false;
+        }
+
+        LOGGER.info("[ Executing Plex {} Command: {} ]", plexEvent.name(), this);
+        return plexEvent.execute(hueSceneController);
     }
-
-    protected abstract boolean doExecute(HueSceneController hueSceneController, LocationController locationController, SunriseSunsetController sunriseSunsetController);
 }

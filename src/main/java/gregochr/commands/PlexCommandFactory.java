@@ -2,31 +2,27 @@ package gregochr.commands;
 
 import gregochr.services.plex.dto.PlexPayloadDto;
 
+import java.util.Optional;
+
 public class PlexCommandFactory {
     private final PlexPayloadDto plexPayload;
 
     public PlexCommandFactory(PlexPayloadDto plexPayload)  {
         this.plexPayload = plexPayload;
     }
+
     public PlexCommand getPlexCommand() {
         String title = this.plexPayload.getMetadata().getTitle();
         int duration = this.plexPayload.getMetadata().getDuration();
         String type = this.plexPayload.getMetadata().getType();
+        String event = this.plexPayload.getEvent();
 
-        if ("movie".equals(this.plexPayload.getMetadata().getType()) ||
-                "episode".equals(this.plexPayload.getMetadata().getType())) {
-            if ("media.play".equals(this.plexPayload.getEvent())) {
-                return new PlexPlayCommand(title, duration, type);
-            } else if ("media.resume".equals(this.plexPayload.getEvent())) {
-                return new PlexResumeCommand(title, duration, type);
-            } else if ("media.stop".equals(this.plexPayload.getEvent())) {
-                return new PlexStopCommand(title, duration, type);
-            } else if ("media.pause".equals(this.plexPayload.getEvent())) {
-                return new PlexPauseCommand(title, duration, type);
-            } else if ("media.scrobble".equals(this.plexPayload.getEvent())) {
-                return new PlexScrobbleCommand(title, duration, type);
-            }
+        Optional<PlexMediaType> mediaType = PlexMediaType.fromType(type);
+        if (mediaType.isPresent()) {
+            return PlexEvent.fromEvent(event)
+                    .map(plexEvent -> new PlexCommand(plexEvent, title, duration, mediaType.get()))
+                    .orElse(new PlexCommand(event, mediaType.get()));
         }
-        return new PlexNoOpCommand(this.plexPayload.getEvent(), this.plexPayload.getMetadata().getType());
+        return new PlexCommand(event, null);
     }
 }

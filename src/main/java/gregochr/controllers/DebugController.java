@@ -1,9 +1,13 @@
 package gregochr.controllers;
 
-import gregochr.commands.*;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexCommandConfig;
+import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,19 +19,23 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/debug")
 public class DebugController {
+    private static final Logger LOGGER = LogManager.getLogger(DebugController.class);
     private final HueSceneController hueSceneController;
     private final LocationController locationController;
     private final SunriseSunsetController sunriseSunsetController;
     private final ConfigService configService;
+    private final PlexCommandConfig plexCommandConfig;
 
     public DebugController(HueSceneController hueSceneController,
                            LocationController locationController,
                            SunriseSunsetController sunriseSunsetController,
-                           ConfigService configService) {
+                           ConfigService configService,
+                           PlexCommandConfig plexCommandConfig) {
         this.hueSceneController = hueSceneController;
         this.locationController = locationController;
         this.sunriseSunsetController = sunriseSunsetController;
         this.configService = configService;
+        this.plexCommandConfig = plexCommandConfig;
     }
 
     @PostMapping("/{command}")
@@ -35,22 +43,23 @@ public class DebugController {
             @PathVariable String command,
             @RequestParam(defaultValue = "movie") String type) {
 
-        PlexCommand plexCommand = createCommand(command, type);
-        LogManager.getLogger(DebugController.class).info("[ Debug: Triggering {} command with type: {} ]", plexCommand, type);
+        PlexMediaType mediaType = PlexMediaType.fromType(type).orElse(null);
+        PlexCommand plexCommand = createCommand(command, mediaType);
+        LOGGER.info("[ Debug: Triggering {} command with type: {} ]", plexCommand, type);
 
-        boolean result = plexCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService);
+        boolean result = plexCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig);
 
         return Map.of("command", command, "type", type, "success", result);
     }
 
-    private PlexCommand createCommand(String command, String type) {
+    private PlexCommand createCommand(String command, PlexMediaType mediaType) {
         return switch (command) {
-            case "play" -> new PlexPlayCommand("Debug Play Command Test", 0, type);
-            case "stop" -> new PlexStopCommand("Debug Stop Command Test", 0, type);
-            case "pause" -> new PlexPauseCommand("Debug Pause Test", 0, type);
-            case "resume" -> new PlexResumeCommand("Debug Resume Test", 0, type);
-            case "scrobble" -> new PlexScrobbleCommand("Debug Scrobble Test", 0, type);
-            default -> new PlexNoOpCommand(command, type);
+            case "play" -> new PlexCommand(PlexEvent.PLAY, "Debug Play Command Test", 0, mediaType);
+            case "stop" -> new PlexCommand(PlexEvent.STOP, "Debug Stop Command Test", 0, mediaType);
+            case "pause" -> new PlexCommand(PlexEvent.PAUSE, "Debug Pause Test", 0, mediaType);
+            case "resume" -> new PlexCommand(PlexEvent.RESUME, "Debug Resume Test", 0, mediaType);
+            case "scrobble" -> new PlexCommand(PlexEvent.SCROBBLE, "Debug Scrobble Test", 0, mediaType);
+            default -> new PlexCommand(command, mediaType);
         };
     }
 }

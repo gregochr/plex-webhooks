@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest
 public class LocationControllerTest {
     @Autowired
@@ -20,9 +22,9 @@ public class LocationControllerTest {
         locationController.setPostCode("DH1 4HU");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assert(locationResponse.getStatus() == 200);
-        assert(locationResponse.getLocationResultDto().getLatitude() == 54.777797);
-        assert(locationResponse.getLocationResultDto().getLongitude() == -1.600031);
+        assertEquals(200, locationResponse.getStatus());
+        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
+        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
     }
 
     @Tag("integration")
@@ -33,9 +35,9 @@ public class LocationControllerTest {
         locationController.setPostCode("DH1 3QL");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assert(locationResponse.getStatus() == 200);
-        assert(locationResponse.getLocationResultDto().getLatitude() == 54.766509);
-        assert(locationResponse.getLocationResultDto().getLongitude() == -1.594375);
+        assertEquals(200, locationResponse.getStatus());
+        assertEquals(54.766509, locationResponse.getLocationResultDto().getLatitude());
+        assertEquals(-1.594375, locationResponse.getLocationResultDto().getLongitude());
     }
 
     @Tag("integration")
@@ -46,15 +48,15 @@ public class LocationControllerTest {
         locationController.setPostCode("D H 1 4 H U");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assert(locationResponse.getStatus() == 200);
-        assert(locationResponse.getLocationResultDto().getLatitude() == 54.777797);
-        assert(locationResponse.getLocationResultDto().getLongitude() == -1.600031);
+        assertEquals(200, locationResponse.getStatus());
+        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
+        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
     }
 
     @DisplayName("Get post code from config file is DH1 4HU")
     @Test
     public void getPostCodeFromConfig() {
-        assert(locationController.getPostCode().equals("DH1 4HU"));
+        assertEquals("DH1 4HU", locationController.getPostCode());
     }
 
     @DisplayName("Set and get post code")
@@ -62,7 +64,7 @@ public class LocationControllerTest {
     public void setAndGetPostCode() {
         LocationController controller = new LocationController();
         controller.setPostCode("SW1A 1AA");
-        assert(controller.getPostCode().equals("SW1A 1AA"));
+        assertEquals("SW1A 1AA", controller.getPostCode());
     }
 
     @Tag("integration")
@@ -73,9 +75,9 @@ public class LocationControllerTest {
         locationController.setPostCode("dh1 4hu");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assert(locationResponse.getStatus() == 200);
-        assert(locationResponse.getLocationResultDto().getLatitude() == 54.777797);
-        assert(locationResponse.getLocationResultDto().getLongitude() == -1.600031);
+        assertEquals(200, locationResponse.getStatus());
+        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
+        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
     }
 
     @Tag("integration")
@@ -86,9 +88,9 @@ public class LocationControllerTest {
         locationController.setPostCode("DH14HU");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assert(locationResponse.getStatus() == 200);
-        assert(locationResponse.getLocationResultDto().getLatitude() == 54.777797);
-        assert(locationResponse.getLocationResultDto().getLongitude() == -1.600031);
+        assertEquals(200, locationResponse.getStatus());
+        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
+        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
     }
 
     @Tag("integration")
@@ -99,8 +101,8 @@ public class LocationControllerTest {
         locationController.setPostCode("SW1A 1AA");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assert(locationResponse.getStatus() == 200);
-        assert(locationResponse.getLocationResultDto().getLatitude() == 51.50101);
-        assert(locationResponse.getLocationResultDto().getLongitude() == -0.141563);
+        assertEquals(200, locationResponse.getStatus());
+        assertEquals(51.50101, locationResponse.getLocationResultDto().getLatitude());
+        assertEquals(-0.141563, locationResponse.getLocationResultDto().getLongitude());
     }
 }

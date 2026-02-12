@@ -58,7 +58,8 @@ public class DirigeraStatusControllerTest {
 
         assertTrue(status.containsKey("hubAddress"));
         assertTrue(status.containsKey("reachable"));
-        assertEquals(2, status.size());
+        assertTrue(status.containsKey("timestamp"));
+        assertEquals(3, status.size());
     }
 
     @DisplayName("getStatus returns reachable false when hub is unreachable")

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,26 +25,15 @@ public class HueStatusControllerTest {
     private SseService sseService;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         configService = mock(ConfigService.class);
         sseService = mock(SseService.class);
-        controller = new HueStatusController();
-
-        // Set protected fields from HueController
-        controller.hubAddress = "192.168.1.100";
-        controller.hubId = "001788fffe7107c8";
-        controller.login = "TestApplicationKey1234";
-        controller.key = "ABCDEF1234567890";
-
-        // Set private configService via reflection
-        Field configField = HueController.class.getDeclaredField("configService");
-        configField.setAccessible(true);
-        configField.set(controller, configService);
-
-        // Set private sseService via reflection
-        Field sseField = HueStatusController.class.getDeclaredField("sseService");
-        sseField.setAccessible(true);
-        sseField.set(controller, sseService);
+        controller = new HueStatusController(
+                "192.168.1.100",
+                "001788fffe7107c8",
+                "TestApplicationKey1234",
+                configService,
+                sseService);
     }
 
     @DisplayName("getStatus returns all expected fields")
@@ -57,10 +45,10 @@ public class HueStatusControllerTest {
 
         assertEquals("192.168.1.100", status.get("hubAddress"));
         assertEquals("001788fffe7107c8", status.get("hubId"));
-        assertEquals("TestApplicationKey1234", status.get("login"));
-        assertTrue(status.containsKey("key"));
+        assertEquals("TestApplicationKey1234", status.get("applicationKey"));
         assertTrue(status.containsKey("connected"));
         assertTrue(status.containsKey("integrationEnabled"));
+        assertTrue(status.containsKey("timestamp"));
     }
 
     @DisplayName("getStatus returns integrationEnabled true when enabled")
@@ -90,17 +78,7 @@ public class HueStatusControllerTest {
 
         Map<String, Object> status = controller.getStatus();
 
-        assertEquals("TestApplicationKey1234", status.get("login"));
-    }
-
-    @DisplayName("getStatus sends key unmasked")
-    @Test
-    public void testGetStatusKeyUnmasked() {
-        when(configService.isHueIntegrationEnabled()).thenReturn(true);
-
-        Map<String, Object> status = controller.getStatus();
-
-        assertEquals("ABCDEF1234567890", status.get("key"));
+        assertEquals("TestApplicationKey1234", status.get("applicationKey"));
     }
 
     @DisplayName("getStatus returns connected false when bridge unreachable")

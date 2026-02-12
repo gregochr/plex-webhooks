@@ -1,6 +1,9 @@
 package gregochr.commands.integration;
 
-import gregochr.commands.PlexStopCommand;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexCommandConfig;
+import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import gregochr.controllers.LocationController;
 import gregochr.controllers.SunriseSunsetController;
 import gregochr.controllers.hue.HueSceneController;
@@ -10,6 +13,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 public class PlexStopCommandIntegrationTest {
@@ -26,21 +32,24 @@ public class PlexStopCommandIntegrationTest {
     @Autowired
     private ConfigService configService;
 
+    @Autowired
+    private PlexCommandConfig plexCommandConfig;
+
     @Tag("integration")
     @DisplayName("Test Plex Stop Movie Command")
     @Test
     public void testPlexStopMovieCommand() {
-        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "movie");
+        PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        assert(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertTrue(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 
     @Tag("integration")
     @DisplayName("Test Plex Stop TV Show Command")
     @Test
     public void testPlexStopTVShowCommand() {
-        PlexStopCommand plexStopCommand = new PlexStopCommand("Good Will Hunting", 123, "episode");
+        PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
-        assert(!plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService));
+        assertFalse(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 }

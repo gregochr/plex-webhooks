@@ -1,6 +1,8 @@
 package gregochr.services.sse;
 
-import gregochr.commands.PlexPlayCommand;
+import gregochr.commands.PlexCommand;
+import gregochr.commands.PlexEvent;
+import gregochr.commands.PlexMediaType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,7 +63,7 @@ public class SseServiceTest {
     @Test
     public void testBroadcastWithNoClients() {
         SseEventDto event = new SseEventDto(
-                new PlexPlayCommand("Test Movie", 7200000, "movie"),
+                new PlexCommand(PlexEvent.PLAY, "Test Movie", 7200000, PlexMediaType.MOVIE),
                 "{\"event\":\"media.play\"}"
         );
 
@@ -80,10 +82,59 @@ public class SseServiceTest {
         assertEquals(0, sseService.getClientCount());
     }
 
+    @DisplayName("BroadcastHueStatus does not throw when no clients connected")
+    @Test
+    public void testBroadcastHueStatusWithNoClients() {
+        Map<String, Object> status = Map.of("connected", true, "hubAddress", "192.168.4.38");
+
+        sseService.broadcastHueStatus(status);
+
+        assertEquals(0, sseService.getClientCount());
+    }
+
+    @DisplayName("BroadcastDirigeraStatus does not throw when no clients connected")
+    @Test
+    public void testBroadcastDirigeraStatusWithNoClients() {
+        Map<String, Object> status = Map.of("reachable", true, "hubAddress", "192.168.4.34");
+
+        sseService.broadcastDirigeraStatus(status);
+
+        assertEquals(0, sseService.getClientCount());
+    }
+
     @DisplayName("Heartbeat does not throw when no clients connected")
     @Test
     public void testHeartbeatWithNoClients() {
         sseService.heartbeat();
+
+        assertEquals(0, sseService.getClientCount());
+    }
+
+    @DisplayName("Stale emitter callback does not remove reconnected client")
+    @Test
+    public void testStaleEmitterCallbackDoesNotRemoveNewClient() {
+        SseEmitter emitter1 = sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
+        assertEquals(1, sseService.getClientCount());
+
+        // Same client reconnects — emitter1 is now stale
+        SseEmitter emitter2 = sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
+        assertEquals(1, sseService.getClientCount());
+
+        // Simulate the old emitter's onCompletion firing late on a different thread
+        sseService.removeIfSameEmitter("client-1", emitter1, "stale-completion");
+
+        // New client (emitter2) should still be tracked
+        assertEquals(1, sseService.getClientCount());
+    }
+
+    @DisplayName("Current emitter callback removes client on genuine disconnect")
+    @Test
+    public void testCurrentEmitterCallbackRemovesClient() {
+        SseEmitter emitter1 = sseService.subscribe("client-1", TEST_USER_AGENT, TEST_IP_ADDRESS);
+        assertEquals(1, sseService.getClientCount());
+
+        // Simulate a real disconnect of the current emitter
+        sseService.removeIfSameEmitter("client-1", emitter1, "real-disconnect");
 
         assertEquals(0, sseService.getClientCount());
     }

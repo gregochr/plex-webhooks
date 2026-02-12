@@ -1,9 +1,10 @@
 package gregochr.controllers.hue;
 
+import gregochr.services.config.ConfigService;
 import gregochr.services.sse.SseService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientException;
 
+import java.time.Instant;
 import java.util.Map;
 
 @RestController
@@ -18,8 +20,17 @@ import java.util.Map;
 public class HueStatusController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueStatusController.class);
 
-    @Autowired
-    private SseService sseService;
+    private final SseService sseService;
+
+    public HueStatusController(
+            @Value("${hue.hub-address}") String hubAddress,
+            @Value("${hue.hub-id}") String hubId,
+            @Value("${hue.application-key}") String applicationKey,
+            ConfigService configService,
+            SseService sseService) {
+        super(hubAddress, hubId, applicationKey, configService);
+        this.sseService = sseService;
+    }
 
     @GetMapping("/status")
     public Map<String, Object> getStatus() {
@@ -48,22 +59,20 @@ public class HueStatusController extends HueController {
         return Map.of(
                 "hubAddress", hubAddress,
                 "hubId", hubId,
-                "login", login,
-                "key", key,
+                "applicationKey", applicationKey,
                 "integrationEnabled", isHueIntegrationEnabled(),
-                "connected", connected
+                "connected", connected,
+                "timestamp", Instant.now().toString()
         );
     }
 
     private boolean testConnection() {
         try {
-            String url = "https://" + hubId + "/clip/v2/resource/bridge";
-            LOGGER.debug("Testing Hue bridge connection: {}", url);
+            LOGGER.debug("Testing Hue bridge connection: {}", hubId);
 
             ResponseEntity<String> response = restClient
                     .get()
-                    .uri(url)
-                    .header("hue-application-key", login)
+                    .uri("/bridge")
                     .retrieve()
                     .toEntity(String.class);
 

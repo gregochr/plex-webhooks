@@ -1,10 +1,10 @@
 package gregochr.controllers.dto.hue;
 
 public class HueLightDto {
-    private String key;
-    private String name;
-    private boolean on;
-    private boolean reachable;
+    private final String key;
+    private final String name;
+    private final boolean on;
+    private final boolean reachable;
 
     public HueLightDto(String key, String name, boolean on, boolean reachable) {
         this.key = key;
@@ -13,7 +13,7 @@ public class HueLightDto {
         this.reachable = reachable;
     }
 
-    public String getKey() { return this.key; };
+    public String getKey() { return this.key; }
 
     public String getName() {
         return this.name;

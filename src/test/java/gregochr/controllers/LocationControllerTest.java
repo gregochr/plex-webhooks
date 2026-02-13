@@ -22,9 +22,9 @@ public class LocationControllerTest {
         locationController.setPostCode("DH1 4HU");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assertEquals(200, locationResponse.getStatus());
-        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
-        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
+        assertEquals(200, locationResponse.status());
+        assertEquals(54.777797, locationResponse.locationResultDto().latitude());
+        assertEquals(-1.600031, locationResponse.locationResultDto().longitude());
     }
 
     @Tag("integration")
@@ -35,9 +35,9 @@ public class LocationControllerTest {
         locationController.setPostCode("DH1 3QL");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assertEquals(200, locationResponse.getStatus());
-        assertEquals(54.766509, locationResponse.getLocationResultDto().getLatitude());
-        assertEquals(-1.594375, locationResponse.getLocationResultDto().getLongitude());
+        assertEquals(200, locationResponse.status());
+        assertEquals(54.766509, locationResponse.locationResultDto().latitude());
+        assertEquals(-1.594375, locationResponse.locationResultDto().longitude());
     }
 
     @Tag("integration")
@@ -48,9 +48,9 @@ public class LocationControllerTest {
         locationController.setPostCode("D H 1 4 H U");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assertEquals(200, locationResponse.getStatus());
-        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
-        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
+        assertEquals(200, locationResponse.status());
+        assertEquals(54.777797, locationResponse.locationResultDto().latitude());
+        assertEquals(-1.600031, locationResponse.locationResultDto().longitude());
     }
 
     @DisplayName("Get post code from config file is DH1 4HU")
@@ -75,9 +75,9 @@ public class LocationControllerTest {
         locationController.setPostCode("dh1 4hu");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assertEquals(200, locationResponse.getStatus());
-        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
-        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
+        assertEquals(200, locationResponse.status());
+        assertEquals(54.777797, locationResponse.locationResultDto().latitude());
+        assertEquals(-1.600031, locationResponse.locationResultDto().longitude());
     }
 
     @Tag("integration")
@@ -88,9 +88,9 @@ public class LocationControllerTest {
         locationController.setPostCode("DH14HU");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assertEquals(200, locationResponse.getStatus());
-        assertEquals(54.777797, locationResponse.getLocationResultDto().getLatitude());
-        assertEquals(-1.600031, locationResponse.getLocationResultDto().getLongitude());
+        assertEquals(200, locationResponse.status());
+        assertEquals(54.777797, locationResponse.locationResultDto().latitude());
+        assertEquals(-1.600031, locationResponse.locationResultDto().longitude());
     }
 
     @Tag("integration")
@@ -101,8 +101,8 @@ public class LocationControllerTest {
         locationController.setPostCode("SW1A 1AA");
         LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
 
-        assertEquals(200, locationResponse.getStatus());
-        assertEquals(51.50101, locationResponse.getLocationResultDto().getLatitude());
-        assertEquals(-0.141563, locationResponse.getLocationResultDto().getLongitude());
+        assertEquals(200, locationResponse.status());
+        assertEquals(51.50101, locationResponse.locationResultDto().latitude());
+        assertEquals(-0.141563, locationResponse.locationResultDto().longitude());
     }
 }

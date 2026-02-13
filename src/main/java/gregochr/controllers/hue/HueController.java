@@ -21,7 +21,7 @@ public abstract class HueController {
         this.applicationKey = applicationKey;
         this.configService = configService;
         this.restClient = RestClient.builder()
-                .baseUrl("https://" + hubId + "/clip/v2/resource")
+                .baseUrl("https://%s/clip/v2/resource".formatted(hubId))
                 .defaultHeader("hue-application-key", applicationKey)
                 .build();
     }

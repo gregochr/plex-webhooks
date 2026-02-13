@@ -10,11 +10,11 @@ public class SunriseSunsetTimeFactory {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm:ss a", Locale.ENGLISH);
 
     public LocalTime getSunriseTime(final SunriseSunsetResultDto result) {
-        return parseTime(result.getSunrise());
+        return parseTime(result.sunrise());
     }
 
     public LocalTime getSunsetTime(final SunriseSunsetResultDto result) {
-        return parseTime(result.getSunset());
+        return parseTime(result.sunset());
     }
 
     private LocalTime parseTime(final String timeString) {

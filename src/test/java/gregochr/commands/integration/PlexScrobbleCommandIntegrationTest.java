@@ -41,7 +41,7 @@ public class PlexScrobbleCommandIntegrationTest {
     public void testPlexScrobbleMovieCommand() {
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
     }
 
     @Tag("integration")

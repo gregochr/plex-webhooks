@@ -24,10 +24,10 @@ public class SunriseSunsetControllerTest {
         SunriseSunsetController controller = new SunriseSunsetController();
         SunriseSunsetResponseDto result = controller.getSunsetTimeForToday(54.777797, -1.600031);
 
-        assertEquals("OK", result.getStatus());
-        assertEquals("UTC", result.getTzId());
-        assertNotNull(result.getSunriseSunsetResultDto().getSunset());
-        assertFalse(result.getSunriseSunsetResultDto().getSunset().isBlank());
+        assertEquals("OK", result.status());
+        assertEquals("UTC", result.tzid());
+        assertNotNull(result.sunriseSunsetResultDto().sunset());
+        assertFalse(result.sunriseSunsetResultDto().sunset().isBlank());
     }
     @Tag("integration")
     @DisplayName("Test get sunset time for 28th January 2026")
@@ -36,9 +36,9 @@ public class SunriseSunsetControllerTest {
         SunriseSunsetController controller = new SunriseSunsetController();
         SunriseSunsetResponseDto result = controller.getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
 
-        assertEquals("OK", result.getStatus());
-        assertEquals("UTC", result.getTzId());
-        assertEquals("4:37:54 PM", result.getSunriseSunsetResultDto().getSunset());
+        assertEquals("OK", result.status());
+        assertEquals("UTC", result.tzid());
+        assertEquals("4:37:54 PM", result.sunriseSunsetResultDto().sunset());
     }
 
     @Tag("integration")
@@ -48,9 +48,9 @@ public class SunriseSunsetControllerTest {
         SunriseSunsetController controller = new SunriseSunsetController();
         SunriseSunsetResponseDto result = controller.getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
 
-        assertEquals("OK", result.getStatus());
-        assertNotNull(result.getSunriseSunsetResultDto().getSunrise());
-        assertEquals("8:00:44 AM", result.getSunriseSunsetResultDto().getSunrise());
+        assertEquals("OK", result.status());
+        assertNotNull(result.sunriseSunsetResultDto().sunrise());
+        assertEquals("8:00:44 AM", result.sunriseSunsetResultDto().sunrise());
     }
 
     @Tag("integration")
@@ -60,8 +60,8 @@ public class SunriseSunsetControllerTest {
         SunriseSunsetController controller = new SunriseSunsetController();
         SunriseSunsetResponseDto result = controller.getSunsetTimeForDate(54.777797, -1.600031, "2026-06-21");
 
-        assertEquals("OK", result.getStatus());
-        assertNotNull(result.getSunriseSunsetResultDto().getSunset());
+        assertEquals("OK", result.status());
+        assertNotNull(result.sunriseSunsetResultDto().sunset());
         // Summer sunset in Durham is much later than winter
     }
 

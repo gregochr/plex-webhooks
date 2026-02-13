@@ -1,27 +1,13 @@
 package gregochr.services.plex.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PlexPayloadDto {
-    public String event;
-    public PlexMetadataDto metadata;
-
-    @JsonSetter("event")
-    public void setEvent(String event) {
-        this.event = event;
-    }
-    public String getEvent()  { return this.event; }
-
-    @JsonSetter("Metadata")
-    public void setMetadata(PlexMetadataDto metadata) {
-        this.metadata = metadata;
-    }
-    public PlexMetadataDto getMetadata()  { return this.metadata; }
+public record PlexPayloadDto(String event, @JsonProperty("Metadata") PlexMetadataDto metadata) {
 
     @Override
     public String toString() {
-        return String.format("[ Event: %s, %s ]", event, this.metadata);
+        return "[ Event: %s, %s ]".formatted(event, metadata);
     }
 }

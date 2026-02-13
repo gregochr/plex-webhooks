@@ -54,7 +54,7 @@ public class PlexCommand {
 
     @Override
     public String toString() {
-        return String.format("[ Event: %s, Title: %s, Duration: %d, Type: %s ]",
+        return "[ Event: %s, Title: %s, Duration: %d, Type: %s ]".formatted(
                 this.event, this.title, this.duration,
                 this.mediaType != null ? this.mediaType.getType() : "unknown");
     }

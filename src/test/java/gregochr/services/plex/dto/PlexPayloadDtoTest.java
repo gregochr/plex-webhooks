@@ -16,10 +16,10 @@ public class PlexPayloadDtoTest {
         try {
             PlexPayloadDto plexPayload = new ObjectMapper().readerFor(PlexPayloadDto.class).readValue(stopPayload);
 
-            assertEquals("media.stop", plexPayload.getEvent());
-            assertEquals("Good Will Hunting", plexPayload.getMetadata().getTitle());
-            assertEquals(7620000, plexPayload.getMetadata().getDuration());
-            assertEquals("movie", plexPayload.getMetadata().getType());
+            assertEquals("media.stop", plexPayload.event());
+            assertEquals("Good Will Hunting", plexPayload.metadata().title());
+            assertEquals(7620000, plexPayload.metadata().duration());
+            assertEquals("movie", plexPayload.metadata().type());
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -34,9 +34,9 @@ public class PlexPayloadDtoTest {
             ObjectMapper objectMapper = new ObjectMapper();
             PlexPayloadDto plexPayload = objectMapper.readValue(startPayload, PlexPayloadDto.class);
 
-            assertEquals("media.play", plexPayload.getEvent());
-            assertEquals("Good Will Hunting", plexPayload.getMetadata().getTitle());
-            assertEquals("movie", plexPayload.getMetadata().getType());
+            assertEquals("media.play", plexPayload.event());
+            assertEquals("Good Will Hunting", plexPayload.metadata().title());
+            assertEquals("movie", plexPayload.metadata().type());
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -51,8 +51,8 @@ public class PlexPayloadDtoTest {
             ObjectMapper objectMapper = new ObjectMapper();
             PlexPayloadDto plexPayload = objectMapper.readValue(pausePayload, PlexPayloadDto.class);
 
-            assertEquals("media.pause", plexPayload.getEvent());
-            assertEquals("movie", plexPayload.getMetadata().getType());
+            assertEquals("media.pause", plexPayload.event());
+            assertEquals("movie", plexPayload.metadata().type());
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -67,8 +67,8 @@ public class PlexPayloadDtoTest {
             ObjectMapper objectMapper = new ObjectMapper();
             PlexPayloadDto plexPayload = objectMapper.readValue(resumePayload, PlexPayloadDto.class);
 
-            assertEquals("media.resume", plexPayload.getEvent());
-            assertEquals("movie", plexPayload.getMetadata().getType());
+            assertEquals("media.resume", plexPayload.event());
+            assertEquals("movie", plexPayload.metadata().type());
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -87,7 +87,7 @@ public class PlexPayloadDtoTest {
             ObjectMapper objectMapper = new ObjectMapper();
             PlexPayloadDto plexPayload = objectMapper.readValue(stopPayload, PlexPayloadDto.class);
 
-            assertEquals("media.scrobble", plexPayload.getEvent());
+            assertEquals("media.scrobble", plexPayload.event());
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

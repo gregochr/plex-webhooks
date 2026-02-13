@@ -23,11 +23,11 @@ public class HueLightController extends HueController {
     }
 
     private void setLightState(final HueLightDto light, final String body) {
-        LOGGER.info("[ Turning light: {}, {} ]", light.getKey(), body);
+        LOGGER.info("[ Turning light: {}, {} ]", light.key(), body);
 
         ResponseEntity<Void> response = restClient
                 .put()
-                .uri("/light/{lightKey}", light.getKey())
+                .uri("/light/{lightKey}", light.key())
                 .contentType(APPLICATION_JSON)
                 .body(body)
                 .retrieve()

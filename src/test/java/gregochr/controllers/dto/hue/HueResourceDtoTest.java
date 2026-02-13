@@ -85,105 +85,105 @@ public class HueResourceDtoTest {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
 
         assertNotNull(response);
-        assertNotNull(response.getErrors());
-        assertTrue(response.getErrors().isEmpty());
-        assertNotNull(response.getData());
-        assertEquals(5, response.getData().size());
+        assertNotNull(response.errors());
+        assertTrue(response.errors().isEmpty());
+        assertNotNull(response.data());
+        assertEquals(5, response.data().size());
     }
 
     @DisplayName("Deserializes light resource with id, id_v1, type, and owner")
     @Test
     public void testDeserializesLightResource() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto light = response.getData().get(0);
+        HueResourceDto light = response.data().get(0);
 
-        assertEquals("f4204bba-a862-4766-8e98-c967fa5aabd2", light.getId());
-        assertEquals("/lights/4", light.getIdV1());
-        assertEquals("light", light.getType());
-        assertNotNull(light.getOwner());
-        assertEquals("aab1a0e3-75a9-4e6a-8341-39065a9e8de7", light.getOwner().getRid());
-        assertEquals("device", light.getOwner().getRtype());
+        assertEquals("f4204bba-a862-4766-8e98-c967fa5aabd2", light.id());
+        assertEquals("/lights/4", light.idV1());
+        assertEquals("light", light.type());
+        assertNotNull(light.owner());
+        assertEquals("aab1a0e3-75a9-4e6a-8341-39065a9e8de7", light.owner().rid());
+        assertEquals("device", light.owner().rtype());
     }
 
     @DisplayName("Deserializes metadata with name and archetype")
     @Test
     public void testDeserializesMetadata() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto light = response.getData().get(0);
+        HueResourceDto light = response.data().get(0);
 
-        assertNotNull(light.getMetadata());
-        assertEquals("Standing Lamp", light.getMetadata().getName());
-        assertEquals("floor_lantern", light.getMetadata().getArchetype());
+        assertNotNull(light.metadata());
+        assertEquals("Standing Lamp", light.metadata().name());
+        assertEquals("floor_lantern", light.metadata().archetype());
     }
 
     @DisplayName("Deserializes metadata with category field")
     @Test
     public void testDeserializesMetadataCategory() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto device = response.getData().get(1);
+        HueResourceDto device = response.data().get(1);
 
-        assertEquals("primary", device.getMetadata().getCategory());
+        assertEquals("primary", device.metadata().category());
     }
 
     @DisplayName("Deserializes device services list")
     @Test
     public void testDeserializesServices() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto device = response.getData().get(1);
+        HueResourceDto device = response.data().get(1);
 
-        assertNotNull(device.getServices());
-        assertEquals(2, device.getServices().size());
-        assertEquals("f4204bba-a862-4766-8e98-c967fa5aabd2", device.getServices().get(0).getRid());
-        assertEquals("light", device.getServices().get(0).getRtype());
+        assertNotNull(device.services());
+        assertEquals(2, device.services().size());
+        assertEquals("f4204bba-a862-4766-8e98-c967fa5aabd2", device.services().get(0).rid());
+        assertEquals("light", device.services().get(0).rtype());
     }
 
     @DisplayName("Deserializes room children list")
     @Test
     public void testDeserializesChildren() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto room = response.getData().get(2);
+        HueResourceDto room = response.data().get(2);
 
-        assertEquals("room", room.getType());
-        assertNotNull(room.getChildren());
-        assertEquals(2, room.getChildren().size());
-        assertEquals("device", room.getChildren().get(0).getRtype());
+        assertEquals("room", room.type());
+        assertNotNull(room.children());
+        assertEquals(2, room.children().size());
+        assertEquals("device", room.children().get(0).rtype());
     }
 
     @DisplayName("Ignores unknown fields in resource JSON")
     @Test
     public void testIgnoresUnknownFields() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto light = response.getData().get(0);
+        HueResourceDto light = response.data().get(0);
 
         // The light resource has "extra_field_that_should_be_ignored" — parsing should not fail
-        assertEquals("light", light.getType());
+        assertEquals("light", light.type());
     }
 
     @DisplayName("Deserializes scene resource ignoring actions, palette, speed, and status")
     @Test
     public void testDeserializesSceneResource() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto scene = response.getData().get(4);
+        HueResourceDto scene = response.data().get(4);
 
-        assertEquals("scene", scene.getType());
-        assertEquals("e1b2c3d4-5678-9abc-def0-111122223333", scene.getId());
-        assertEquals("/scenes/ABcdEf012", scene.getIdV1());
-        assertNotNull(scene.getMetadata());
-        assertEquals("Movie Time", scene.getMetadata().getName());
+        assertEquals("scene", scene.type());
+        assertEquals("e1b2c3d4-5678-9abc-def0-111122223333", scene.id());
+        assertEquals("/scenes/ABcdEf012", scene.idV1());
+        assertNotNull(scene.metadata());
+        assertEquals("Movie Time", scene.metadata().name());
         // Scene-specific fields (group, actions, palette, speed, auto_dynamic, status) are ignored
-        assertNull(scene.getOwner());
-        assertNull(scene.getServices());
-        assertNull(scene.getChildren());
+        assertNull(scene.owner());
+        assertNull(scene.services());
+        assertNull(scene.children());
     }
 
     @DisplayName("Nullable fields are null when absent from JSON")
     @Test
     public void testNullableFieldsWhenAbsent() throws JsonProcessingException {
         HueResourceResponseDto response = OBJECT_MAPPER.readValue(HUE_RESOURCE_JSON, HueResourceResponseDto.class);
-        HueResourceDto room = response.getData().get(2);
+        HueResourceDto room = response.data().get(2);
 
         // Room has no owner or id_v1
-        assertNull(room.getOwner());
-        assertNull(room.getIdV1());
+        assertNull(room.owner());
+        assertNull(room.idV1());
     }
 }

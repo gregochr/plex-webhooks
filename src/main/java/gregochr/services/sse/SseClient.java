@@ -49,6 +49,6 @@ public record SseClient(
             os = "Linux";
         }
 
-        return browser + " on " + os;
+        return "%s on %s".formatted(browser, os);
     }
 }

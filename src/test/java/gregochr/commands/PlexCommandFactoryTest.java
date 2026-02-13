@@ -217,14 +217,7 @@ public class PlexCommandFactoryTest {
 
     @Nonnull
     private static PlexPayloadDto getPlexPayloadDto(String event, String type) {
-        PlexPayloadDto plexPayload = new PlexPayloadDto();
-        plexPayload.setEvent(event);
-
-        PlexMetadataDto plexMetadata = new PlexMetadataDto();
-        plexMetadata.setTitle("Good Will Hunting");
-        plexMetadata.setDuration(123);
-        plexMetadata.setType(type);
-        plexPayload.setMetadata(plexMetadata);
-        return plexPayload;
+        PlexMetadataDto plexMetadata = new PlexMetadataDto("Good Will Hunting", 123, type);
+        return new PlexPayloadDto(event, plexMetadata);
     }
 }

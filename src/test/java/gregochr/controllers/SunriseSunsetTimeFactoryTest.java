@@ -13,8 +13,7 @@ public class SunriseSunsetTimeFactoryTest {
     @DisplayName("Test getSunsetTime parses PM time correctly")
     @Test
     public void testGetSunsetTimePM() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto();
-        result.setSunset("4:37:54 PM");
+        SunriseSunsetResultDto result = new SunriseSunsetResultDto(null, "4:37:54 PM");
 
         SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
         LocalTime sunsetTime = factory.getSunsetTime(result);
@@ -27,8 +26,7 @@ public class SunriseSunsetTimeFactoryTest {
     @DisplayName("Test getSunriseTime parses AM time correctly")
     @Test
     public void testGetSunriseTimeAM() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto();
-        result.setSunrise("7:15:30 AM");
+        SunriseSunsetResultDto result = new SunriseSunsetResultDto("7:15:30 AM", null);
 
         SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
         LocalTime sunriseTime = factory.getSunriseTime(result);
@@ -41,8 +39,7 @@ public class SunriseSunsetTimeFactoryTest {
     @DisplayName("Test getSunsetTime parses 12 PM (noon) correctly")
     @Test
     public void testGetSunsetTimeNoon() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto();
-        result.setSunset("12:00:00 PM");
+        SunriseSunsetResultDto result = new SunriseSunsetResultDto(null, "12:00:00 PM");
 
         SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
         LocalTime sunsetTime = factory.getSunsetTime(result);
@@ -55,8 +52,7 @@ public class SunriseSunsetTimeFactoryTest {
     @DisplayName("Test getSunriseTime parses 12 AM (midnight) correctly")
     @Test
     public void testGetSunriseTimeMidnight() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto();
-        result.setSunrise("12:00:00 AM");
+        SunriseSunsetResultDto result = new SunriseSunsetResultDto("12:00:00 AM", null);
 
         SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
         LocalTime sunriseTime = factory.getSunriseTime(result);
@@ -69,8 +65,7 @@ public class SunriseSunsetTimeFactoryTest {
     @DisplayName("Test getSunsetTime parses double-digit PM time correctly")
     @Test
     public void testGetSunsetTimeDoubleDigitPM() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto();
-        result.setSunset("10:37:54 PM");
+        SunriseSunsetResultDto result = new SunriseSunsetResultDto(null, "10:37:54 PM");
 
         SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
         LocalTime sunsetTime = factory.getSunsetTime(result);

@@ -21,7 +21,7 @@ public class SseEventDtoTest {
         PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Test Movie", 7200000, PlexMediaType.MOVIE);
         SseEventDto dto = new SseEventDto(command, "{}");
 
-        assertEquals("media.play", dto.getCommand().getEvent());
+        assertEquals("media.play", dto.command().event());
     }
 
     @DisplayName("DTO captures command title")
@@ -30,7 +30,7 @@ public class SseEventDtoTest {
         PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 7200000, PlexMediaType.MOVIE);
         SseEventDto dto = new SseEventDto(command, "{}");
 
-        assertEquals("Good Will Hunting", dto.getCommand().getTitle());
+        assertEquals("Good Will Hunting", dto.command().title());
     }
 
     @DisplayName("DTO captures command duration")
@@ -39,7 +39,7 @@ public class SseEventDtoTest {
         PlexCommand command = new PlexCommand(PlexEvent.STOP, "Test", 3600000, PlexMediaType.MOVIE);
         SseEventDto dto = new SseEventDto(command, "{}");
 
-        assertEquals(3600000, dto.getCommand().getDuration());
+        assertEquals(3600000, dto.command().duration());
     }
 
     @DisplayName("DTO includes timestamp")
@@ -48,8 +48,8 @@ public class SseEventDtoTest {
         PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Test", 1000, PlexMediaType.MOVIE);
         SseEventDto dto = new SseEventDto(command, "{}");
 
-        assertNotNull(dto.getTimestamp());
-        assertTrue(dto.getTimestamp().contains("T")); // ISO 8601 format
+        assertNotNull(dto.timestamp());
+        assertTrue(dto.timestamp().contains("T")); // ISO 8601 format
     }
 
     @DisplayName("DTO serializes payload as raw JSON")

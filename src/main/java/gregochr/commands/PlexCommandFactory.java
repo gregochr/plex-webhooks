@@ -12,10 +12,10 @@ public class PlexCommandFactory {
     }
 
     public PlexCommand getPlexCommand() {
-        String title = this.plexPayload.getMetadata().getTitle();
-        int duration = this.plexPayload.getMetadata().getDuration();
-        String type = this.plexPayload.getMetadata().getType();
-        String event = this.plexPayload.getEvent();
+        String title = this.plexPayload.metadata().title();
+        int duration = this.plexPayload.metadata().duration();
+        String type = this.plexPayload.metadata().type();
+        String event = this.plexPayload.event();
 
         Optional<PlexMediaType> mediaType = PlexMediaType.fromType(type);
         if (mediaType.isPresent()) {

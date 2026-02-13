@@ -27,19 +27,11 @@ public class PlexCommandTest {
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResponseDto locationResponse = new LocationResponseDto();
-        LocationResultDto locationResult = new LocationResultDto();
-        locationResult.setLatitude(1);
-        locationResult.setLongitude(1);
-        locationResponse.setStatus(200);
-        locationResponse.setResult(locationResult);
+        LocationResultDto locationResult = new LocationResultDto(1, 1);
+        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
 
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
-        sunriseSunsetResponse.setStatus("200");
-        sunriseSunsetResponse.setTzId("utc");
-        sunriseSunsetResult.setSunset("18:00:00");
-        sunriseSunsetResponse.setResult(sunriseSunsetResult);
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
@@ -72,19 +64,11 @@ public class PlexCommandTest {
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResponseDto locationResponse = new LocationResponseDto();
-        LocationResultDto locationResult = new LocationResultDto();
-        locationResult.setLatitude(1);
-        locationResult.setLongitude(1);
-        locationResponse.setStatus(200);
-        locationResponse.setResult(locationResult);
+        LocationResultDto locationResult = new LocationResultDto(1, 1);
+        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
 
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
-        sunriseSunsetResponse.setStatus("200");
-        sunriseSunsetResponse.setTzId("utc");
-        sunriseSunsetResult.setSunset("18:00:00");
-        sunriseSunsetResponse.setResult(sunriseSunsetResult);
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
@@ -117,19 +101,11 @@ public class PlexCommandTest {
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResponseDto locationResponse = new LocationResponseDto();
-        LocationResultDto locationResult = new LocationResultDto();
-        locationResult.setLatitude(1);
-        locationResult.setLongitude(1);
-        locationResponse.setStatus(200);
-        locationResponse.setResult(locationResult);
+        LocationResultDto locationResult = new LocationResultDto(1, 1);
+        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
 
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
-        sunriseSunsetResponse.setStatus("200");
-        sunriseSunsetResponse.setTzId("utc");
-        sunriseSunsetResult.setSunset("18:00:00");
-        sunriseSunsetResponse.setResult(sunriseSunsetResult);
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
@@ -162,19 +138,11 @@ public class PlexCommandTest {
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResponseDto locationResponse = new LocationResponseDto();
-        LocationResultDto locationResult = new LocationResultDto();
-        locationResult.setLatitude(1);
-        locationResult.setLongitude(1);
-        locationResponse.setStatus(200);
-        locationResponse.setResult(locationResult);
+        LocationResultDto locationResult = new LocationResultDto(1, 1);
+        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
 
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
-        sunriseSunsetResponse.setStatus("200");
-        sunriseSunsetResponse.setTzId("utc");
-        sunriseSunsetResult.setSunset("18:00:00");
-        sunriseSunsetResponse.setResult(sunriseSunsetResult);
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
@@ -207,19 +175,11 @@ public class PlexCommandTest {
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResponseDto locationResponse = new LocationResponseDto();
-        LocationResultDto locationResult = new LocationResultDto();
-        locationResult.setLatitude(1);
-        locationResult.setLongitude(1);
-        locationResponse.setStatus(200);
-        locationResponse.setResult(locationResult);
+        LocationResultDto locationResult = new LocationResultDto(1, 1);
+        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
 
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto();
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto();
-        sunriseSunsetResponse.setStatus("200");
-        sunriseSunsetResponse.setTzId("utc");
-        sunriseSunsetResult.setSunset("18:00:00");
-        sunriseSunsetResponse.setResult(sunriseSunsetResult);
+        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
+        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
 
         when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
         when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);

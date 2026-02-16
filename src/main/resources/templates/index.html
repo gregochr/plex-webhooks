@@ -588,17 +588,25 @@
             color: #808080;
             margin-left: 4px;
         }
-        .sub-tabs {
+        .config-layout {
             display: flex;
             gap: 0;
-            border-bottom: 1px solid #3d3d3d;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
+        }
+        .sub-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border-right: 1px solid #3d3d3d;
+            border-bottom: none;
+            min-width: 180px;
+            padding-top: 8px;
+            flex-shrink: 0;
         }
         .sub-tab-button {
             background: transparent;
             border: none;
-            border-bottom: 2px solid transparent;
+            border-right: 2px solid transparent;
+            border-bottom: none;
             color: #808080;
             padding: 10px 16px;
             cursor: pointer;
@@ -606,14 +614,22 @@
             font-weight: 600;
             font-family: inherit;
             transition: all 0.2s;
-            margin-bottom: -1px;
+            text-align: left;
+            margin-right: -1px;
+            white-space: nowrap;
         }
         .sub-tab-button:hover {
             color: #ffffff;
         }
         .sub-tab-button.active {
             color: #e5a00d;
-            border-bottom-color: #e5a00d;
+            border-right-color: #e5a00d;
+        }
+        .sub-tab-content-area {
+            flex: 1;
+            min-width: 0;
+            padding-left: 24px;
+            padding-top: 8px;
         }
         .sub-tab-content {
             display: none;
@@ -788,33 +804,37 @@
     </div>
 
     <div id="tab-app-config" class="tab-content">
-        <div class="sub-tabs">
-            <button th:each="section, stat : ${configSections}"
-                    class="sub-tab-button"
-                    th:classappend="${stat.first} ? ' active'"
-                    th:data-subtab="${'config-section-' + stat.index}"
-                    th:text="${section.title}">Section</button>
-        </div>
-        <div th:each="section, stat : ${configSections}"
-             class="sub-tab-content"
-             th:classappend="${stat.first} ? ' active'"
-             th:id="${'sub-tab-config-section-' + stat.index}">
-            <div class="panel" style="max-width: 700px;">
-                <h2 th:text="${section.title}">Section Title</h2>
-                <div th:each="item : ${section.items}" class="config-item">
-                    <!-- Boolean items -->
-                    <th:block th:if="${item.type == 'boolean'}">
-                        <input type="checkbox" th:id="${item.key}" th:checked="${item.value == 'true'}" disabled>
-                        <label th:for="${item.key}" th:text="${item.label}" style="cursor: default;">Label</label>
-                    </th:block>
-                    <!-- Number and text items -->
-                    <th:block th:if="${item.type != 'boolean'}">
-                        <span class="config-item-label">
-                            <span th:text="${item.label}">Label</span>
-                            <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
-                        </span>
-                        <input type="text" class="config-text-input" th:value="${item.displayValue}" readonly>
-                    </th:block>
+        <div class="config-layout">
+            <div class="sub-tabs">
+                <button th:each="section, stat : ${configSections}"
+                        class="sub-tab-button"
+                        th:classappend="${stat.first} ? ' active'"
+                        th:data-subtab="${'config-section-' + stat.index}"
+                        th:text="${section.title}">Section</button>
+            </div>
+            <div class="sub-tab-content-area">
+                <div th:each="section, stat : ${configSections}"
+                     class="sub-tab-content"
+                     th:classappend="${stat.first} ? ' active'"
+                     th:id="${'sub-tab-config-section-' + stat.index}">
+                    <div class="panel" style="max-width: 700px;">
+                        <h2 th:text="${section.title}">Section Title</h2>
+                        <div th:each="item : ${section.items}" class="config-item">
+                            <!-- Boolean items -->
+                            <th:block th:if="${item.type == 'boolean'}">
+                                <input type="checkbox" th:id="${item.key}" th:checked="${item.value == 'true'}" disabled>
+                                <label th:for="${item.key}" th:text="${item.label}" style="cursor: default;">Label</label>
+                            </th:block>
+                            <!-- Number and text items -->
+                            <th:block th:if="${item.type != 'boolean'}">
+                                <span class="config-item-label">
+                                    <span th:text="${item.label}">Label</span>
+                                    <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
+                                </span>
+                                <input type="text" class="config-text-input" th:value="${item.displayValue}" readonly>
+                            </th:block>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

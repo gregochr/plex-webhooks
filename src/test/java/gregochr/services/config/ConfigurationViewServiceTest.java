@@ -177,23 +177,32 @@ public class ConfigurationViewServiceTest {
                 service.buildItem("plex.movie-play-enabled", "true"),
                 service.buildItem("plex.movie-stop-enabled", "false")
         );
-        assertTrue(service.isAllBoolean(boolItems));
+        assertTrue(service.isEditable(boolItems));
     }
 
-    @DisplayName("Sections with mixed types are not editable")
+    @DisplayName("Sections with all number items are marked editable")
+    @Test
+    public void testAllNumberSectionsEditable() {
+        List<ConfigurationViewItem> numberItems = List.of(
+                service.buildItem("sse.heartbeat-interval", "10000")
+        );
+        assertTrue(service.isEditable(numberItems));
+    }
+
+    @DisplayName("Sections with mixed types including text are not editable")
     @Test
     public void testMixedSectionsNotEditable() {
         List<ConfigurationViewItem> mixedItems = List.of(
                 service.buildItem("hue.hub-address", "192.168.4.38"),
                 service.buildItem("hue.status-interval", "10000")
         );
-        assertFalse(service.isAllBoolean(mixedItems));
+        assertFalse(service.isEditable(mixedItems));
     }
 
     @DisplayName("Empty sections are not editable")
     @Test
     public void testEmptySectionNotEditable() {
-        assertFalse(service.isAllBoolean(List.of()));
+        assertFalse(service.isEditable(List.of()));
     }
 
     @DisplayName("saveProperties updates matching lines in file")

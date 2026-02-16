@@ -42,7 +42,7 @@ public class ConfigurationViewService {
                 }
                 if (trimmed.startsWith("#")) {
                     if (!currentItems.isEmpty()) {
-                        sections.add(new ConfigurationViewSection(currentTitle, currentItems, isAllBoolean(currentItems)));
+                        sections.add(new ConfigurationViewSection(currentTitle, currentItems, isEditable(currentItems)));
                         currentItems = new ArrayList<>();
                     }
                     currentTitle = trimmed.substring(1).trim();
@@ -61,14 +61,15 @@ public class ConfigurationViewService {
         }
 
         if (!currentItems.isEmpty()) {
-            sections.add(new ConfigurationViewSection(currentTitle, currentItems, isAllBoolean(currentItems)));
+            sections.add(new ConfigurationViewSection(currentTitle, currentItems, isEditable(currentItems)));
         }
 
         return sections;
     }
 
-    boolean isAllBoolean(List<ConfigurationViewItem> items) {
-        return !items.isEmpty() && items.stream().allMatch(item -> "boolean".equals(item.type()));
+    boolean isEditable(List<ConfigurationViewItem> items) {
+        return !items.isEmpty() && items.stream().allMatch(item ->
+                "boolean".equals(item.type()) || "number".equals(item.type()));
     }
 
     public Map<String, String> getSceneProperties() {

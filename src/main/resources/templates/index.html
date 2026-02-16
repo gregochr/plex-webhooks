@@ -920,7 +920,11 @@
                                     <span th:text="${item.label}">Label</span>
                                     <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
                                 </span>
-                                <input type="text" class="config-text-input" th:value="${item.displayValue}" readonly>
+                                <input type="text" class="config-text-input"
+                                       th:value="${item.displayValue}"
+                                       th:readonly="${!section.editable}"
+                                       th:data-key="${item.key}"
+                                       th:data-raw-value="${item.value}">
                             </th:block>
                         </div>
                         <div th:if="${section.editable}" class="config-actions">
@@ -1948,54 +1952,78 @@
         fetchHueStatus();
         fetchDirigeraStatus();
 
+        // Format a number with comma separators
+        function formatNumber(val) {
+            const num = parseInt(val, 10);
+            return isNaN(num) ? val : num.toLocaleString();
+        }
+
         // Editable config sections (Save/Cancel)
         document.querySelectorAll('.sub-tab-content[data-editable="true"]').forEach(section => {
             const checkboxes = section.querySelectorAll('.config-checkbox');
+            const textInputs = section.querySelectorAll('.config-text-input[data-key]');
             const saveBtn = section.querySelector('.btn-save');
             const cancelBtn = section.querySelector('.btn-cancel');
-            if (!saveBtn || !cancelBtn || checkboxes.length === 0) return;
+            if (!saveBtn || !cancelBtn || (checkboxes.length === 0 && textInputs.length === 0)) return;
 
             // Store initial state
             const initialState = {};
             checkboxes.forEach(cb => { initialState[cb.dataset.key] = cb.checked; });
+            textInputs.forEach(input => { initialState[input.dataset.key] = input.dataset.rawValue; });
 
-            // Derive media type from the first key (e.g. plex.movie-play-enabled → movie)
-            const firstKey = checkboxes[0].dataset.key;
-            const match = firstKey.match(/^plex\.(\w+)-/);
-            const mediaType = match ? match[1] : '';
+            // Determine save endpoint
+            const firstKey = checkboxes.length > 0 ? checkboxes[0].dataset.key : (textInputs.length > 0 ? textInputs[0].dataset.key : '');
+            const plexMatch = firstKey.match(/^plex\.(\w+)-/);
+            const mediaType = plexMatch ? plexMatch[1] : '';
+            const isPlex = !!plexMatch;
 
             function checkDirty() {
                 let dirty = false;
                 checkboxes.forEach(cb => {
                     if (cb.checked !== initialState[cb.dataset.key]) dirty = true;
                 });
+                textInputs.forEach(input => {
+                    const raw = input.value.replace(/,/g, '');
+                    if (raw !== initialState[input.dataset.key]) dirty = true;
+                });
                 saveBtn.disabled = !dirty;
                 cancelBtn.disabled = !dirty;
             }
 
             checkboxes.forEach(cb => cb.addEventListener('change', checkDirty));
+            textInputs.forEach(input => input.addEventListener('input', checkDirty));
 
             cancelBtn.addEventListener('click', () => {
-                fetch('/api/config/plex-commands/' + mediaType)
-                    .then(res => res.json())
-                    .then(data => {
-                        checkboxes.forEach(cb => {
-                            const val = data[cb.dataset.key];
-                            cb.checked = val === true;
-                            initialState[cb.dataset.key] = cb.checked;
-                        });
-                        saveBtn.disabled = true;
-                        cancelBtn.disabled = true;
-                    })
-                    .catch(err => console.error('Failed to cancel:', err));
+                if (isPlex) {
+                    fetch('/api/config/plex-commands/' + mediaType)
+                        .then(res => res.json())
+                        .then(data => {
+                            checkboxes.forEach(cb => {
+                                const val = data[cb.dataset.key];
+                                cb.checked = val === true;
+                                initialState[cb.dataset.key] = cb.checked;
+                            });
+                            saveBtn.disabled = true;
+                            cancelBtn.disabled = true;
+                        })
+                        .catch(err => console.error('Failed to cancel:', err));
+                } else {
+                    textInputs.forEach(input => {
+                        input.value = formatNumber(initialState[input.dataset.key]);
+                    });
+                    saveBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                }
             });
 
             saveBtn.addEventListener('click', () => {
                 const body = {};
                 checkboxes.forEach(cb => { body[cb.dataset.key] = cb.checked; });
+                textInputs.forEach(input => { body[input.dataset.key] = input.value.replace(/,/g, ''); });
                 saveBtn.disabled = true;
                 cancelBtn.disabled = true;
-                protectedFetch('/api/config/plex-commands/' + mediaType, {
+                const url = isPlex ? '/api/config/plex-commands/' + mediaType : '/api/config/properties';
+                protectedFetch(url, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
@@ -2007,6 +2035,12 @@
                 .then(data => {
                     checkboxes.forEach(cb => {
                         initialState[cb.dataset.key] = cb.checked;
+                    });
+                    textInputs.forEach(input => {
+                        const raw = input.value.replace(/,/g, '');
+                        initialState[input.dataset.key] = raw;
+                        input.dataset.rawValue = raw;
+                        input.value = formatNumber(raw);
                     });
                     saveBtn.disabled = true;
                     cancelBtn.disabled = true;

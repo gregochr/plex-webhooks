@@ -19,6 +19,7 @@ import java.util.Set;
 public class ConfigController {
     private static final Set<String> VALID_MEDIA_TYPES = Set.of("movie", "episode", "clip");
     private static final Set<String> VALID_SCENE_KEYS = Set.of("hue.start-scene", "hue.stop-scene");
+    private static final Set<String> VALID_PROPERTY_KEYS = Set.of("sse.heartbeat-interval");
 
     private final ConfigService configService;
     private final SseService sseService;
@@ -103,5 +104,27 @@ public class ConfigController {
         }
 
         return ResponseEntity.ok(Map.of("key", key, "sceneId", sceneId));
+    }
+
+    @PutMapping("/properties")
+    public ResponseEntity<Map<String, String>> saveProperties(@RequestBody Map<String, String> body) {
+        Map<String, String> updates = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : body.entrySet()) {
+            if (VALID_PROPERTY_KEYS.contains(entry.getKey())) {
+                updates.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        if (updates.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            configurationViewService.saveProperties(updates, configurationViewService.resolvePropertiesPath());
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+
+        return ResponseEntity.ok(updates);
     }
 }

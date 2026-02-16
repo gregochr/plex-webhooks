@@ -3,7 +3,14 @@ package gregochr.services.config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.env.Environment;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -161,5 +168,69 @@ public class ConfigurationViewServiceTest {
         assertEquals("192.168.4.38", item.displayValue());
         assertEquals("text", item.type());
         assertFalse(item.duration());
+    }
+
+    @DisplayName("Sections with all boolean items are marked editable")
+    @Test
+    public void testAllBooleanSectionsEditable() {
+        List<ConfigurationViewItem> boolItems = List.of(
+                service.buildItem("plex.movie-play-enabled", "true"),
+                service.buildItem("plex.movie-stop-enabled", "false")
+        );
+        assertTrue(service.isAllBoolean(boolItems));
+    }
+
+    @DisplayName("Sections with mixed types are not editable")
+    @Test
+    public void testMixedSectionsNotEditable() {
+        List<ConfigurationViewItem> mixedItems = List.of(
+                service.buildItem("hue.hub-address", "192.168.4.38"),
+                service.buildItem("hue.status-interval", "10000")
+        );
+        assertFalse(service.isAllBoolean(mixedItems));
+    }
+
+    @DisplayName("Empty sections are not editable")
+    @Test
+    public void testEmptySectionNotEditable() {
+        assertFalse(service.isAllBoolean(List.of()));
+    }
+
+    @DisplayName("saveProperties updates matching lines in file")
+    @Test
+    public void testSavePropertiesUpdatesLines(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of(
+                "plex.movie-play-enabled=true",
+                "plex.movie-stop-enabled=true"
+        ));
+
+        service.saveProperties(Map.of("plex.movie-play-enabled", "false"), file);
+
+        List<String> result = Files.readAllLines(file);
+        assertEquals("plex.movie-play-enabled=false", result.get(0));
+        assertEquals("plex.movie-stop-enabled=true", result.get(1));
+    }
+
+    @DisplayName("saveProperties preserves comments and non-matching lines")
+    @Test
+    public void testSavePropertiesPreservesComments(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of(
+                "# PLEX Movie Command Configuration",
+                "plex.movie-play-enabled=true",
+                "",
+                "# Other section",
+                "other.key=value"
+        ));
+
+        service.saveProperties(Map.of("plex.movie-play-enabled", "false"), file);
+
+        List<String> result = Files.readAllLines(file);
+        assertEquals("# PLEX Movie Command Configuration", result.get(0));
+        assertEquals("plex.movie-play-enabled=false", result.get(1));
+        assertEquals("", result.get(2));
+        assertEquals("# Other section", result.get(3));
+        assertEquals("other.key=value", result.get(4));
     }
 }

@@ -549,6 +549,26 @@
         #hue-resource-output {
             max-height: 600px;
         }
+        .hue-scene-activation {
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .hue-scene-activation legend {
+            font-size: 12px;
+            font-weight: 600;
+            color: #808080;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 8px;
+        }
+        .hue-scene-activation .radio-group {
+            margin: 8px 0 12px 0;
+        }
+        .hue-scene-activation .debug-btn {
+            padding: 8px 20px;
+        }
         .hue-detail-field {
             width: 100%;
             background: #1f1f1f;
@@ -587,6 +607,42 @@
             font-weight: 400;
             color: #808080;
             margin-left: 4px;
+        }
+        .config-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+        .config-actions button {
+            padding: 8px 20px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .config-actions button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .config-actions .btn-save {
+            background: #e5a00d;
+            border: none;
+            color: #000000;
+        }
+        .config-actions .btn-save:hover:not(:disabled) {
+            background: #f0b020;
+        }
+        .config-actions .btn-cancel {
+            background: transparent;
+            border: 1px solid #3d3d3d;
+            color: #808080;
+        }
+        .config-actions .btn-cancel:hover:not(:disabled) {
+            border-color: #808080;
+            color: #ffffff;
         }
         .config-layout {
             display: flex;
@@ -771,16 +827,42 @@
                 <div id="hue-resource-output" class="json-output">
                     <div class="empty-state">Hue bridge not connected</div>
                 </div>
-                <div id="hue-selected-resource" style="display: flex; gap: 12px; margin-top: 12px;">
-                    <div style="flex: 1;">
-                        <div class="status-label" style="margin-bottom: 4px;">Name</div>
-                        <input type="text" id="hue-selected-name" class="hue-detail-field" readonly placeholder="Click a resource to select">
+                <fieldset class="hue-scene-activation" id="hue-scene-fieldset">
+                    <legend>Selected Scene</legend>
+                    <div id="hue-selected-resource" style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <div style="flex: 1;">
+                            <div class="status-label" style="margin-bottom: 4px;">Name</div>
+                            <input type="text" id="hue-selected-name" class="hue-detail-field" readonly placeholder="Click a resource to select">
+                        </div>
+                        <div style="flex: 1;">
+                            <div class="status-label" style="margin-bottom: 4px;">ID</div>
+                            <input type="text" id="hue-selected-id" class="hue-detail-field" readonly>
+                        </div>
                     </div>
-                    <div style="flex: 1;">
-                        <div class="status-label" style="margin-bottom: 4px;">ID</div>
-                        <input type="text" id="hue-selected-id" class="hue-detail-field" readonly>
+                    <div class="status-grid" id="hue-current-scenes" style="margin-bottom: 12px;">
+                        <div class="status-item">
+                            <div class="status-label">Current Start Scene</div>
+                            <div class="status-value" id="hue-current-start-scene" style="font-size:12px;word-break:break-all;">-</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Current Stop Scene</div>
+                            <div class="status-value" id="hue-current-stop-scene" style="font-size:12px;word-break:break-all;">-</div>
+                        </div>
                     </div>
-                </div>
+                    <div id="hue-scene-controls" style="opacity: 0.4; pointer-events: none;">
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="scene-apply-start" name="scene-apply" value="hue.start-scene" checked>
+                                <label for="scene-apply-start">Apply scene to start playback</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="scene-apply-stop" name="scene-apply" value="hue.stop-scene">
+                                <label for="scene-apply-stop">Apply scene to stop playback</label>
+                            </div>
+                        </div>
+                        <button class="debug-btn" id="hue-scene-apply-btn">Save as start scene</button>
+                    </div>
+                </fieldset>
             </div>
         </div>
 
@@ -816,14 +898,21 @@
                 <div th:each="section, stat : ${configSections}"
                      class="sub-tab-content"
                      th:classappend="${stat.first} ? ' active'"
-                     th:id="${'sub-tab-config-section-' + stat.index}">
+                     th:id="${'sub-tab-config-section-' + stat.index}"
+                     th:data-editable="${section.editable}">
                     <div class="panel" style="max-width: 700px;">
                         <h2 th:text="${section.title}">Section Title</h2>
                         <div th:each="item : ${section.items}" class="config-item">
                             <!-- Boolean items -->
                             <th:block th:if="${item.type == 'boolean'}">
-                                <input type="checkbox" th:id="${item.key}" th:checked="${item.value == 'true'}" disabled>
-                                <label th:for="${item.key}" th:text="${item.label}" style="cursor: default;">Label</label>
+                                <input type="checkbox"
+                                       th:id="${item.key}"
+                                       th:checked="${item.value == 'true'}"
+                                       th:disabled="${!section.editable}"
+                                       th:data-key="${item.key}"
+                                       class="config-checkbox">
+                                <label th:for="${item.key}" th:text="${item.label}"
+                                       th:style="${section.editable} ? '' : 'cursor: default;'">Label</label>
                             </th:block>
                             <!-- Number and text items -->
                             <th:block th:if="${item.type != 'boolean'}">
@@ -833,6 +922,10 @@
                                 </span>
                                 <input type="text" class="config-text-input" th:value="${item.displayValue}" readonly>
                             </th:block>
+                        </div>
+                        <div th:if="${section.editable}" class="config-actions">
+                            <button class="btn-cancel" disabled>Cancel</button>
+                            <button class="btn-save" disabled>Save</button>
                         </div>
                     </div>
                 </div>
@@ -898,6 +991,29 @@
         const statusEl = document.getElementById('status');
         const statusText = document.getElementById('status-text');
         let events = [];
+
+        // Protected fetch helper — prompts for credentials on 401, caches in sessionStorage
+        function protectedFetch(url, options) {
+            const creds = sessionStorage.getItem('adminCredentials');
+            if (creds) {
+                options = options || {};
+                options.headers = Object.assign({}, options.headers, { 'Authorization': 'Basic ' + creds });
+            }
+            return fetch(url, options).then(res => {
+                if (res.status === 401) {
+                    const username = window.prompt('Admin username:');
+                    if (!username) return Promise.reject(new Error('Authentication cancelled'));
+                    const password = window.prompt('Admin password:');
+                    if (!password) return Promise.reject(new Error('Authentication cancelled'));
+                    const encoded = btoa(username + ':' + password);
+                    sessionStorage.setItem('adminCredentials', encoded);
+                    options = options || {};
+                    options.headers = Object.assign({}, options.headers, { 'Authorization': 'Basic ' + encoded });
+                    return fetch(url, options);
+                }
+                return res;
+            });
+        }
 
         function setConnected(connected) {
             statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
@@ -1395,7 +1511,7 @@
         if (hueCheckbox) {
             // Update config on checkbox change
             hueCheckbox.addEventListener('change', () => {
-                fetch('/api/config/hue-enabled', {
+                protectedFetch('/api/config/hue-enabled', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: hueCheckbox.checked })
@@ -1415,7 +1531,7 @@
                 const type = document.querySelector('input[name="media-type"]:checked').value;
                 btn.disabled = true;
 
-                fetch(`/api/debug/${command}?type=${type}`, { method: 'POST' })
+                protectedFetch(`/api/debug/${command}?type=${type}`, { method: 'POST' })
                     .then(res => res.json())
                     .then(result => {
                         btn.classList.remove('success', 'error');
@@ -1681,6 +1797,113 @@
             });
         }
 
+        // Hue Scene Activation
+        const hueSceneApplyBtn = document.getElementById('hue-scene-apply-btn');
+        const hueSelectedId = document.getElementById('hue-selected-id');
+        const hueSceneControls = document.getElementById('hue-scene-controls');
+        const currentStartEl = document.getElementById('hue-current-start-scene');
+        const currentStopEl = document.getElementById('hue-current-stop-scene');
+
+        // Enable controls when a scene ID is set programmatically
+        const idDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+        Object.defineProperty(hueSelectedId, 'value', {
+            get() { return idDescriptor.get.call(this); },
+            set(v) {
+                idDescriptor.set.call(this, v);
+                if (v) {
+                    hueSceneControls.style.opacity = '';
+                    hueSceneControls.style.pointerEvents = '';
+                } else {
+                    hueSceneControls.style.opacity = '0.4';
+                    hueSceneControls.style.pointerEvents = 'none';
+                }
+            }
+        });
+
+        // Contextual Save button label
+        function updateSaveLabel() {
+            const key = document.querySelector('input[name="scene-apply"]:checked').value;
+            hueSceneApplyBtn.textContent = key === 'hue.start-scene' ? 'Save as start scene' : 'Save as stop scene';
+        }
+        document.querySelectorAll('input[name="scene-apply"]').forEach(radio => {
+            radio.addEventListener('change', updateSaveLabel);
+        });
+
+        // Fetch and display current scene config
+        function fetchCurrentScenes() {
+            fetch('/api/config/hue-scenes')
+                .then(res => res.json())
+                .then(data => {
+                    currentStartEl.textContent = data['hue.start-scene'] || '-';
+                    currentStopEl.textContent = data['hue.stop-scene'] || '-';
+                })
+                .catch(err => console.error('Failed to fetch current scenes:', err));
+        }
+        fetchCurrentScenes();
+
+        hueSceneApplyBtn.addEventListener('click', () => {
+            const sceneId = hueSelectedId.value;
+            if (!sceneId) return;
+            const key = document.querySelector('input[name="scene-apply"]:checked').value;
+            hueSceneApplyBtn.disabled = true;
+            protectedFetch('/api/config/hue-scene', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: key, sceneId: sceneId })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(() => {
+                const label = key === 'hue.start-scene' ? 'start' : 'stop';
+                // Update the current scene display
+                if (key === 'hue.start-scene') {
+                    currentStartEl.textContent = sceneId;
+                } else {
+                    currentStopEl.textContent = sceneId;
+                }
+                Toastify({
+                    text: 'Scene applied to ' + label + ' playback',
+                    duration: 3000,
+                    gravity: 'top',
+                    position: 'right',
+                    style: {
+                        background: '#282828',
+                        color: '#ffffff',
+                        borderLeft: '3px solid #4caf50',
+                        borderRadius: '4px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                        fontFamily: "'Open Sans', sans-serif",
+                        fontWeight: '600',
+                        fontSize: '13px'
+                    }
+                }).showToast();
+            })
+            .catch(err => {
+                console.error('Failed to apply scene:', err);
+                Toastify({
+                    text: 'Failed to apply scene',
+                    duration: 4000,
+                    gravity: 'top',
+                    position: 'right',
+                    style: {
+                        background: '#282828',
+                        color: '#ffffff',
+                        borderLeft: '3px solid #cc3d3d',
+                        borderRadius: '4px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                        fontFamily: "'Open Sans', sans-serif",
+                        fontWeight: '600',
+                        fontSize: '13px'
+                    }
+                }).showToast();
+            })
+            .finally(() => {
+                hueSceneApplyBtn.disabled = false;
+            });
+        });
+
         // DIRIGERA status
         function renderDirigeraStatus(status) {
             const container = document.getElementById('dirigera-status-container');
@@ -1724,6 +1947,108 @@
         // Load statuses on page load
         fetchHueStatus();
         fetchDirigeraStatus();
+
+        // Editable config sections (Save/Cancel)
+        document.querySelectorAll('.sub-tab-content[data-editable="true"]').forEach(section => {
+            const checkboxes = section.querySelectorAll('.config-checkbox');
+            const saveBtn = section.querySelector('.btn-save');
+            const cancelBtn = section.querySelector('.btn-cancel');
+            if (!saveBtn || !cancelBtn || checkboxes.length === 0) return;
+
+            // Store initial state
+            const initialState = {};
+            checkboxes.forEach(cb => { initialState[cb.dataset.key] = cb.checked; });
+
+            // Derive media type from the first key (e.g. plex.movie-play-enabled → movie)
+            const firstKey = checkboxes[0].dataset.key;
+            const match = firstKey.match(/^plex\.(\w+)-/);
+            const mediaType = match ? match[1] : '';
+
+            function checkDirty() {
+                let dirty = false;
+                checkboxes.forEach(cb => {
+                    if (cb.checked !== initialState[cb.dataset.key]) dirty = true;
+                });
+                saveBtn.disabled = !dirty;
+                cancelBtn.disabled = !dirty;
+            }
+
+            checkboxes.forEach(cb => cb.addEventListener('change', checkDirty));
+
+            cancelBtn.addEventListener('click', () => {
+                fetch('/api/config/plex-commands/' + mediaType)
+                    .then(res => res.json())
+                    .then(data => {
+                        checkboxes.forEach(cb => {
+                            const val = data[cb.dataset.key];
+                            cb.checked = val === true;
+                            initialState[cb.dataset.key] = cb.checked;
+                        });
+                        saveBtn.disabled = true;
+                        cancelBtn.disabled = true;
+                    })
+                    .catch(err => console.error('Failed to cancel:', err));
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const body = {};
+                checkboxes.forEach(cb => { body[cb.dataset.key] = cb.checked; });
+                saveBtn.disabled = true;
+                cancelBtn.disabled = true;
+                protectedFetch('/api/config/plex-commands/' + mediaType, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    checkboxes.forEach(cb => {
+                        initialState[cb.dataset.key] = cb.checked;
+                    });
+                    saveBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                    Toastify({
+                        text: 'Configuration saved',
+                        duration: 3000,
+                        gravity: 'top',
+                        position: 'right',
+                        style: {
+                            background: '#282828',
+                            color: '#ffffff',
+                            borderLeft: '3px solid #4caf50',
+                            borderRadius: '4px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                            fontFamily: "'Open Sans', sans-serif",
+                            fontWeight: '600',
+                            fontSize: '13px'
+                        }
+                    }).showToast();
+                })
+                .catch(err => {
+                    console.error('Failed to save:', err);
+                    checkDirty();
+                    Toastify({
+                        text: 'Failed to save configuration',
+                        duration: 4000,
+                        gravity: 'top',
+                        position: 'right',
+                        style: {
+                            background: '#282828',
+                            color: '#ffffff',
+                            borderLeft: '3px solid #cc3d3d',
+                            borderRadius: '4px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                            fontFamily: "'Open Sans', sans-serif",
+                            fontWeight: '600',
+                            fontSize: '13px'
+                        }
+                    }).showToast();
+                });
+            });
+        });
     </script>
 </body>
 </html>

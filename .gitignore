@@ -14,3 +14,7 @@
 # Environment files
 .env
 *.env.local
+
+# Application properties (contains secrets)
+src/main/resources/application.properties
+src/test/resources/application.properties

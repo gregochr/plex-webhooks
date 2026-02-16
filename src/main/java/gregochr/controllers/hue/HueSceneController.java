@@ -15,17 +15,22 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @Component
 public class HueSceneController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueSceneController.class);
-    private static final String FRONT_ROOM_MOVIE_SCENE = "04a673ca-d640-4bbb-bd94-7368434a0f94";
-    private static final String FRONT_ROOM_CHILL_SCENE = "f59f642e-89ed-45c2-9a53-2545dfe048b1";
     private static final int SCENE_TRANSITION_DURATION_10_SECONDS = 10000;
     private static final String RECALL_ACTIVE_BODY = "{\"recall\":{\"action\":\"active\", \"duration\":" + SCENE_TRANSITION_DURATION_10_SECONDS + "}}";
+
+    private final String startScene;
+    private final String stopScene;
 
     public HueSceneController(
             @Value("${hue.hub-address}") String hubAddress,
             @Value("${hue.hub-id}") String hubId,
             @Value("${hue.application-key}") String applicationKey,
+            @Value("${hue.start-scene}") String startScene,
+            @Value("${hue.stop-scene}") String stopScene,
             ConfigService configService) {
         super(hubAddress, hubId, applicationKey, configService);
+        this.startScene = startScene;
+        this.stopScene = stopScene;
     }
 
     private boolean setScene(final String sceneId) {
@@ -51,10 +56,10 @@ public class HueSceneController extends HueController {
     }
 
     public boolean startMovieLightScene() {
-        return setScene(FRONT_ROOM_MOVIE_SCENE);
+        return setScene(startScene);
     }
 
     public boolean stopMovieLightScene() {
-        return setScene(FRONT_ROOM_CHILL_SCENE);
+        return setScene(stopScene);
     }
 }

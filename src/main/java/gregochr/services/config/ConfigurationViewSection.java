@@ -4,6 +4,7 @@ import java.util.List;
 
 public record ConfigurationViewSection(
         String title,
-        List<ConfigurationViewItem> items
+        List<ConfigurationViewItem> items,
+        boolean editable
 ) {
 }

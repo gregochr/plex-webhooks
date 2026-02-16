@@ -20,6 +20,8 @@ public class HueSceneControllerTest {
                 "192.168.1.100",
                 "001788fffe7107c8",
                 "TestApplicationKey1234",
+                "test-start-scene-id",
+                "test-stop-scene-id",
                 configService);
     }
 

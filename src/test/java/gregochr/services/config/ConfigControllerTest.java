@@ -205,4 +205,48 @@ public class ConfigControllerTest {
 
         assertEquals(400, response.getStatusCode().value());
     }
+
+    @DisplayName("PUT properties saves valid key to disk")
+    @Test
+    public void testSaveProperties() throws IOException {
+        Path fakePath = Path.of("/tmp/test.properties");
+        when(configurationViewService.resolvePropertiesPath()).thenReturn(fakePath);
+        doNothing().when(configurationViewService).saveProperties(any(), eq(fakePath));
+
+        Map<String, String> body = Map.of("sse.heartbeat-interval", "5000");
+
+        ResponseEntity<Map<String, String>> response = controller.saveProperties(body);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("5000", response.getBody().get("sse.heartbeat-interval"));
+        verify(configurationViewService).saveProperties(any(), eq(fakePath));
+    }
+
+    @DisplayName("PUT properties returns 400 for invalid key")
+    @Test
+    public void testSavePropertiesInvalidKey() {
+        Map<String, String> body = Map.of("hue.application-key", "stolen");
+
+        ResponseEntity<Map<String, String>> response = controller.saveProperties(body);
+
+        assertEquals(400, response.getStatusCode().value());
+    }
+
+    @DisplayName("PUT properties ignores invalid keys and saves valid ones")
+    @Test
+    public void testSavePropertiesFiltersKeys() throws IOException {
+        Path fakePath = Path.of("/tmp/test.properties");
+        when(configurationViewService.resolvePropertiesPath()).thenReturn(fakePath);
+        doNothing().when(configurationViewService).saveProperties(any(), eq(fakePath));
+
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("sse.heartbeat-interval", "8000");
+        body.put("hue.application-key", "stolen");
+
+        ResponseEntity<Map<String, String>> response = controller.saveProperties(body);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(1, response.getBody().size());
+        assertEquals("8000", response.getBody().get("sse.heartbeat-interval"));
+    }
 }

@@ -155,7 +155,7 @@ public class ConfigurationViewService {
     String formatLabel(String key) {
         int dotIndex = key.indexOf('.');
         String suffix = dotIndex >= 0 ? key.substring(dotIndex + 1) : key;
-        String[] words = suffix.split("-");
+        String[] words = suffix.split("[\\-.]");
         StringBuilder sb = new StringBuilder();
         for (String word : words) {
             if (!word.isEmpty()) {

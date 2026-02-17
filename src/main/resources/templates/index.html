@@ -914,8 +914,23 @@
                                 <label th:for="${item.key}" th:text="${item.label}"
                                        th:style="${section.editable} ? '' : 'cursor: default;'">Label</label>
                             </th:block>
+                            <!-- Password items -->
+                            <th:block th:if="${item.type != 'boolean' and #strings.contains(item.key, 'password')}">
+                                <span class="config-item-label">
+                                    <span th:text="${item.label}">Label</span>
+                                </span>
+                                <span style="position:relative;display:inline-block;margin-left:auto;">
+                                    <input type="password" class="config-text-input config-password"
+                                           th:value="${item.value}" readonly
+                                           style="width:260px;padding-right:34px;">
+                                    <button class="password-toggle" type="button" title="Show/hide"
+                                            style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#808080;padding:0;line-height:1;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </button>
+                                </span>
+                            </th:block>
                             <!-- Number and text items -->
-                            <th:block th:if="${item.type != 'boolean'}">
+                            <th:block th:if="${item.type != 'boolean' and !#strings.contains(item.key, 'password')}">
                                 <span class="config-item-label">
                                     <span th:text="${item.label}">Label</span>
                                     <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
@@ -1637,6 +1652,14 @@
         function toggleKey() {
             toggleSecret('key-value');
         }
+
+        // Password field toggles in config sections
+        document.querySelectorAll('.password-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = btn.parentElement.querySelector('.config-password');
+                input.type = input.type === 'password' ? 'text' : 'password';
+            });
+        });
 
         function updateHueCommandsStatus(enabled) {
             console.log('updateHueCommandsStatus called with:', enabled, 'bridgeConnected:', hueBridgeConnected);

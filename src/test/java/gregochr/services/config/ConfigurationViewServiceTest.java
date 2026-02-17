@@ -3,243 +3,98 @@ package gregochr.services.config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.core.env.Environment;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @DisplayName("ConfigurationViewService Tests")
 public class ConfigurationViewServiceTest {
 
+    private PropertiesRepository repository;
+    private ConfigurationViewFormatter formatter;
     private ConfigurationViewService service;
 
     @BeforeEach
     public void setUp() {
-        Environment environment = mock(Environment.class);
-        service = new ConfigurationViewService(environment);
+        repository = mock(PropertiesRepository.class);
+        formatter = mock(ConfigurationViewFormatter.class);
+        service = new ConfigurationViewService(repository, formatter);
     }
 
-    @DisplayName("Boolean type detected for 'true'")
+    @DisplayName("getConfigurationSections delegates to repository and formatter")
     @Test
-    public void testDetectBooleanTrue() {
-        assertEquals("boolean", service.detectType("true"));
-    }
-
-    @DisplayName("Boolean type detected for 'false'")
-    @Test
-    public void testDetectBooleanFalse() {
-        assertEquals("boolean", service.detectType("false"));
-    }
-
-    @DisplayName("Boolean type detected case-insensitively")
-    @Test
-    public void testDetectBooleanCaseInsensitive() {
-        assertEquals("boolean", service.detectType("TRUE"));
-        assertEquals("boolean", service.detectType("False"));
-    }
-
-    @DisplayName("Number type detected for integer")
-    @Test
-    public void testDetectNumberInteger() {
-        assertEquals("number", service.detectType("10000"));
-    }
-
-    @DisplayName("Number type detected for decimal")
-    @Test
-    public void testDetectNumberDecimal() {
-        assertEquals("number", service.detectType("3.14"));
-    }
-
-    @DisplayName("Text type for non-boolean non-numeric value")
-    @Test
-    public void testDetectText() {
-        assertEquals("text", service.detectType("192.168.4.38"));
-    }
-
-    @DisplayName("Text type for empty string")
-    @Test
-    public void testDetectTextEmpty() {
-        assertEquals("text", service.detectType(""));
-    }
-
-    @DisplayName("Duration detected for key containing 'interval'")
-    @Test
-    public void testDurationInterval() {
-        assertTrue(service.isDuration("sse.heartbeat-interval"));
-    }
-
-    @DisplayName("Duration detected for key containing 'timeout'")
-    @Test
-    public void testDurationTimeout() {
-        assertTrue(service.isDuration("http.connection-timeout"));
-    }
-
-    @DisplayName("Duration detected for key containing 'duration'")
-    @Test
-    public void testDurationDuration() {
-        assertTrue(service.isDuration("animation.duration"));
-    }
-
-    @DisplayName("Duration not detected for regular key")
-    @Test
-    public void testNotDuration() {
-        assertFalse(service.isDuration("hue.hub-address"));
-    }
-
-    @DisplayName("Label formatted: strips prefix, replaces hyphens, title-cases")
-    @Test
-    public void testFormatLabel() {
-        assertEquals("Hub Address", service.formatLabel("hue.hub-address"));
-    }
-
-    @DisplayName("Label formatted for key without dot prefix")
-    @Test
-    public void testFormatLabelNoDot() {
-        assertEquals("Debug", service.formatLabel("debug"));
-    }
-
-    @DisplayName("Label formatted for key with multiple hyphens")
-    @Test
-    public void testFormatLabelMultipleHyphens() {
-        assertEquals("Admin Tab Enabled", service.formatLabel("dashboard.admin-tab-enabled"));
-    }
-
-    @DisplayName("Numeric display value formatted with commas")
-    @Test
-    public void testFormatDisplayValueNumber() {
-        assertEquals("10,000", service.formatDisplayValue("10000", "number"));
-    }
-
-    @DisplayName("Text display value returned unchanged")
-    @Test
-    public void testFormatDisplayValueText() {
-        assertEquals("192.168.4.38", service.formatDisplayValue("192.168.4.38", "text"));
-    }
-
-    @DisplayName("Boolean display value returned unchanged")
-    @Test
-    public void testFormatDisplayValueBoolean() {
-        assertEquals("true", service.formatDisplayValue("true", "boolean"));
-    }
-
-    @DisplayName("buildItem creates correct item for boolean property")
-    @Test
-    public void testBuildItemBoolean() {
-        ConfigurationViewItem item = service.buildItem("plex.movie-play-enabled", "true");
-
-        assertEquals("plex.movie-play-enabled", item.key());
-        assertEquals("Movie Play Enabled", item.label());
-        assertEquals("true", item.value());
-        assertEquals("true", item.displayValue());
-        assertEquals("boolean", item.type());
-        assertFalse(item.duration());
-    }
-
-    @DisplayName("buildItem creates correct item for numeric duration property")
-    @Test
-    public void testBuildItemNumericDuration() {
-        ConfigurationViewItem item = service.buildItem("sse.heartbeat-interval", "10000");
-
-        assertEquals("sse.heartbeat-interval", item.key());
-        assertEquals("Heartbeat Interval", item.label());
-        assertEquals("10000", item.value());
-        assertEquals("10,000", item.displayValue());
-        assertEquals("number", item.type());
-        assertTrue(item.duration());
-    }
-
-    @DisplayName("buildItem creates correct item for text property")
-    @Test
-    public void testBuildItemText() {
-        ConfigurationViewItem item = service.buildItem("hue.hub-address", "192.168.4.38");
-
-        assertEquals("hue.hub-address", item.key());
-        assertEquals("Hub Address", item.label());
-        assertEquals("192.168.4.38", item.value());
-        assertEquals("192.168.4.38", item.displayValue());
-        assertEquals("text", item.type());
-        assertFalse(item.duration());
-    }
-
-    @DisplayName("Sections with all boolean items are marked editable")
-    @Test
-    public void testAllBooleanSectionsEditable() {
-        List<ConfigurationViewItem> boolItems = List.of(
-                service.buildItem("plex.movie-play-enabled", "true"),
-                service.buildItem("plex.movie-stop-enabled", "false")
+    public void testGetConfigurationSectionsDelegates() {
+        List<PropertySection> raw = List.of(
+                new PropertySection("Test", List.of(new AbstractMap.SimpleEntry<>("key", "value")))
         );
-        assertTrue(service.isEditable(boolItems));
-    }
-
-    @DisplayName("Sections with all number items are marked editable")
-    @Test
-    public void testAllNumberSectionsEditable() {
-        List<ConfigurationViewItem> numberItems = List.of(
-                service.buildItem("sse.heartbeat-interval", "10000")
+        List<ConfigurationViewSection> expected = List.of(
+                new ConfigurationViewSection("Test", List.of(), false)
         );
-        assertTrue(service.isEditable(numberItems));
+        when(repository.readAllEntries()).thenReturn(raw);
+        when(formatter.buildSections(raw)).thenReturn(expected);
+
+        List<ConfigurationViewSection> result = service.getConfigurationSections();
+
+        assertEquals(expected, result);
+        verify(repository).readAllEntries();
+        verify(formatter).buildSections(raw);
     }
 
-    @DisplayName("Sections with mixed types including text are not editable")
+    @DisplayName("getPlexProperties delegates to repository with correct prefix")
     @Test
-    public void testMixedSectionsNotEditable() {
-        List<ConfigurationViewItem> mixedItems = List.of(
-                service.buildItem("hue.hub-address", "192.168.4.38"),
-                service.buildItem("hue.status-interval", "10000")
-        );
-        assertFalse(service.isEditable(mixedItems));
+    public void testGetPlexPropertiesDelegates() {
+        Map<String, Boolean> expected = Map.of("plex.movie-play-enabled", true);
+        when(repository.readBooleanProperties("plex.movie-")).thenReturn(expected);
+
+        Map<String, Boolean> result = service.getPlexProperties("movie");
+
+        assertEquals(expected, result);
+        verify(repository).readBooleanProperties("plex.movie-");
     }
 
-    @DisplayName("Empty sections are not editable")
+    @DisplayName("getSceneProperties delegates to repository")
     @Test
-    public void testEmptySectionNotEditable() {
-        assertFalse(service.isEditable(List.of()));
+    public void testGetScenePropertiesDelegates() {
+        Map<String, String> expected = Map.of("hue.start-scene", "abc");
+        when(repository.readSceneProperties()).thenReturn(expected);
+
+        Map<String, String> result = service.getSceneProperties();
+
+        assertEquals(expected, result);
+        verify(repository).readSceneProperties();
     }
 
-    @DisplayName("saveProperties updates matching lines in file")
+    @DisplayName("isValidMediaType accepts movie, episode, clip")
     @Test
-    public void testSavePropertiesUpdatesLines(@TempDir Path tempDir) throws IOException {
-        Path file = tempDir.resolve("test.properties");
-        Files.write(file, List.of(
-                "plex.movie-play-enabled=true",
-                "plex.movie-stop-enabled=true"
-        ));
-
-        service.saveProperties(Map.of("plex.movie-play-enabled", "false"), file);
-
-        List<String> result = Files.readAllLines(file);
-        assertEquals("plex.movie-play-enabled=false", result.get(0));
-        assertEquals("plex.movie-stop-enabled=true", result.get(1));
+    public void testValidMediaTypes() {
+        assertTrue(service.isValidMediaType("movie"));
+        assertTrue(service.isValidMediaType("episode"));
+        assertTrue(service.isValidMediaType("clip"));
+        assertFalse(service.isValidMediaType("unknown"));
     }
 
-    @DisplayName("saveProperties preserves comments and non-matching lines")
+    @DisplayName("isValidSceneKey accepts hue.start-scene and hue.stop-scene")
     @Test
-    public void testSavePropertiesPreservesComments(@TempDir Path tempDir) throws IOException {
-        Path file = tempDir.resolve("test.properties");
-        Files.write(file, List.of(
-                "# PLEX Movie Command Configuration",
-                "plex.movie-play-enabled=true",
-                "",
-                "# Other section",
-                "other.key=value"
-        ));
+    public void testValidSceneKeys() {
+        assertTrue(service.isValidSceneKey("hue.start-scene"));
+        assertTrue(service.isValidSceneKey("hue.stop-scene"));
+        assertFalse(service.isValidSceneKey("hue.invalid-key"));
+    }
 
-        service.saveProperties(Map.of("plex.movie-play-enabled", "false"), file);
-
-        List<String> result = Files.readAllLines(file);
-        assertEquals("# PLEX Movie Command Configuration", result.get(0));
-        assertEquals("plex.movie-play-enabled=false", result.get(1));
-        assertEquals("", result.get(2));
-        assertEquals("# Other section", result.get(3));
-        assertEquals("other.key=value", result.get(4));
+    @DisplayName("getValidPropertyKeys returns expected keys")
+    @Test
+    public void testValidPropertyKeys() {
+        Set<String> keys = service.getValidPropertyKeys();
+        assertTrue(keys.contains("sse.heartbeat-interval"));
+        assertEquals(1, keys.size());
     }
 }

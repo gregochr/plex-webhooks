@@ -1036,7 +1036,7 @@
 
         function setConnected(connected) {
             statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
-            statusText.textContent = connected ? 'Connected' : 'Disconnected';
+            statusText.textContent = connected ? 'Server Connected' : 'Server Disconnected';
         }
 
         let currentJsonData = null;
@@ -1455,6 +1455,8 @@
             eventSource.onerror = function(e) {
                 console.log('SSE: Error, will reconnect in 3s', e);
                 setConnected(false);
+                renderHueStatus({ connected: false, integrationEnabled: false, hubAddress: null, hubId: null, applicationKey: null, timestamp: Date.now() });
+                renderDirigeraStatus({ reachable: false, hubAddress: null, timestamp: Date.now() });
                 eventSource.close();
                 // Reconnect after 3 seconds
                 setTimeout(connect, 3000);
@@ -1574,8 +1576,19 @@
         let hueBridgeConnected = false;
         let hueResourceData = null;
         let showAllHueTypes = localStorage.getItem('showAllHueTypes') === 'true';
+        let lastHueStatic = { hubAddress: null, hubId: null, applicationKey: null };
+        let lastDirigeraStatic = { hubAddress: null };
 
         function renderHueStatus(status) {
+            // Cache static properties when available
+            if (status.hubAddress) lastHueStatic.hubAddress = status.hubAddress;
+            if (status.hubId) lastHueStatic.hubId = status.hubId;
+            if (status.applicationKey) lastHueStatic.applicationKey = status.applicationKey;
+            // Use cached values as fallback
+            const hubAddress = status.hubAddress || lastHueStatic.hubAddress;
+            const hubId = status.hubId || lastHueStatic.hubId;
+            const applicationKey = status.applicationKey || lastHueStatic.applicationKey;
+
             const wasConnected = hueBridgeConnected;
             hueBridgeConnected = status.connected;
             const hueCommandsActive = status.connected && status.integrationEnabled;
@@ -1618,17 +1631,17 @@
                     </div>
                     <div class="status-item">
                         <div class="status-label">Hub Address</div>
-                        <div class="status-value">${status.hubAddress || 'Not configured'}</div>
+                        <div class="status-value">${hubAddress || 'Not configured'}</div>
                     </div>
                     <div class="status-item">
                         <div class="status-label">Bridge ID</div>
-                        <div class="status-value">${status.hubId || 'Not configured'}</div>
+                        <div class="status-value">${hubId || 'Not configured'}</div>
                     </div>
                     <div class="status-item full-width">
                         <div class="status-label">Application Key</div>
                         <div class="status-value" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                            <span id="app-key-value" data-secret="${status.applicationKey || ''}">${status.applicationKey ? '••••••••' : 'Not configured'}</span>
-                            ${status.applicationKey ? '<button id="app-key-toggle" onclick="toggleAppKey()" style="background:none;border:none;cursor:pointer;color:#808080;padding:0;line-height:1;" title="Show/hide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : ''}
+                            <span id="app-key-value" data-secret="${applicationKey || ''}">${applicationKey ? '••••••••' : 'Not configured'}</span>
+                            ${applicationKey ? '<button id="app-key-toggle" onclick="toggleAppKey()" style="background:none;border:none;cursor:pointer;color:#808080;padding:0;line-height:1;" title="Show/hide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : ''}
                         </div>
                     </div>
                 </div>
@@ -1799,8 +1812,7 @@
                 })
                 .catch(err => {
                     console.error('Failed to fetch Hue status:', err);
-                    document.getElementById('hue-status-container').innerHTML =
-                        '<div class="empty-state">Failed to load Hue status</div>';
+                    renderHueStatus({ connected: false, integrationEnabled: false, hubAddress: null, hubId: null, applicationKey: null, timestamp: Date.now() });
                 });
         }
 
@@ -1933,6 +1945,9 @@
 
         // DIRIGERA status
         function renderDirigeraStatus(status) {
+            if (status.hubAddress) lastDirigeraStatic.hubAddress = status.hubAddress;
+            const hubAddress = status.hubAddress || lastDirigeraStatic.hubAddress;
+
             const container = document.getElementById('dirigera-status-container');
             container.innerHTML = `
                 <div class="status-grid">
@@ -1944,7 +1959,7 @@
                     </div>
                     <div class="status-item">
                         <div class="status-label">Hub Address</div>
-                        <div class="status-value">${status.hubAddress || 'Not configured'}</div>
+                        <div class="status-value">${hubAddress || 'Not configured'}</div>
                     </div>
                 </div>
             `;
@@ -1958,8 +1973,7 @@
                 })
                 .catch(err => {
                     console.error('Failed to fetch DIRIGERA status:', err);
-                    document.getElementById('dirigera-status-container').innerHTML =
-                        '<div class="empty-state">Failed to load DIRIGERA status</div>';
+                    renderDirigeraStatus({ reachable: false, hubAddress: null, timestamp: Date.now() });
                 });
         }
 

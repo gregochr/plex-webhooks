@@ -12,14 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/config")
 public class ConfigController {
-    private static final Set<String> VALID_MEDIA_TYPES = Set.of("movie", "episode", "clip");
-    private static final Set<String> VALID_SCENE_KEYS = Set.of("hue.start-scene", "hue.stop-scene");
-    private static final Set<String> VALID_PROPERTY_KEYS = Set.of("sse.heartbeat-interval");
 
     private final ConfigService configService;
     private final SseService sseService;
@@ -50,10 +46,10 @@ public class ConfigController {
 
     @GetMapping("/plex-commands/{mediaType}")
     public ResponseEntity<Map<String, Boolean>> getPlexCommands(@PathVariable String mediaType) {
-        if (!VALID_MEDIA_TYPES.contains(mediaType)) {
+        if (!configurationViewService.isValidMediaType(mediaType)) {
             return ResponseEntity.notFound().build();
         }
-        Map<String, Boolean> properties = configurationViewService.getProperties(mediaType);
+        Map<String, Boolean> properties = configurationViewService.getPlexProperties(mediaType);
         return ResponseEntity.ok(properties);
     }
 
@@ -61,7 +57,7 @@ public class ConfigController {
     public ResponseEntity<Map<String, Boolean>> savePlexCommands(
             @PathVariable String mediaType,
             @RequestBody Map<String, Boolean> body) {
-        if (!VALID_MEDIA_TYPES.contains(mediaType)) {
+        if (!configurationViewService.isValidMediaType(mediaType)) {
             return ResponseEntity.notFound().build();
         }
 
@@ -74,7 +70,7 @@ public class ConfigController {
         }
 
         try {
-            configurationViewService.saveProperties(updates, configurationViewService.resolvePropertiesPath());
+            configurationViewService.saveProperties(updates);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -91,14 +87,12 @@ public class ConfigController {
     public ResponseEntity<Map<String, String>> saveHueScene(@RequestBody Map<String, String> body) {
         String key = body.get("key");
         String sceneId = body.get("sceneId");
-        if (key == null || sceneId == null || !VALID_SCENE_KEYS.contains(key)) {
+        if (key == null || sceneId == null || !configurationViewService.isValidSceneKey(key)) {
             return ResponseEntity.badRequest().build();
         }
 
         try {
-            configurationViewService.saveProperties(
-                    Map.of(key, sceneId),
-                    configurationViewService.resolvePropertiesPath());
+            configurationViewService.saveProperties(Map.of(key, sceneId));
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -110,7 +104,7 @@ public class ConfigController {
     public ResponseEntity<Map<String, String>> saveProperties(@RequestBody Map<String, String> body) {
         Map<String, String> updates = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : body.entrySet()) {
-            if (VALID_PROPERTY_KEYS.contains(entry.getKey())) {
+            if (configurationViewService.getValidPropertyKeys().contains(entry.getKey())) {
                 updates.put(entry.getKey(), entry.getValue());
             }
         }
@@ -120,7 +114,7 @@ public class ConfigController {
         }
 
         try {
-            configurationViewService.saveProperties(updates, configurationViewService.resolvePropertiesPath());
+            configurationViewService.saveProperties(updates);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }

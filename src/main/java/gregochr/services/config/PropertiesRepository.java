@@ -1,5 +1,7 @@
 package gregochr.services.config;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
@@ -17,6 +19,7 @@ import java.util.Map;
 
 @Repository
 public class PropertiesRepository {
+    private static final Logger LOGGER = LogManager.getLogger(PropertiesRepository.class);
 
     private final Environment environment;
 
@@ -51,6 +54,7 @@ public class PropertiesRepository {
                 }
             }
         } catch (IOException e) {
+            LOGGER.warn("Failed to read application.properties: {}", e.getMessage());
             return sections;
         }
 
@@ -76,7 +80,7 @@ public class PropertiesRepository {
                 }
             }
         } catch (IOException e) {
-            // return empty map
+            LOGGER.warn("Failed to read boolean properties with prefix '{}': {}", prefix, e.getMessage());
         }
         return result;
     }

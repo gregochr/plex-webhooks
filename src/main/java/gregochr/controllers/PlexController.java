@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexCommandFactory;
-import gregochr.clients.LocationClient;
-import gregochr.clients.SunriseSunsetClient;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import gregochr.services.plex.dto.PlexPayloadDto;
@@ -25,21 +23,15 @@ public class PlexController {
     private static final Logger LOGGER = LogManager.getLogger(PlexController.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final HueSceneController hueSceneController;
-    private final LocationClient locationClient;
-    private final SunriseSunsetClient sunriseSunsetClient;
     private final SseService sseService;
     private final ConfigService configService;
     private final PlexCommandConfig plexCommandConfig;
 
     public PlexController(HueSceneController hueSceneController,
-                          LocationClient locationClient,
-                          SunriseSunsetClient sunriseSunsetClient,
                           SseService sseService,
                           ConfigService configService,
                           PlexCommandConfig plexCommandConfig) {
         this.hueSceneController = hueSceneController;
-        this.locationClient = locationClient;
-        this.sunriseSunsetClient = sunriseSunsetClient;
         this.sseService = sseService;
         this.configService = configService;
         this.plexCommandConfig = plexCommandConfig;
@@ -56,6 +48,6 @@ public class PlexController {
         // Broadcast to SSE clients
         sseService.broadcast(new SseEventDto(command, payload));
 
-        command.execute(hueSceneController, locationClient, sunriseSunsetClient, configService, plexCommandConfig);
+        command.execute(hueSceneController, configService, plexCommandConfig);
     }
 }

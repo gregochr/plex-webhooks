@@ -1,11 +1,5 @@
 package gregochr.commands;
 
-import gregochr.clients.LocationClient;
-import gregochr.clients.SunriseSunsetClient;
-import gregochr.clients.dto.LocationResultDto;
-import gregochr.clients.dto.LocationResponseDto;
-import gregochr.clients.dto.SunriseSunsetResultDto;
-import gregochr.clients.dto.SunriseSunsetResponseDto;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.DisplayName;
@@ -21,25 +15,15 @@ public class PlexCommandTest {
     @Test
     public void testPlexPlayMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationClient locationController = mock(LocationClient.class);
-        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResultDto locationResult = new LocationResultDto(1, 1);
-        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
-
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
-
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE)).thenReturn(true);
 
-        assertTrue(plexPlayCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertTrue(plexPlayCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).startMovieLightScene();
     }
     @DisplayName("Test Plex Play TV Show Command")
@@ -52,31 +36,21 @@ public class PlexCommandTest {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexPlayCommand.execute(null, null, null, configService, plexCommandConfig));
+        assertFalse(plexPlayCommand.execute(null, configService, plexCommandConfig));
     }
     @DisplayName("Test Plex Resume Movie Command")
     @Test
     public void testPlexResumeMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationClient locationController = mock(LocationClient.class);
-        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResultDto locationResult = new LocationResultDto(1, 1);
-        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
-
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
-
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.MOVIE)).thenReturn(true);
 
-        assertTrue(plexResumeCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertTrue(plexResumeCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).startMovieLightScene();
     }
     @DisplayName("Test Plex Resume TV Show Command")
@@ -89,31 +63,21 @@ public class PlexCommandTest {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexResumeCommand.execute(null, null, null, configService, plexCommandConfig));
+        assertFalse(plexResumeCommand.execute(null, configService, plexCommandConfig));
     }
     @DisplayName("Test Plex Stop Movie Command")
     @Test
     public void testPlexStopMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationClient locationController = mock(LocationClient.class);
-        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResultDto locationResult = new LocationResultDto(1, 1);
-        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
-
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
-
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.STOP, PlexMediaType.MOVIE)).thenReturn(true);
 
-        assertTrue(plexStopCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertTrue(plexStopCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Stop TV Show Command")
@@ -126,31 +90,21 @@ public class PlexCommandTest {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.STOP, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexStopCommand.execute(null, null, null, configService, plexCommandConfig));
+        assertFalse(plexStopCommand.execute(null, configService, plexCommandConfig));
     }
     @DisplayName("Test Plex Pause Movie Command")
     @Test
     public void testPlexPauseMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationClient locationController = mock(LocationClient.class);
-        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResultDto locationResult = new LocationResultDto(1, 1);
-        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
-
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
-
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.MOVIE)).thenReturn(true);
 
-        assertTrue(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertTrue(plexPauseCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Pause TV Show Command")
@@ -163,31 +117,21 @@ public class PlexCommandTest {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexPauseCommand.execute(null, null, null, configService, plexCommandConfig));
+        assertFalse(plexPauseCommand.execute(null, configService, plexCommandConfig));
     }
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationClient locationController = mock(LocationClient.class);
-        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        LocationResultDto locationResult = new LocationResultDto(1, 1);
-        LocationResponseDto locationResponse = new LocationResponseDto(200, locationResult);
-
-        SunriseSunsetResultDto sunriseSunsetResult = new SunriseSunsetResultDto(null, "18:00:00");
-        SunriseSunsetResponseDto sunriseSunsetResponse = new SunriseSunsetResponseDto("200", "utc", sunriseSunsetResult);
-
-        when(locationController.getLatitudeAndLogitude()).thenReturn(locationResponse);
-        when(sunriseSunsetController.getSunsetTimeForToday(1,1)).thenReturn(sunriseSunsetResponse);
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.MOVIE)).thenReturn(true);
 
-        assertTrue(plexScrobbleCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertTrue(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).stopMovieLightScene();
     }
     @DisplayName("Test Plex Scrobble TV Show Command")
@@ -200,7 +144,7 @@ public class PlexCommandTest {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexScrobbleCommand.execute(null, null, null, configService, plexCommandConfig));
+        assertFalse(plexScrobbleCommand.execute(null, configService, plexCommandConfig));
     }
 
     @DisplayName("Test Plex Play Movie Command returns false when command disabled by config")
@@ -214,7 +158,7 @@ public class PlexCommandTest {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE)).thenReturn(false);
 
-        assertFalse(plexPlayCommand.execute(hueSceneController, null, null, configService, plexCommandConfig));
+        assertFalse(plexPlayCommand.execute(hueSceneController, configService, plexCommandConfig));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -228,7 +172,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assertFalse(plexPlayCommand.execute(hueSceneController, null, null, configService, plexCommandConfig));
+        assertFalse(plexPlayCommand.execute(hueSceneController, configService, plexCommandConfig));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -242,7 +186,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assertFalse(plexStopCommand.execute(hueSceneController, null, null, configService, plexCommandConfig));
+        assertFalse(plexStopCommand.execute(hueSceneController, configService, plexCommandConfig));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -256,7 +200,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assertFalse(plexPauseCommand.execute(hueSceneController, null, null, configService, plexCommandConfig));
+        assertFalse(plexPauseCommand.execute(hueSceneController, configService, plexCommandConfig));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -270,7 +214,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assertFalse(plexResumeCommand.execute(hueSceneController, null, null, configService, plexCommandConfig));
+        assertFalse(plexResumeCommand.execute(hueSceneController, configService, plexCommandConfig));
         verifyNoMoreInteractions(hueSceneController);
     }
 
@@ -284,7 +228,7 @@ public class PlexCommandTest {
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
-        assertFalse(plexScrobbleCommand.execute(hueSceneController, null, null, configService, plexCommandConfig));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
         verifyNoMoreInteractions(hueSceneController);
     }
 }

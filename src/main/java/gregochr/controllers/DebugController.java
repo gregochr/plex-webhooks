@@ -4,8 +4,6 @@ import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
-import gregochr.clients.LocationClient;
-import gregochr.clients.SunriseSunsetClient;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
@@ -23,19 +21,13 @@ import java.util.Map;
 public class DebugController {
     private static final Logger LOGGER = LogManager.getLogger(DebugController.class);
     private final HueSceneController hueSceneController;
-    private final LocationClient locationClient;
-    private final SunriseSunsetClient sunriseSunsetClient;
     private final ConfigService configService;
     private final PlexCommandConfig plexCommandConfig;
 
     public DebugController(HueSceneController hueSceneController,
-                           LocationClient locationClient,
-                           SunriseSunsetClient sunriseSunsetClient,
                            ConfigService configService,
                            PlexCommandConfig plexCommandConfig) {
         this.hueSceneController = hueSceneController;
-        this.locationClient = locationClient;
-        this.sunriseSunsetClient = sunriseSunsetClient;
         this.configService = configService;
         this.plexCommandConfig = plexCommandConfig;
     }
@@ -49,7 +41,7 @@ public class DebugController {
         PlexCommand plexCommand = createCommand(command, mediaType);
         LOGGER.info("[ Debug: Triggering {} command with type: {} ]", plexCommand, type);
 
-        boolean result = plexCommand.execute(hueSceneController, locationClient, sunriseSunsetClient, configService, plexCommandConfig);
+        boolean result = plexCommand.execute(hueSceneController, configService, plexCommandConfig);
 
         return Map.of("command", command, "type", type, "success", result);
     }

@@ -4,8 +4,6 @@ import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
-import gregochr.clients.LocationClient;
-import gregochr.clients.SunriseSunsetClient;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.DisplayName;
@@ -24,12 +22,6 @@ public class PlexScrobbleCommandIntegrationTest {
     private HueSceneController hueSceneController;
 
     @Autowired
-    private LocationClient locationClient;
-
-    @Autowired
-    private SunriseSunsetClient sunriseSunsetClient;
-
-    @Autowired
     private ConfigService configService;
 
     @Autowired
@@ -41,7 +33,7 @@ public class PlexScrobbleCommandIntegrationTest {
     public void testPlexScrobbleMovieCommand() {
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        assertFalse(plexScrobbleCommand.execute(hueSceneController, locationClient, sunriseSunsetClient, configService, plexCommandConfig));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
 
     @Tag("integration")
@@ -50,6 +42,6 @@ public class PlexScrobbleCommandIntegrationTest {
     public void testPlexScrobbleTVShowCommand() {
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
-        assertFalse(plexScrobbleCommand.execute(hueSceneController, locationClient, sunriseSunsetClient, configService, plexCommandConfig));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
 }

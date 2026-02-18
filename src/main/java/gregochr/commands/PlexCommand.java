@@ -1,7 +1,5 @@
 package gregochr.commands;
 
-import gregochr.clients.LocationClient;
-import gregochr.clients.SunriseSunsetClient;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
@@ -59,7 +57,7 @@ public class PlexCommand {
                 this.mediaType != null ? this.mediaType.getType() : "unknown");
     }
 
-    public boolean execute(HueSceneController hueSceneController, LocationClient locationClient, SunriseSunsetClient sunriseSunsetClient, ConfigService configService, PlexCommandConfig plexCommandConfig) {
+    public boolean execute(HueSceneController hueSceneController, ConfigService configService, PlexCommandConfig plexCommandConfig) {
         if (!configService.isHueIntegrationEnabled()) {
             LOGGER.info("[ Hue integration disabled, skipping ]");
             return false;

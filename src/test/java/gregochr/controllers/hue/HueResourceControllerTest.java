@@ -1,6 +1,5 @@
 package gregochr.controllers.hue;
 
-import gregochr.controllers.dto.hue.HueResourceResponseDto;
 import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -61,13 +59,5 @@ public class HueResourceControllerTest {
         String body = response.getBody();
         assertNotNull(body);
         assertEquals("{\"error\": \"Hue bridge unreachable\"}", body);
-    }
-
-    @DisplayName("getResourcesParsed returns null when bridge is unreachable")
-    @Test
-    public void testGetResourcesParsedReturnsNullWhenUnreachable() {
-        HueResourceResponseDto result = controller.getResourcesParsed();
-
-        assertNull(result);
     }
 }

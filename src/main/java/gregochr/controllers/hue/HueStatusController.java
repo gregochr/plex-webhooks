@@ -1,5 +1,6 @@
 package gregochr.controllers.hue;
 
+import gregochr.services.ScheduledTaskManager;
 import gregochr.services.config.ConfigService;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import gregochr.services.sse.SseService;
@@ -17,10 +18,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/hue")
@@ -28,9 +25,7 @@ public class HueStatusController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueStatusController.class);
 
     private final SseService sseService;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private ScheduledFuture<?> scheduledTask;
-    private long intervalMs;
+    private final ScheduledTaskManager scheduledTaskManager;
 
     public HueStatusController(
             @Value("${hue.hub-address}") String hubAddress,
@@ -41,35 +36,23 @@ public class HueStatusController extends HueController {
             @Value("${hue.status-interval}") long intervalMs) {
         super(hubAddress, hubId, applicationKey, configService);
         this.sseService = sseService;
-        this.intervalMs = intervalMs;
+        this.scheduledTaskManager = new ScheduledTaskManager(
+                intervalMs, "hue.status-interval", "hue status broadcast", this::broadcastStatus, LOGGER);
     }
 
     @PostConstruct
     public void init() {
-        scheduleTask();
+        scheduledTaskManager.start();
     }
 
     @PreDestroy
     public void destroy() {
-        scheduler.shutdown();
-    }
-
-    private void scheduleTask() {
-        if (scheduledTask != null) {
-            scheduledTask.cancel(false);
-        }
-        scheduledTask = scheduler.scheduleAtFixedRate(this::broadcastStatus, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
-        LOGGER.info("Scheduled hue status broadcast at interval: {} ms", intervalMs);
+        scheduledTaskManager.shutdown();
     }
 
     @EventListener
     public void onPropertiesUpdated(PropertiesUpdatedEvent event) {
-        String value = event.getUpdatedProperties().get("hue.status-interval");
-        if (value != null) {
-            this.intervalMs = Long.parseLong(value);
-            scheduleTask();
-            LOGGER.info("Hot-reloaded hue.status-interval: {} ms", this.intervalMs);
-        }
+        scheduledTaskManager.onPropertiesUpdated(event);
     }
 
     @GetMapping("/status")

@@ -1,8 +1,5 @@
 package gregochr.controllers.hue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gregochr.controllers.dto.hue.HueResourceResponseDto;
 import gregochr.services.config.ConfigService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,7 +14,6 @@ import org.springframework.web.client.RestClientException;
 @RequestMapping("/api/hue")
 public class HueResourceController extends HueController {
     private static final Logger LOGGER = LogManager.getLogger(HueResourceController.class);
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public HueResourceController(
             @Value("${hue.hub-address}") String hubAddress,
@@ -44,19 +40,6 @@ public class HueResourceController extends HueController {
             LOGGER.warn("Hue resource fetch failed: {}", e.getMessage());
             return ResponseEntity.status(503)
                     .body("{\"error\": \"Hue bridge unreachable\"}");
-        }
-    }
-
-    public HueResourceResponseDto getResourcesParsed() {
-        ResponseEntity<String> response = getResources();
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            return null;
-        }
-        try {
-            return OBJECT_MAPPER.readValue(response.getBody(), HueResourceResponseDto.class);
-        } catch (JsonProcessingException e) {
-            LOGGER.warn("Failed to parse Hue resources: {}", e.getMessage());
-            return null;
         }
     }
 }

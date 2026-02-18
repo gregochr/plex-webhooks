@@ -1,5 +1,6 @@
 package gregochr.controllers.dirigera;
 
+import gregochr.services.ScheduledTaskManager;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import gregochr.services.sse.SseService;
 import org.apache.logging.log4j.LogManager;
@@ -17,10 +18,6 @@ import java.time.Instant;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/dirigera")
@@ -31,9 +28,7 @@ public class DirigeraStatusController {
 
     private final String hubAddress;
     private final SseService sseService;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private ScheduledFuture<?> scheduledTask;
-    private long intervalMs;
+    private final ScheduledTaskManager scheduledTaskManager;
 
     public DirigeraStatusController(
             @Value("${dirigera.hub-address}") String hubAddress,
@@ -41,35 +36,23 @@ public class DirigeraStatusController {
             @Value("${dirigera.status-interval}") long intervalMs) {
         this.hubAddress = hubAddress;
         this.sseService = sseService;
-        this.intervalMs = intervalMs;
+        this.scheduledTaskManager = new ScheduledTaskManager(
+                intervalMs, "dirigera.status-interval", "dirigera status broadcast", this::broadcastStatus, LOGGER);
     }
 
     @PostConstruct
     public void init() {
-        scheduleTask();
+        scheduledTaskManager.start();
     }
 
     @PreDestroy
     public void destroy() {
-        scheduler.shutdown();
-    }
-
-    private void scheduleTask() {
-        if (scheduledTask != null) {
-            scheduledTask.cancel(false);
-        }
-        scheduledTask = scheduler.scheduleAtFixedRate(this::broadcastStatus, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
-        LOGGER.info("Scheduled dirigera status broadcast at interval: {} ms", intervalMs);
+        scheduledTaskManager.shutdown();
     }
 
     @EventListener
     public void onPropertiesUpdated(PropertiesUpdatedEvent event) {
-        String value = event.getUpdatedProperties().get("dirigera.status-interval");
-        if (value != null) {
-            this.intervalMs = Long.parseLong(value);
-            scheduleTask();
-            LOGGER.info("Hot-reloaded dirigera.status-interval: {} ms", this.intervalMs);
-        }
+        scheduledTaskManager.onPropertiesUpdated(event);
     }
 
     @GetMapping("/status")

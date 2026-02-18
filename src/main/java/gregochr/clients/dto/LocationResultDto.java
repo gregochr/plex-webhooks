@@ -1,4 +1,4 @@
-package gregochr.controllers.dto;
+package gregochr.clients.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

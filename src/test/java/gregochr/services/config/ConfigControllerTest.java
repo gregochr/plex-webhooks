@@ -1,5 +1,6 @@
 package gregochr.services.config;
 
+import gregochr.controllers.ConfigController;
 import gregochr.services.sse.SseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -116,7 +117,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT plex-commands saves to disk and returns values")
     @Test
-    public void testSavePlexCommands() throws IOException {
+    public void testSavePlexCommands() throws Exception {
         when(configurationViewService.isValidMediaType("movie")).thenReturn(true);
         doNothing().when(configurationViewService).saveProperties(any());
 
@@ -133,7 +134,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT plex-commands returns 404 for unknown media type")
     @Test
-    public void testSavePlexCommandsUnknownType() {
+    public void testSavePlexCommandsUnknownType() throws Exception {
         when(configurationViewService.isValidMediaType("unknown")).thenReturn(false);
         Map<String, Boolean> body = Map.of("plex.unknown-play-enabled", true);
 
@@ -159,7 +160,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT hue-scene saves start scene to disk")
     @Test
-    public void testSaveHueSceneStart() throws IOException {
+    public void testSaveHueSceneStart() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.start-scene")).thenReturn(true);
         doNothing().when(configurationViewService).saveProperties(any());
 
@@ -174,7 +175,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT hue-scene saves stop scene to disk")
     @Test
-    public void testSaveHueSceneStop() throws IOException {
+    public void testSaveHueSceneStop() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.stop-scene")).thenReturn(true);
         doNothing().when(configurationViewService).saveProperties(any());
 
@@ -188,7 +189,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT hue-scene returns 400 for invalid key")
     @Test
-    public void testSaveHueSceneInvalidKey() {
+    public void testSaveHueSceneInvalidKey() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.invalid-key")).thenReturn(false);
         Map<String, String> body = Map.of("key", "hue.invalid-key", "sceneId", "abc-123");
 
@@ -199,7 +200,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT hue-scene returns 400 when key is missing")
     @Test
-    public void testSaveHueSceneMissingKey() {
+    public void testSaveHueSceneMissingKey() throws Exception {
         Map<String, String> body = Map.of("sceneId", "abc-123");
 
         ResponseEntity<Map<String, String>> response = controller.saveHueScene(body);
@@ -209,7 +210,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT properties saves valid key to disk")
     @Test
-    public void testSaveProperties() throws IOException {
+    public void testSaveProperties() throws Exception {
         when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
         doNothing().when(configurationViewService).saveProperties(any());
 
@@ -224,7 +225,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT properties returns 400 for invalid key")
     @Test
-    public void testSavePropertiesInvalidKey() {
+    public void testSavePropertiesInvalidKey() throws Exception {
         when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
         Map<String, String> body = Map.of("hue.application-key", "stolen");
 
@@ -235,7 +236,7 @@ public class ConfigControllerTest {
 
     @DisplayName("PUT properties ignores invalid keys and saves valid ones")
     @Test
-    public void testSavePropertiesFiltersKeys() throws IOException {
+    public void testSavePropertiesFiltersKeys() throws Exception {
         when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
         doNothing().when(configurationViewService).saveProperties(any());
 

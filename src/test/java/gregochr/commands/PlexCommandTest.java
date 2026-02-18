@@ -1,11 +1,11 @@
 package gregochr.commands;
 
-import gregochr.controllers.LocationController;
-import gregochr.controllers.SunriseSunsetController;
-import gregochr.controllers.dto.LocationResultDto;
-import gregochr.controllers.dto.LocationResponseDto;
-import gregochr.controllers.dto.SunriseSunsetResultDto;
-import gregochr.controllers.dto.SunriseSunsetResponseDto;
+import gregochr.clients.LocationClient;
+import gregochr.clients.SunriseSunsetClient;
+import gregochr.clients.dto.LocationResultDto;
+import gregochr.clients.dto.LocationResponseDto;
+import gregochr.clients.dto.SunriseSunsetResultDto;
+import gregochr.clients.dto.SunriseSunsetResponseDto;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.DisplayName;
@@ -21,8 +21,8 @@ public class PlexCommandTest {
     @Test
     public void testPlexPlayMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationController locationController = mock(LocationController.class);
-        SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
+        LocationClient locationController = mock(LocationClient.class);
+        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
@@ -58,8 +58,8 @@ public class PlexCommandTest {
     @Test
     public void testPlexResumeMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationController locationController = mock(LocationController.class);
-        SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
+        LocationClient locationController = mock(LocationClient.class);
+        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
@@ -95,8 +95,8 @@ public class PlexCommandTest {
     @Test
     public void testPlexStopMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationController locationController = mock(LocationController.class);
-        SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
+        LocationClient locationController = mock(LocationClient.class);
+        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.MOVIE);
@@ -132,8 +132,8 @@ public class PlexCommandTest {
     @Test
     public void testPlexPauseMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationController locationController = mock(LocationController.class);
-        SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
+        LocationClient locationController = mock(LocationClient.class);
+        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
@@ -169,8 +169,8 @@ public class PlexCommandTest {
     @Test
     public void testPlexScrobbleMovieCommand() {
         HueSceneController hueSceneController  = mock(HueSceneController.class);
-        LocationController locationController = mock(LocationController.class);
-        SunriseSunsetController sunriseSunsetController = mock(SunriseSunsetController.class);
+        LocationClient locationController = mock(LocationClient.class);
+        SunriseSunsetClient sunriseSunsetController = mock(SunriseSunsetClient.class);
         ConfigService configService = mock(ConfigService.class);
         PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);

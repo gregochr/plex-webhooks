@@ -1,5 +1,6 @@
-package gregochr.services.sse;
+package gregochr.controllers;
 
+import gregochr.services.sse.SseService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -3,6 +3,8 @@ package gregochr.controllers;
 import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
+import gregochr.clients.LocationClient;
+import gregochr.clients.SunriseSunsetClient;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,8 +25,8 @@ import static org.mockito.Mockito.never;
 public class DebugControllerTest {
 
     private HueSceneController hueSceneController;
-    private LocationController locationController;
-    private SunriseSunsetController sunriseSunsetController;
+    private LocationClient locationClient;
+    private SunriseSunsetClient sunriseSunsetClient;
     private ConfigService configService;
     private PlexCommandConfig plexCommandConfig;
     private DebugController debugController;
@@ -32,11 +34,11 @@ public class DebugControllerTest {
     @BeforeEach
     public void setUp() {
         hueSceneController = mock(HueSceneController.class);
-        locationController = mock(LocationController.class);
-        sunriseSunsetController = mock(SunriseSunsetController.class);
+        locationClient = mock(LocationClient.class);
+        sunriseSunsetClient = mock(SunriseSunsetClient.class);
         configService = mock(ConfigService.class);
         plexCommandConfig = mock(PlexCommandConfig.class);
-        debugController = new DebugController(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig);
+        debugController = new DebugController(hueSceneController, locationClient, sunriseSunsetClient, configService, plexCommandConfig);
     }
 
     @DisplayName("Play command triggers startMovieLightScene")

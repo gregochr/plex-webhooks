@@ -1,5 +1,6 @@
 package gregochr.services.sse;
 
+import gregochr.controllers.SseController;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,6 @@
-package gregochr.controllers;
+package gregochr.clients;
 
-import gregochr.controllers.dto.LocationResponseDto;
+import gregochr.clients.dto.LocationResponseDto;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,13 +9,17 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 @Component
-public class LocationController {
-    private static final Logger LOGGER = LogManager.getLogger(LocationController.class);
+public class LocationClient {
+    private static final Logger LOGGER = LogManager.getLogger(LocationClient.class);
     private static final String POSTCODE_SERVICE_URL = "https://api.postcodes.io/postcodes/{postCode}";
-    private static final RestClient REST_CLIENT = RestClient.create();
 
-    @Value("${postcode}")
+    private final RestClient restClient;
     private String postCode;
+
+    public LocationClient(RestClient restClient, @Value("${postcode}") String postCode) {
+        this.restClient = restClient;
+        this.postCode = postCode;
+    }
 
     public void setPostCode(String postCode) {
         this.postCode = postCode;
@@ -28,7 +32,7 @@ public class LocationController {
     public LocationResponseDto getLatitudeAndLogitude() {
         LOGGER.info("[ Postcode : {} ]", this.postCode);
 
-        LocationResponseDto locationResponse = REST_CLIENT
+        LocationResponseDto locationResponse = restClient
                 .get()
                 .uri(POSTCODE_SERVICE_URL, getPostCodeFormattedForPostCodesAPI())
                 .retrieve()

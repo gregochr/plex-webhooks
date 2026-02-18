@@ -1,26 +1,27 @@
-package gregochr.controllers;
+package gregochr.clients;
 
-import gregochr.controllers.dto.LocationResponseDto;
+import gregochr.clients.dto.LocationResponseDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import org.springframework.web.client.RestClient;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-public class LocationControllerTest {
+public class LocationClientTest {
     @Autowired
-    LocationController locationController;
+    LocationClient locationClient;
 
     @Tag("integration")
     @DisplayName("Get latitude and longitude for DH1 4HU")
     @Test
     public void getLatitudeAndLongitudeTestForDH14HU() {
-        LocationController locationController = new LocationController();
-        locationController.setPostCode("DH1 4HU");
-        LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
+        LocationClient locationClient = new LocationClient(RestClient.create(), "DH1 4HU");
+        LocationResponseDto locationResponse = locationClient.getLatitudeAndLogitude();
 
         assertEquals(200, locationResponse.status());
         assertEquals(54.777797, locationResponse.locationResultDto().latitude());
@@ -31,9 +32,8 @@ public class LocationControllerTest {
     @DisplayName("Get latitude and longitude for default post-code (DH1 3QL)")
     @Test
     public void getLatitudeAndLongitudeTestForDH13QL() {
-        LocationController locationController = new LocationController();
-        locationController.setPostCode("DH1 3QL");
-        LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
+        LocationClient locationClient = new LocationClient(RestClient.create(), "DH1 3QL");
+        LocationResponseDto locationResponse = locationClient.getLatitudeAndLogitude();
 
         assertEquals(200, locationResponse.status());
         assertEquals(54.766509, locationResponse.locationResultDto().latitude());
@@ -44,9 +44,8 @@ public class LocationControllerTest {
     @DisplayName("Get latitude and longitude for post code with lots of spaces")
     @Test
     public void getLatitudeAndLongitudeTestForPostCodeWithLotsOfSpaces() {
-        LocationController locationController = new LocationController();
-        locationController.setPostCode("D H 1 4 H U");
-        LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
+        LocationClient locationClient = new LocationClient(RestClient.create(), "D H 1 4 H U");
+        LocationResponseDto locationResponse = locationClient.getLatitudeAndLogitude();
 
         assertEquals(200, locationResponse.status());
         assertEquals(54.777797, locationResponse.locationResultDto().latitude());
@@ -56,24 +55,22 @@ public class LocationControllerTest {
     @DisplayName("Get post code from config file is DH1 4HU")
     @Test
     public void getPostCodeFromConfig() {
-        assertEquals("DH1 4HU", locationController.getPostCode());
+        assertEquals("DH1 4HU", locationClient.getPostCode());
     }
 
     @DisplayName("Set and get post code")
     @Test
     public void setAndGetPostCode() {
-        LocationController controller = new LocationController();
-        controller.setPostCode("SW1A 1AA");
-        assertEquals("SW1A 1AA", controller.getPostCode());
+        LocationClient client = new LocationClient(RestClient.create(), "SW1A 1AA");
+        assertEquals("SW1A 1AA", client.getPostCode());
     }
 
     @Tag("integration")
     @DisplayName("Get latitude and longitude for lowercase post code")
     @Test
     public void getLatitudeAndLongitudeTestForLowercasePostCode() {
-        LocationController locationController = new LocationController();
-        locationController.setPostCode("dh1 4hu");
-        LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
+        LocationClient locationClient = new LocationClient(RestClient.create(), "dh1 4hu");
+        LocationResponseDto locationResponse = locationClient.getLatitudeAndLogitude();
 
         assertEquals(200, locationResponse.status());
         assertEquals(54.777797, locationResponse.locationResultDto().latitude());
@@ -84,9 +81,8 @@ public class LocationControllerTest {
     @DisplayName("Get latitude and longitude for post code without space")
     @Test
     public void getLatitudeAndLongitudeTestForPostCodeWithoutSpace() {
-        LocationController locationController = new LocationController();
-        locationController.setPostCode("DH14HU");
-        LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
+        LocationClient locationClient = new LocationClient(RestClient.create(), "DH14HU");
+        LocationResponseDto locationResponse = locationClient.getLatitudeAndLogitude();
 
         assertEquals(200, locationResponse.status());
         assertEquals(54.777797, locationResponse.locationResultDto().latitude());
@@ -97,9 +93,8 @@ public class LocationControllerTest {
     @DisplayName("Get latitude and longitude for London post code")
     @Test
     public void getLatitudeAndLongitudeTestForLondonPostCode() {
-        LocationController locationController = new LocationController();
-        locationController.setPostCode("SW1A 1AA");
-        LocationResponseDto locationResponse = locationController.getLatitudeAndLogitude();
+        LocationClient locationClient = new LocationClient(RestClient.create(), "SW1A 1AA");
+        LocationResponseDto locationResponse = locationClient.getLatitudeAndLogitude();
 
         assertEquals(200, locationResponse.status());
         assertEquals(51.50101, locationResponse.locationResultDto().latitude());

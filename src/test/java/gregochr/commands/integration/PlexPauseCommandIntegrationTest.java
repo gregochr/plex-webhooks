@@ -4,8 +4,8 @@ import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
-import gregochr.controllers.LocationController;
-import gregochr.controllers.SunriseSunsetController;
+import gregochr.clients.LocationClient;
+import gregochr.clients.SunriseSunsetClient;
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
 import org.junit.jupiter.api.DisplayName;
@@ -24,10 +24,10 @@ public class PlexPauseCommandIntegrationTest {
     private HueSceneController hueSceneController;
 
     @Autowired
-    private LocationController locationController;
+    private LocationClient locationClient;
 
     @Autowired
-    private SunriseSunsetController sunriseSunsetController;
+    private SunriseSunsetClient sunriseSunsetClient;
 
     @Autowired
     private ConfigService configService;
@@ -41,7 +41,7 @@ public class PlexPauseCommandIntegrationTest {
     public void testPlexStopMovieCommand() {
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        assertTrue(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertTrue(plexPauseCommand.execute(hueSceneController, locationClient, sunriseSunsetClient, configService, plexCommandConfig));
     }
 
     @Tag("integration")
@@ -50,6 +50,6 @@ public class PlexPauseCommandIntegrationTest {
     public void testPlexStopTVShowCommand() {
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
-        assertFalse(plexPauseCommand.execute(hueSceneController, locationController, sunriseSunsetController, configService, plexCommandConfig));
+        assertFalse(plexPauseCommand.execute(hueSceneController, locationClient, sunriseSunsetClient, configService, plexCommandConfig));
     }
 }

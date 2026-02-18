@@ -1,6 +1,6 @@
-package gregochr.controllers;
+package gregochr.clients;
 
-import gregochr.controllers.dto.SunriseSunsetResultDto;
+import gregochr.clients.dto.SunriseSunsetResultDto;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;

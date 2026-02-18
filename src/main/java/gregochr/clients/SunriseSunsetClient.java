@@ -1,9 +1,10 @@
-package gregochr.controllers;
+package gregochr.clients;
 
-import gregochr.controllers.dto.SunriseSunsetResponseDto;
+import gregochr.clients.dto.SunriseSunsetResponseDto;
 import jakarta.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -11,16 +12,20 @@ import java.time.Clock;
 import java.time.LocalTime;
 
 @Component
-public class SunriseSunsetController {
+public class SunriseSunsetClient {
+    private static final Logger LOGGER = LogManager.getLogger(SunriseSunsetClient.class);
     private static final String SUNRISE_SUNSET_SERVICE_URL = "https://api.sunrise-sunset.org/json?lat={lat}&lng={lng}&date={date}";
 
+    private final RestClient restClient;
     private final Clock clock;
 
-    public SunriseSunsetController() {
-        this(Clock.systemDefaultZone());
+    @Autowired
+    public SunriseSunsetClient(RestClient restClient) {
+        this(restClient, Clock.systemDefaultZone());
     }
 
-    public SunriseSunsetController(Clock clock) {
+    public SunriseSunsetClient(RestClient restClient, Clock clock) {
+        this.restClient = restClient;
         this.clock = clock;
     }
 
@@ -36,12 +41,9 @@ public class SunriseSunsetController {
         return LocalTime.now(clock).isAfter(sunsetTime);
     }
 
-    private static final Logger LOGGER = LogManager.getLogger(SunriseSunsetController.class);
-    private static final RestClient REST_CLIENT = RestClient.create();
-
     @Nullable
-    private static SunriseSunsetResponseDto getSunriseSunsetResponseDto(double latitude, double longitude, String date) {
-        SunriseSunsetResponseDto sunriseSunsetResponse = REST_CLIENT
+    private SunriseSunsetResponseDto getSunriseSunsetResponseDto(double latitude, double longitude, String date) {
+        SunriseSunsetResponseDto sunriseSunsetResponse = restClient
                 .get()
                 .uri(SUNRISE_SUNSET_SERVICE_URL, latitude, longitude, date)
                 .retrieve()

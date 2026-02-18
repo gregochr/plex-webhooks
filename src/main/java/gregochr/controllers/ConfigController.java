@@ -1,5 +1,7 @@
-package gregochr.services.config;
+package gregochr.controllers;
 
+import gregochr.services.config.ConfigService;
+import gregochr.services.config.ConfigurationViewService;
 import gregochr.services.sse.SseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,7 +58,7 @@ public class ConfigController {
     @PutMapping("/plex-commands/{mediaType}")
     public ResponseEntity<Map<String, Boolean>> savePlexCommands(
             @PathVariable String mediaType,
-            @RequestBody Map<String, Boolean> body) {
+            @RequestBody Map<String, Boolean> body) throws IOException {
         if (!configurationViewService.isValidMediaType(mediaType)) {
             return ResponseEntity.notFound().build();
         }
@@ -69,11 +71,7 @@ public class ConfigController {
             }
         }
 
-        try {
-            configurationViewService.saveProperties(updates);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        configurationViewService.saveProperties(updates);
 
         return ResponseEntity.ok(body);
     }
@@ -84,24 +82,20 @@ public class ConfigController {
     }
 
     @PutMapping("/hue-scene")
-    public ResponseEntity<Map<String, String>> saveHueScene(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> saveHueScene(@RequestBody Map<String, String> body) throws IOException {
         String key = body.get("key");
         String sceneId = body.get("sceneId");
         if (key == null || sceneId == null || !configurationViewService.isValidSceneKey(key)) {
             return ResponseEntity.badRequest().build();
         }
 
-        try {
-            configurationViewService.saveProperties(Map.of(key, sceneId));
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        configurationViewService.saveProperties(Map.of(key, sceneId));
 
         return ResponseEntity.ok(Map.of("key", key, "sceneId", sceneId));
     }
 
     @PutMapping("/properties")
-    public ResponseEntity<Map<String, String>> saveProperties(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> saveProperties(@RequestBody Map<String, String> body) throws IOException {
         Map<String, String> updates = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : body.entrySet()) {
             if (configurationViewService.getValidPropertyKeys().contains(entry.getKey())) {
@@ -113,11 +107,7 @@ public class ConfigController {
             return ResponseEntity.badRequest().build();
         }
 
-        try {
-            configurationViewService.saveProperties(updates);
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        configurationViewService.saveProperties(updates);
 
         return ResponseEntity.ok(updates);
     }

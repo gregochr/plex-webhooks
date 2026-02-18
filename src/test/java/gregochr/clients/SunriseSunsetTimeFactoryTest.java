@@ -1,6 +1,6 @@
-package gregochr.controllers;
+package gregochr.clients;
 
-import gregochr.controllers.dto.SunriseSunsetResultDto;
+import gregochr.clients.dto.SunriseSunsetResultDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

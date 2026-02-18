@@ -3,7 +3,10 @@ package gregochr.services.config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 
+import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
@@ -21,13 +24,15 @@ public class ConfigurationViewServiceTest {
 
     private PropertiesRepository repository;
     private ConfigurationViewFormatter formatter;
+    private ApplicationEventPublisher eventPublisher;
     private ConfigurationViewService service;
 
     @BeforeEach
     public void setUp() {
         repository = mock(PropertiesRepository.class);
         formatter = mock(ConfigurationViewFormatter.class);
-        service = new ConfigurationViewService(repository, formatter);
+        eventPublisher = mock(ApplicationEventPublisher.class);
+        service = new ConfigurationViewService(repository, formatter, eventPublisher);
     }
 
     @DisplayName("getConfigurationSections delegates to repository and formatter")
@@ -95,6 +100,21 @@ public class ConfigurationViewServiceTest {
     public void testValidPropertyKeys() {
         Set<String> keys = service.getValidPropertyKeys();
         assertTrue(keys.contains("sse.heartbeat-interval"));
-        assertEquals(1, keys.size());
+        assertTrue(keys.contains("hue.status-interval"));
+        assertTrue(keys.contains("dirigera.status-interval"));
+        assertEquals(3, keys.size());
+    }
+
+    @DisplayName("saveProperties publishes PropertiesUpdatedEvent after save")
+    @Test
+    public void testSavePropertiesPublishesEvent() throws IOException {
+        Map<String, String> updates = Map.of("sse.heartbeat-interval", "60000");
+        when(repository.resolvePropertiesPath()).thenReturn(java.nio.file.Path.of("test.properties"));
+
+        service.saveProperties(updates);
+
+        ArgumentCaptor<PropertiesUpdatedEvent> captor = ArgumentCaptor.forClass(PropertiesUpdatedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        assertEquals(updates, captor.getValue().getUpdatedProperties());
     }
 }

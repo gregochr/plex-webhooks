@@ -1,20 +1,26 @@
 package gregochr.controllers.dirigera;
 
+import gregochr.services.config.PropertiesUpdatedEvent;
 import gregochr.services.sse.SseService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.EventListener;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.time.Instant;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/dirigera")
@@ -23,18 +29,54 @@ public class DirigeraStatusController {
     private static final int PORT = 8443;
     private static final int TIMEOUT_MS = 3000;
 
-    @Value("${dirigera.hub-address}")
-    private String hubAddress;
+    private final String hubAddress;
+    private final SseService sseService;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> scheduledTask;
+    private long intervalMs;
 
-    @Autowired
-    private SseService sseService;
+    public DirigeraStatusController(
+            @Value("${dirigera.hub-address}") String hubAddress,
+            SseService sseService,
+            @Value("${dirigera.status-interval}") long intervalMs) {
+        this.hubAddress = hubAddress;
+        this.sseService = sseService;
+        this.intervalMs = intervalMs;
+    }
+
+    @PostConstruct
+    public void init() {
+        scheduleTask();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        scheduler.shutdown();
+    }
+
+    private void scheduleTask() {
+        if (scheduledTask != null) {
+            scheduledTask.cancel(false);
+        }
+        scheduledTask = scheduler.scheduleAtFixedRate(this::broadcastStatus, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+        LOGGER.info("Scheduled dirigera status broadcast at interval: {} ms", intervalMs);
+    }
+
+    @EventListener
+    public void onPropertiesUpdated(PropertiesUpdatedEvent event) {
+        String value = event.getUpdatedProperties().get("dirigera.status-interval");
+        if (value != null) {
+            this.intervalMs = Long.parseLong(value);
+            scheduleTask();
+            LOGGER.info("Hot-reloaded dirigera.status-interval: {} ms", this.intervalMs);
+        }
+    }
 
     @GetMapping("/status")
     public Map<String, Object> getStatus() {
         return buildStatus();
     }
 
-    @Scheduled(fixedRateString = "${dirigera.status-interval}")
     public void broadcastStatus() {
         if (sseService.getClientCount() == 0) {
             return;

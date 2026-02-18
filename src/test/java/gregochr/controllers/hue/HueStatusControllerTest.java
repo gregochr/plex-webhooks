@@ -1,7 +1,9 @@
 package gregochr.controllers.hue;
 
 import gregochr.services.config.ConfigService;
+import gregochr.services.config.PropertiesUpdatedEvent;
 import gregochr.services.sse.SseService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +35,13 @@ public class HueStatusControllerTest {
                 "001788fffe7107c8",
                 "TestApplicationKey1234",
                 configService,
-                sseService);
+                sseService,
+                30000);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        controller.destroy();
     }
 
     @DisplayName("getStatus returns all expected fields")
@@ -126,5 +134,33 @@ public class HueStatusControllerTest {
         controller.broadcastStatus();
 
         verify(sseService, never()).broadcastHueStatus(any());
+    }
+
+    @DisplayName("onPropertiesUpdated reschedules with new interval")
+    @Test
+    public void testOnPropertiesUpdatedReschedules() {
+        controller.init();
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "hue.status-interval", "60000"
+        ));
+
+        controller.onPropertiesUpdated(event);
+
+        // Verify no exception and broadcastStatus still works
+        when(sseService.getClientCount()).thenReturn(0);
+        controller.broadcastStatus();
+    }
+
+    @DisplayName("onPropertiesUpdated ignores unrelated keys")
+    @Test
+    public void testOnPropertiesUpdatedIgnoresUnrelatedKeys() {
+        controller.init();
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "sse.heartbeat-interval", "60000"
+        ));
+
+        controller.onPropertiesUpdated(event);
     }
 }

@@ -3,6 +3,8 @@ package gregochr.services.sse;
 import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
+import gregochr.services.config.PropertiesUpdatedEvent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +22,12 @@ public class SseServiceTest {
 
     @BeforeEach
     public void setUp() {
-        sseService = new SseService();
+        sseService = new SseService(30000);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        sseService.destroy();
     }
 
     private static final String TEST_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
@@ -149,5 +156,35 @@ public class SseServiceTest {
 
         // Clients may be removed if send fails, but method should not throw
         // In unit test context, emitters aren't connected to real clients
+    }
+
+    @DisplayName("onPropertiesUpdated reschedules heartbeat with new interval")
+    @Test
+    public void testOnPropertiesUpdatedReschedulesHeartbeat() {
+        sseService.init();
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "sse.heartbeat-interval", "60000"
+        ));
+
+        sseService.onPropertiesUpdated(event);
+
+        // Verify no exception and heartbeat still works
+        sseService.heartbeat();
+    }
+
+    @DisplayName("onPropertiesUpdated ignores unrelated keys")
+    @Test
+    public void testOnPropertiesUpdatedIgnoresUnrelatedKeys() {
+        sseService.init();
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "hue.start-scene", "some-scene"
+        ));
+
+        sseService.onPropertiesUpdated(event);
+
+        // Verify no exception
+        sseService.heartbeat();
     }
 }

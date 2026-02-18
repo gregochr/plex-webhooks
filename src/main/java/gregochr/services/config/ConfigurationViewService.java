@@ -1,5 +1,6 @@
 package gregochr.services.config;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -12,14 +13,17 @@ public class ConfigurationViewService {
 
     private static final Set<String> VALID_MEDIA_TYPES = Set.of("movie", "episode", "clip");
     private static final Set<String> VALID_SCENE_KEYS = Set.of("hue.start-scene", "hue.stop-scene");
-    private static final Set<String> VALID_PROPERTY_KEYS = Set.of("sse.heartbeat-interval");
+    private static final Set<String> VALID_PROPERTY_KEYS = Set.of("sse.heartbeat-interval", "hue.status-interval", "dirigera.status-interval");
 
     private final PropertiesRepository repository;
     private final ConfigurationViewFormatter formatter;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public ConfigurationViewService(PropertiesRepository repository, ConfigurationViewFormatter formatter) {
+    public ConfigurationViewService(PropertiesRepository repository, ConfigurationViewFormatter formatter,
+                                    ApplicationEventPublisher eventPublisher) {
         this.repository = repository;
         this.formatter = formatter;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<ConfigurationViewSection> getConfigurationSections() {
@@ -37,6 +41,7 @@ public class ConfigurationViewService {
 
     public void saveProperties(Map<String, String> updates) throws IOException {
         repository.saveProperties(updates, repository.resolvePropertiesPath());
+        eventPublisher.publishEvent(new PropertiesUpdatedEvent(this, updates));
     }
 
     public boolean isValidMediaType(String mediaType) {

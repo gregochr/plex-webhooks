@@ -2,17 +2,25 @@ package gregochr.services.sse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gregochr.services.config.PropertiesUpdatedEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SseService {
@@ -21,6 +29,41 @@ public class SseService {
     private static final long SSE_TIMEOUT = 24 * 60 * 60 * 1000L; // 24 hours
 
     private final Map<String, SseClient> clients = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> scheduledTask;
+    private long intervalMs;
+
+    public SseService(@Value("${sse.heartbeat-interval}") long intervalMs) {
+        this.intervalMs = intervalMs;
+    }
+
+    @PostConstruct
+    public void init() {
+        scheduleTask();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        scheduler.shutdown();
+    }
+
+    private void scheduleTask() {
+        if (scheduledTask != null) {
+            scheduledTask.cancel(false);
+        }
+        scheduledTask = scheduler.scheduleAtFixedRate(this::heartbeat, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+        LOGGER.info("Scheduled heartbeat at interval: {} ms", intervalMs);
+    }
+
+    @EventListener
+    public void onPropertiesUpdated(PropertiesUpdatedEvent event) {
+        String value = event.getUpdatedProperties().get("sse.heartbeat-interval");
+        if (value != null) {
+            this.intervalMs = Long.parseLong(value);
+            scheduleTask();
+            LOGGER.info("Hot-reloaded sse.heartbeat-interval: {} ms", this.intervalMs);
+        }
+    }
 
     public SseEmitter subscribe(String clientId, String userAgent, String ipAddress) {
         // Close any existing connection for this client (reconnect scenario)
@@ -107,7 +150,6 @@ public class SseService {
         });
     }
 
-    @Scheduled(fixedRateString = "${sse.heartbeat-interval}")
     public void heartbeat() {
         if (this.clients.isEmpty()) {
             LOGGER.info("No clients to receive heartbeats");

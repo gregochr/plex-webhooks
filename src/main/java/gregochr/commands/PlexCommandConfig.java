@@ -1,5 +1,8 @@
 package gregochr.commands;
 
+import gregochr.services.config.PropertiesUpdatedEvent;
+import org.springframework.context.event.EventListener;
+
 import java.util.Map;
 
 public class PlexCommandConfig {
@@ -13,5 +16,29 @@ public class PlexCommandConfig {
         if (mediaType == null) return false;
         PlexMediaTypeConfig config = configs.get(mediaType);
         return config != null && config.isEventEnabled(event);
+    }
+
+    public void updateMediaType(PlexMediaType mediaType, PlexMediaTypeConfig config) {
+        configs.put(mediaType, config);
+    }
+
+    @EventListener
+    public void onPropertiesUpdated(PropertiesUpdatedEvent event) {
+        Map<String, String> updates = event.getUpdatedProperties();
+        for (PlexMediaType mediaType : PlexMediaType.values()) {
+            String prefix = "plex." + mediaType.getType() + "-";
+            boolean hasUpdates = updates.keySet().stream().anyMatch(k -> k.startsWith(prefix));
+            if (hasUpdates) {
+                PlexMediaTypeConfig current = configs.getOrDefault(mediaType,
+                        new PlexMediaTypeConfig(false, false, false, false, false));
+                configs.put(mediaType, new PlexMediaTypeConfig(
+                        Boolean.parseBoolean(updates.getOrDefault(prefix + "play-enabled", String.valueOf(current.playEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(prefix + "resume-enabled", String.valueOf(current.resumeEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(prefix + "stop-enabled", String.valueOf(current.stopEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(prefix + "pause-enabled", String.valueOf(current.pauseEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(prefix + "scrobble-enabled", String.valueOf(current.scrobbleEnabled())))
+                ));
+            }
+        }
     }
 }

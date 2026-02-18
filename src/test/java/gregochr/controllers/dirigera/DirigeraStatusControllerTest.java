@@ -1,11 +1,12 @@
 package gregochr.controllers.dirigera;
 
+import gregochr.services.config.PropertiesUpdatedEvent;
 import gregochr.services.sse.SseService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,36 +25,27 @@ public class DirigeraStatusControllerTest {
     private SseService sseService;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         sseService = mock(SseService.class);
-        controller = new DirigeraStatusController();
-
-        Field sseField = DirigeraStatusController.class.getDeclaredField("sseService");
-        sseField.setAccessible(true);
-        sseField.set(controller, sseService);
+        controller = new DirigeraStatusController("192.168.255.254", sseService, 30000);
     }
 
-    private void setHubAddress(String address) throws Exception {
-        Field field = DirigeraStatusController.class.getDeclaredField("hubAddress");
-        field.setAccessible(true);
-        field.set(controller, address);
+    @AfterEach
+    public void tearDown() {
+        controller.destroy();
     }
 
     @DisplayName("getStatus returns hubAddress field")
     @Test
-    public void testGetStatusReturnsHubAddress() throws Exception {
-        setHubAddress("192.168.4.34");
-
+    public void testGetStatusReturnsHubAddress() {
         Map<String, Object> status = controller.getStatus();
 
-        assertEquals("192.168.4.34", status.get("hubAddress"));
+        assertEquals("192.168.255.254", status.get("hubAddress"));
     }
 
     @DisplayName("getStatus returns all expected fields")
     @Test
-    public void testGetStatusReturnsAllFields() throws Exception {
-        setHubAddress("192.168.4.34");
-
+    public void testGetStatusReturnsAllFields() {
         Map<String, Object> status = controller.getStatus();
 
         assertTrue(status.containsKey("hubAddress"));
@@ -64,9 +56,7 @@ public class DirigeraStatusControllerTest {
 
     @DisplayName("getStatus returns reachable false when hub is unreachable")
     @Test
-    public void testGetStatusUnreachable() throws Exception {
-        setHubAddress("192.168.255.254");
-
+    public void testGetStatusUnreachable() {
         Map<String, Object> status = controller.getStatus();
 
         assertFalse((Boolean) status.get("reachable"));
@@ -74,18 +64,18 @@ public class DirigeraStatusControllerTest {
 
     @DisplayName("getStatus returns reachable false for invalid address")
     @Test
-    public void testGetStatusInvalidAddress() throws Exception {
-        setHubAddress("not.a.real.host");
+    public void testGetStatusInvalidAddress() {
+        DirigeraStatusController invalidController = new DirigeraStatusController("not.a.real.host", sseService, 30000);
 
-        Map<String, Object> status = controller.getStatus();
+        Map<String, Object> status = invalidController.getStatus();
 
         assertFalse((Boolean) status.get("reachable"));
+        invalidController.destroy();
     }
 
     @DisplayName("broadcastStatus broadcasts when clients are connected")
     @Test
-    public void testBroadcastStatusWithClients() throws Exception {
-        setHubAddress("192.168.255.254");
+    public void testBroadcastStatusWithClients() {
         when(sseService.getClientCount()).thenReturn(1);
 
         controller.broadcastStatus();
@@ -95,12 +85,39 @@ public class DirigeraStatusControllerTest {
 
     @DisplayName("broadcastStatus skips broadcast when no clients are connected")
     @Test
-    public void testBroadcastStatusNoClients() throws Exception {
-        setHubAddress("192.168.255.254");
+    public void testBroadcastStatusNoClients() {
         when(sseService.getClientCount()).thenReturn(0);
 
         controller.broadcastStatus();
 
         verify(sseService, never()).broadcastDirigeraStatus(any());
+    }
+
+    @DisplayName("onPropertiesUpdated reschedules with new interval")
+    @Test
+    public void testOnPropertiesUpdatedReschedules() {
+        controller.init();
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "dirigera.status-interval", "60000"
+        ));
+
+        controller.onPropertiesUpdated(event);
+
+        // Verify no exception and broadcastStatus still works
+        when(sseService.getClientCount()).thenReturn(0);
+        controller.broadcastStatus();
+    }
+
+    @DisplayName("onPropertiesUpdated ignores unrelated keys")
+    @Test
+    public void testOnPropertiesUpdatedIgnoresUnrelatedKeys() {
+        controller.init();
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "sse.heartbeat-interval", "60000"
+        ));
+
+        controller.onPropertiesUpdated(event);
     }
 }

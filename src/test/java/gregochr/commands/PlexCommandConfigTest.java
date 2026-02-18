@@ -1,8 +1,10 @@
 package gregochr.commands;
 
+import gregochr.services.config.PropertiesUpdatedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -88,5 +90,52 @@ public class PlexCommandConfigTest {
         PlexCommandConfig config = new PlexCommandConfig(Map.of(PlexMediaType.MOVIE, ALL_ENABLED));
 
         assertFalse(config.isCommandEnabled(PlexEvent.PLAY, null));
+    }
+
+    @DisplayName("updateMediaType replaces config for a media type")
+    @Test
+    public void testUpdateMediaType() {
+        PlexCommandConfig config = new PlexCommandConfig(new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_ENABLED)));
+        assertTrue(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+
+        config.updateMediaType(PlexMediaType.MOVIE, ALL_DISABLED);
+
+        assertFalse(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("onPropertiesUpdated updates config from event")
+    @Test
+    public void testOnPropertiesUpdated() {
+        PlexCommandConfig config = new PlexCommandConfig(new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_ENABLED)));
+        assertTrue(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "plex.movie-play-enabled", "false",
+                "plex.movie-resume-enabled", "false",
+                "plex.movie-stop-enabled", "false",
+                "plex.movie-pause-enabled", "false",
+                "plex.movie-scrobble-enabled", "false"
+        ));
+        config.onPropertiesUpdated(event);
+
+        assertFalse(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+        assertFalse(config.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.MOVIE));
+        assertFalse(config.isCommandEnabled(PlexEvent.STOP, PlexMediaType.MOVIE));
+        assertFalse(config.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.MOVIE));
+        assertFalse(config.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("onPropertiesUpdated preserves unchanged fields")
+    @Test
+    public void testOnPropertiesUpdatedPreservesUnchanged() {
+        PlexCommandConfig config = new PlexCommandConfig(new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_ENABLED)));
+
+        PropertiesUpdatedEvent event = new PropertiesUpdatedEvent(this, Map.of(
+                "plex.movie-play-enabled", "false"
+        ));
+        config.onPropertiesUpdated(event);
+
+        assertFalse(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+        assertTrue(config.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.MOVIE));
     }
 }

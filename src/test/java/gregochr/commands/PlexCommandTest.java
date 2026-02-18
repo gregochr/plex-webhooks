@@ -2,6 +2,7 @@ package gregochr.commands;
 
 import gregochr.controllers.hue.HueSceneController;
 import gregochr.services.config.ConfigService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,12 +12,20 @@ import static org.mockito.Mockito.*;
 
 public class PlexCommandTest {
 
+    private HueSceneController hueSceneController;
+    private ConfigService configService;
+    private PlexCommandConfig plexCommandConfig;
+
+    @BeforeEach
+    public void setUp() {
+        hueSceneController = mock(HueSceneController.class);
+        configService = mock(ConfigService.class);
+        plexCommandConfig = mock(PlexCommandConfig.class);
+    }
+
     @DisplayName("Test Plex Play Movie Command")
     @Test
     public void testPlexPlayMovieCommand() {
-        HueSceneController hueSceneController  = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
@@ -26,24 +35,21 @@ public class PlexCommandTest {
         assertTrue(plexPlayCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).startMovieLightScene();
     }
+
     @DisplayName("Test Plex Play TV Show Command")
     @Test
     public void testPlexPlayTVShowCommand() {
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexPlayCommand.execute(null, configService, plexCommandConfig));
+        assertFalse(plexPlayCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
+
     @DisplayName("Test Plex Resume Movie Command")
     @Test
     public void testPlexResumeMovieCommand() {
-        HueSceneController hueSceneController  = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
@@ -53,24 +59,21 @@ public class PlexCommandTest {
         assertTrue(plexResumeCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).startMovieLightScene();
     }
+
     @DisplayName("Test Plex Resume TV Show Command")
     @Test
     public void testPlexResumeTVShowCommand() {
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexResumeCommand.execute(null, configService, plexCommandConfig));
+        assertFalse(plexResumeCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
+
     @DisplayName("Test Plex Stop Movie Command")
     @Test
     public void testPlexStopMovieCommand() {
-        HueSceneController hueSceneController  = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
@@ -80,24 +83,21 @@ public class PlexCommandTest {
         assertTrue(plexStopCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).stopMovieLightScene();
     }
+
     @DisplayName("Test Plex Stop TV Show Command")
     @Test
     public void testPlexStopTVShowCommand() {
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.STOP, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexStopCommand.execute(null, configService, plexCommandConfig));
+        assertFalse(plexStopCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
+
     @DisplayName("Test Plex Pause Movie Command")
     @Test
     public void testPlexPauseMovieCommand() {
-        HueSceneController hueSceneController  = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
@@ -107,24 +107,21 @@ public class PlexCommandTest {
         assertTrue(plexPauseCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).stopMovieLightScene();
     }
+
     @DisplayName("Test Plex Pause TV Show Command")
     @Test
     public void testPlexPauseTVShowCommand() {
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexPauseCommand.execute(null, configService, plexCommandConfig));
+        assertFalse(plexPauseCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
+
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
-        HueSceneController hueSceneController  = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
@@ -134,25 +131,21 @@ public class PlexCommandTest {
         assertTrue(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).stopMovieLightScene();
     }
+
     @DisplayName("Test Plex Scrobble TV Show Command")
     @Test
     public void testPlexScrobbleTVShowCommand() {
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.EPISODE)).thenReturn(false);
 
-        assertFalse(plexScrobbleCommand.execute(null, configService, plexCommandConfig));
+        assertFalse(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
 
     @DisplayName("Test Plex Play Movie Command returns false when command disabled by config")
     @Test
     public void testPlexPlayMovieCommandDisabledByConfig() {
-        HueSceneController hueSceneController = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
@@ -165,9 +158,6 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Play Movie Command skips Hue when disabled")
     @Test
     public void testPlexPlayMovieCommandSkipsHueWhenDisabled() {
-        HueSceneController hueSceneController = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
@@ -179,9 +169,6 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Stop Movie Command skips Hue when disabled")
     @Test
     public void testPlexStopMovieCommandSkipsHueWhenDisabled() {
-        HueSceneController hueSceneController = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
@@ -193,9 +180,6 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Pause Movie Command skips Hue when disabled")
     @Test
     public void testPlexPauseMovieCommandSkipsHueWhenDisabled() {
-        HueSceneController hueSceneController = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
@@ -207,9 +191,6 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Resume Movie Command skips Hue when disabled")
     @Test
     public void testPlexResumeMovieCommandSkipsHueWhenDisabled() {
-        HueSceneController hueSceneController = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
@@ -221,9 +202,6 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Scrobble Movie Command skips Hue when disabled")
     @Test
     public void testPlexScrobbleMovieCommandSkipsHueWhenDisabled() {
-        HueSceneController hueSceneController = mock(HueSceneController.class);
-        ConfigService configService = mock(ConfigService.class);
-        PlexCommandConfig plexCommandConfig = mock(PlexCommandConfig.class);
         PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);

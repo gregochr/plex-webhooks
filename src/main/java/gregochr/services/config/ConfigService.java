@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ConfigService {
-    private boolean hueIntegrationEnabled = true;
+    private volatile boolean hueIntegrationEnabled = true;
 
     public boolean isHueIntegrationEnabled() {
         return hueIntegrationEnabled;

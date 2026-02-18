@@ -14,7 +14,7 @@ public class LocationClient {
     private static final String POSTCODE_SERVICE_URL = "https://api.postcodes.io/postcodes/{postCode}";
 
     private final RestClient restClient;
-    private String postCode;
+    private volatile String postCode;
 
     public LocationClient(RestClient restClient, @Value("${postcode}") String postCode) {
         this.restClient = restClient;

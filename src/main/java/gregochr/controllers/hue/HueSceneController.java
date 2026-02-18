@@ -22,8 +22,8 @@ public class HueSceneController extends HueController {
     private static final int SCENE_TRANSITION_DURATION_10_SECONDS = 10000;
     private static final String RECALL_ACTIVE_BODY = "{\"recall\":{\"action\":\"active\", \"duration\":" + SCENE_TRANSITION_DURATION_10_SECONDS + "}}";
 
-    private String startScene;
-    private String stopScene;
+    private volatile String startScene;
+    private volatile String stopScene;
 
     public HueSceneController(
             @Value("${hue.hub-address}") String hubAddress,

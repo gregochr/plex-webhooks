@@ -76,7 +76,7 @@ public class DirigeraStatusController {
         );
     }
 
-    private boolean testConnection() {
+    boolean testConnection() {
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(hubAddress, PORT), TIMEOUT_MS);
             LOGGER.debug("DIRIGERA hub connection test: SUCCESS ({}:{})", hubAddress, PORT);

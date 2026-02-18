@@ -88,7 +88,7 @@ public class HueStatusController extends HueController {
         );
     }
 
-    private boolean testConnection() {
+    boolean testConnection() {
         try {
             LOGGER.debug("Testing Hue bridge connection: {}", hubId);
 

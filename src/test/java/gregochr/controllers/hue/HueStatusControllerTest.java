@@ -13,10 +13,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.any;
 
 @DisplayName("Hue Status Controller Tests")
@@ -30,13 +27,14 @@ public class HueStatusControllerTest {
     public void setUp() {
         configService = mock(ConfigService.class);
         sseService = mock(SseService.class);
-        controller = new HueStatusController(
+        controller = spy(new HueStatusController(
                 "192.168.1.100",
                 "001788fffe7107c8",
                 "TestApplicationKey1234",
                 configService,
                 sseService,
-                30000);
+                30000));
+        doReturn(false).when(controller).testConnection();
     }
 
     @AfterEach

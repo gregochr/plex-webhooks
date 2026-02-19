@@ -1,6 +1,6 @@
 package gregochr.controllers.hue;
 
-import gregochr.services.config.ConfigService;
+import gregochr.hue.client.HueBridgeClient;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -10,23 +10,24 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DisplayName("Hue Scene Controller Tests")
 public class HueSceneControllerTest {
 
     private HueSceneController controller;
+    private HueBridgeClient hueBridgeClient;
 
     @BeforeEach
     public void setUp() {
-        ConfigService configService = mock(ConfigService.class);
+        hueBridgeClient = mock(HueBridgeClient.class);
+        when(hueBridgeClient.activateScene(anyString())).thenReturn(false);
         controller = new HueSceneController(
-                "192.168.1.100",
-                "001788fffe7107c8",
-                "TestApplicationKey1234",
+                hueBridgeClient,
                 "test-start-scene-id",
-                "test-stop-scene-id",
-                configService);
+                "test-stop-scene-id");
     }
 
     @DisplayName("startMovieLightScene returns false when bridge is unreachable")

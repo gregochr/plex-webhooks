@@ -1,45 +1,33 @@
 package gregochr.controllers.hue;
 
-import gregochr.services.config.ConfigService;
+import gregochr.hue.client.HueBridgeClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClientException;
 
 @RestController
 @RequestMapping("/api/hue")
-public class HueResourceController extends HueController {
+public class HueResourceController {
     private static final Logger LOGGER = LogManager.getLogger(HueResourceController.class);
 
-    public HueResourceController(
-            @Value("${hue.hub-address}") String hubAddress,
-            @Value("${hue.hub-id}") String hubId,
-            @Value("${hue.application-key}") String applicationKey,
-            ConfigService configService) {
-        super(hubAddress, hubId, applicationKey, configService);
+    private final HueBridgeClient hueBridgeClient;
+
+    public HueResourceController(HueBridgeClient hueBridgeClient) {
+        this.hueBridgeClient = hueBridgeClient;
     }
 
     @GetMapping(value = "/resources", produces = "application/json")
     public ResponseEntity<String> getResources() {
-        try {
-            LOGGER.info("[ Fetching all Hue resources from hub: {} ]", hubId);
+        LOGGER.info("[ Fetching all Hue resources from hub: {} ]", hueBridgeClient.getHubId());
 
-            ResponseEntity<String> response = restClient
-                    .get()
-                    .uri("")
-                    .retrieve()
-                    .toEntity(String.class);
-
-            LOGGER.info("[ Hue resource response status: {} ]", response.getStatusCode());
-            return ResponseEntity.ok(response.getBody());
-        } catch (RestClientException e) {
-            LOGGER.warn("Hue resource fetch failed: {}", e.getMessage());
-            return ResponseEntity.status(503)
-                    .body("{\"error\": \"Hue bridge unreachable\"}");
+        String body = hueBridgeClient.getResources();
+        if (body != null) {
+            return ResponseEntity.ok(body);
         }
+        return ResponseEntity.status(503)
+                .body("{\"error\": \"Hue bridge unreachable\"}");
     }
 }

@@ -1,6 +1,6 @@
 package gregochr.controllers.hue;
 
-import gregochr.services.config.ConfigService;
+import gregochr.hue.client.HueBridgeClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,20 +10,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DisplayName("Hue Resource Controller Tests")
 public class HueResourceControllerTest {
 
     private HueResourceController controller;
+    private HueBridgeClient hueBridgeClient;
 
     @BeforeEach
     public void setUp() {
-        ConfigService configService = mock(ConfigService.class);
-        controller = new HueResourceController(
-                "192.168.1.100",
-                "001788fffe7107c8",
-                "TestApplicationKey1234",
-                configService);
+        hueBridgeClient = mock(HueBridgeClient.class);
+        when(hueBridgeClient.getHubId()).thenReturn("001788fffe7107c8");
+        when(hueBridgeClient.getResources()).thenReturn(null);
+        controller = new HueResourceController(hueBridgeClient);
     }
 
     @DisplayName("getResources returns 503 when bridge is unreachable")

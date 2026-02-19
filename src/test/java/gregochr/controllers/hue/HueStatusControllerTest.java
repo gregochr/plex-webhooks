@@ -1,5 +1,6 @@
 package gregochr.controllers.hue;
 
+import gregochr.hue.client.HueBridgeClient;
 import gregochr.services.config.ConfigService;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import gregochr.services.sse.SseService;
@@ -20,21 +21,21 @@ import static org.mockito.ArgumentMatchers.any;
 public class HueStatusControllerTest {
 
     private HueStatusController controller;
+    private HueBridgeClient hueBridgeClient;
     private ConfigService configService;
     private SseService sseService;
 
     @BeforeEach
     public void setUp() {
+        hueBridgeClient = mock(HueBridgeClient.class);
         configService = mock(ConfigService.class);
         sseService = mock(SseService.class);
-        controller = spy(new HueStatusController(
-                "192.168.1.100",
-                "001788fffe7107c8",
-                "TestApplicationKey1234",
-                configService,
-                sseService,
-                30000));
-        doReturn(false).when(controller).testConnection();
+        when(hueBridgeClient.getHubId()).thenReturn("001788fffe7107c8");
+        when(hueBridgeClient.getAppKey()).thenReturn("TestApplicationKey1234");
+        when(hueBridgeClient.testConnection()).thenReturn(false);
+        controller = new HueStatusController(hueBridgeClient, configService, sseService, 30000);
+        // inject hubAddress via reflection since @Value is not processed in unit tests
+        org.springframework.test.util.ReflectionTestUtils.setField(controller, "hubAddress", "192.168.1.100");
     }
 
     @AfterEach

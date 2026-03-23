@@ -30,7 +30,7 @@
         <findsecbugs.version>1.13.0</findsecbugs.version>
         <pitest.version>1.17.3</pitest.version>
         <pitest-junit5.version>1.2.1</pitest-junit5.version>
-        <owasp-dependency-check.version>12.1.0</owasp-dependency-check.version>
+        <owasp-dependency-check.version>12.2.0</owasp-dependency-check.version>
 
         <!-- Coverage threshold -->
         <jacoco.line.coverage.minimum>0.80</jacoco.line.coverage.minimum>

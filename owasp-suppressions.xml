@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    OWASP Dependency-Check suppressions.
+    Each suppression MUST include:
+      - <notes> explaining why it is suppressed
+      - expiry attribute (revisit date) where possible
+    Do not suppress without a documented justification.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <!--
+        Example entry (remove or replace with real suppressions):
+
+        <suppress until="2026-12-31Z">
+            <notes>CVE-XXXX-YYYY does not affect us because we do not use the vulnerable feature X.
+                   Tracked in GitHub issue #123. Review before expiry.</notes>
+            <packageUrl regex="true">^pkg:maven/some\.group/some-artifact@.*$</packageUrl>
+            <cve>CVE-XXXX-YYYY</cve>
+        </suppress>
+    -->
+
+</suppressions>

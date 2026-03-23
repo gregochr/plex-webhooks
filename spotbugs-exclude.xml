@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SpotBugs exclusion filter.
+    Add entries here with a documented justification — do not suppress without reason.
+-->
+<FindBugsFilter
+        xmlns="https://github.com/spotbugs/filter/3.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0
+            https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+    <!--
+        Trust-all SSL is intentional for the Philips Hue Bridge, which uses a self-signed
+        certificate on the local LAN. This code lives in hue-java-client (boundary layer) and is
+        NOT in this module, but the filter is kept here as documentation of the deliberate
+        trade-off. Remove once hue-java-client ships proper cert pinning.
+    -->
+    <Match>
+        <Bug pattern="WEAK_TRUST_MANAGER"/>
+        <Class name="~.*HueBridgeClient.*"/>
+    </Match>
+
+    <!--
+        HTTP Basic over plain HTTP is the security model for the local-network admin endpoint.
+        This is accepted risk for a home-network appliance — documented in SecurityConfig.
+    -->
+    <Match>
+        <Bug pattern="INSECURE_COOKIE"/>
+    </Match>
+
+</FindBugsFilter>

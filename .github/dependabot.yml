@@ -1,0 +1,34 @@
+version: 2
+updates:
+
+  # Maven dependencies
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      # Keep Spring Boot deps together — they must be upgraded as a unit
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+          - "org.springframework.security:*"
+          - "org.springframework:*"
+      # Keep logging together
+      logging:
+        patterns:
+          - "org.apache.logging.log4j:*"
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions

@@ -130,7 +130,7 @@ jobs:
 
       # Cache the NVD database between runs — the download is ~200 MB and slow
       - name: Cache NVD database
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: nvd-${{ github.run_id }}

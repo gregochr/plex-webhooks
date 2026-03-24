@@ -8,7 +8,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 public class PlexCommandTest {
 
@@ -50,7 +53,8 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Resume Movie Command")
     @Test
     public void testPlexResumeMovieCommand() {
-        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
+        PlexCommand plexResumeCommand =
+                new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(hueSceneController.startMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
@@ -63,7 +67,8 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Resume TV Show Command")
     @Test
     public void testPlexResumeTVShowCommand() {
-        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.EPISODE);
+        PlexCommand plexResumeCommand =
+                new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.EPISODE)).thenReturn(false);
@@ -111,7 +116,8 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Pause TV Show Command")
     @Test
     public void testPlexPauseTVShowCommand() {
-        PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
+        PlexCommand plexPauseCommand =
+                new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.EPISODE)).thenReturn(false);
@@ -122,7 +128,8 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
-        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
+        PlexCommand plexScrobbleCommand =
+                new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(hueSceneController.stopMovieLightScene()).thenReturn(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
@@ -135,7 +142,8 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Scrobble TV Show Command")
     @Test
     public void testPlexScrobbleTVShowCommand() {
-        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
+        PlexCommand plexScrobbleCommand =
+                new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.EPISODE)).thenReturn(false);
@@ -191,7 +199,8 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Resume Movie Command skips Hue when disabled")
     @Test
     public void testPlexResumeMovieCommandSkipsHueWhenDisabled() {
-        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
+        PlexCommand plexResumeCommand =
+                new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 
@@ -202,7 +211,8 @@ public class PlexCommandTest {
     @DisplayName("Test Plex Scrobble Movie Command skips Hue when disabled")
     @Test
     public void testPlexScrobbleMovieCommandSkipsHueWhenDisabled() {
-        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
+        PlexCommand plexScrobbleCommand =
+                new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         when(configService.isHueIntegrationEnabled()).thenReturn(false);
 

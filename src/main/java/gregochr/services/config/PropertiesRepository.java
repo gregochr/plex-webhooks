@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractMap;
@@ -33,7 +34,8 @@ public class PropertiesRepository {
         List<Map.Entry<String, String>> currentEntries = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new ClassPathResource("application.properties").getInputStream()))) {
+                new InputStreamReader(
+                        new ClassPathResource("application.properties").getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String trimmed = line.trim();
@@ -68,7 +70,8 @@ public class PropertiesRepository {
     public Map<String, Boolean> readBooleanProperties(String prefix) {
         Map<String, Boolean> result = new LinkedHashMap<>();
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new ClassPathResource("application.properties").getInputStream()))) {
+                new InputStreamReader(
+                        new ClassPathResource("application.properties").getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String trimmed = line.trim();

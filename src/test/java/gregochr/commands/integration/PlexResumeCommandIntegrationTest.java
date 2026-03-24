@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-public class PlexResumeCommandIntegrationTest {
+public class PlexResumeCommandIntegrationTest extends PlexCommandIntegrationTestBase {
 
     @Autowired
     private HueSceneController hueSceneController;
@@ -31,7 +31,8 @@ public class PlexResumeCommandIntegrationTest {
     @DisplayName("Test Plex Resume Movie Command")
     @Test
     public void testPlexResumeMovieCommand() {
-        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
+        PlexCommand plexResumeCommand =
+                new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         assertTrue(plexResumeCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
@@ -40,7 +41,8 @@ public class PlexResumeCommandIntegrationTest {
     @DisplayName("Test Plex Resume TV Show Command")
     @Test
     public void testPlexResumeTVShowCommand() {
-        PlexCommand plexResumeCommand = new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.EPISODE);
+        PlexCommand plexResumeCommand =
+                new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         assertFalse(plexResumeCommand.execute(hueSceneController, configService, plexCommandConfig));
     }

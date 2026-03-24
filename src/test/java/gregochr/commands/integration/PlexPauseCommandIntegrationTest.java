@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-public class PlexPauseCommandIntegrationTest {
+public class PlexPauseCommandIntegrationTest extends PlexCommandIntegrationTestBase {
 
     @Autowired
     private HueSceneController hueSceneController;
@@ -40,7 +40,8 @@ public class PlexPauseCommandIntegrationTest {
     @DisplayName("Test Plex Pause TV Show Command")
     @Test
     public void testPlexStopTVShowCommand() {
-        PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
+        PlexCommand plexPauseCommand =
+                new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         assertFalse(plexPauseCommand.execute(hueSceneController, configService, plexCommandConfig));
     }

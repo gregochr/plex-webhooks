@@ -95,7 +95,8 @@ public class ConfigController {
     }
 
     @PutMapping("/properties")
-    public ResponseEntity<Map<String, String>> saveProperties(@RequestBody Map<String, String> body) throws IOException {
+    public ResponseEntity<Map<String, String>> saveProperties(
+            @RequestBody Map<String, String> body) throws IOException {
         Map<String, String> updates = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : body.entrySet()) {
             if (configurationViewService.getValidPropertyKeys().contains(entry.getKey())) {

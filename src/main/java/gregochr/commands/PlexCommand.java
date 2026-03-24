@@ -57,7 +57,8 @@ public class PlexCommand {
                 this.mediaType != null ? this.mediaType.getType() : "unknown");
     }
 
-    public boolean execute(HueSceneController hueSceneController, ConfigService configService, PlexCommandConfig plexCommandConfig) {
+    public boolean execute(HueSceneController hueSceneController, ConfigService configService,
+            PlexCommandConfig plexCommandConfig) {
         if (!configService.isHueIntegrationEnabled()) {
             LOGGER.info("[ Hue integration disabled, skipping ]");
             return false;

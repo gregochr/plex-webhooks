@@ -52,7 +52,8 @@ public class SseService {
         // Close any existing connection for this client (reconnect scenario)
         SseClient existingClient = this.clients.remove(clientId);
         if (existingClient != null) {
-            LOGGER.info("SSE client reconnecting: {} ({}) from {}", clientId, existingClient.getBrowserInfo(), existingClient.ipAddress());
+            LOGGER.info("SSE client reconnecting: {} ({}) from {}",
+                    clientId, existingClient.getBrowserInfo(), existingClient.ipAddress());
             existingClient.emitter().complete();
         }
 
@@ -66,7 +67,8 @@ public class SseService {
 
         SseClient client = new SseClient(clientId, emitter, userAgent, ipAddress, Instant.now());
         clients.put(clientId, client);
-        LOGGER.info("SSE client connected: {} ({}) from {}. Total clients: {}", clientId, client.getBrowserInfo(), ipAddress, clients.size());
+        LOGGER.info("SSE client connected: {} ({}) from {}. Total clients: {}",
+                clientId, client.getBrowserInfo(), ipAddress, clients.size());
 
         // Send initial event to trigger browser's onopen
         try {

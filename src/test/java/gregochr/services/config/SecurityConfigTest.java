@@ -52,8 +52,10 @@ public class SecurityConfigTest {
     @DisplayName("POST /plex is accessible without authentication")
     @Test
     public void testPlexWebhookNoAuth() throws Exception {
+        String payload = "{\"event\":\"media.play\","
+                + "\"Metadata\":{\"type\":\"movie\",\"title\":\"Test\",\"duration\":1000}}";
         mockMvc.perform(multipart("/plex")
-                        .param("payload", "{\"event\":\"media.play\",\"Metadata\":{\"type\":\"movie\",\"title\":\"Test\",\"duration\":1000}}"))
+                        .param("payload", payload))
                 .andExpect(status().isOk());
     }
 

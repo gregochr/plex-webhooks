@@ -13,10 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-public class PlexScrobbleCommandIntegrationTest {
+public class PlexScrobbleCommandIntegrationTest extends PlexCommandIntegrationTestBase {
 
     @Autowired
     private HueSceneController hueSceneController;
@@ -31,7 +30,8 @@ public class PlexScrobbleCommandIntegrationTest {
     @DisplayName("Test Plex Scrobble Movie Command")
     @Test
     public void testPlexScrobbleMovieCommand() {
-        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
+        PlexCommand plexScrobbleCommand =
+                new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
         assertFalse(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
     }
@@ -40,7 +40,8 @@ public class PlexScrobbleCommandIntegrationTest {
     @DisplayName("Test Plex Scrobble TV Show Command")
     @Test
     public void testPlexScrobbleTVShowCommand() {
-        PlexCommand plexScrobbleCommand = new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
+        PlexCommand plexScrobbleCommand =
+                new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.EPISODE);
 
         assertFalse(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
     }

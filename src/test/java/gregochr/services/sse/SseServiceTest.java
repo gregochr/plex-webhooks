@@ -30,7 +30,8 @@ public class SseServiceTest {
         sseService.destroy();
     }
 
-    private static final String TEST_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
+    private static final String TEST_USER_AGENT =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
     private static final String TEST_IP_ADDRESS = "192.168.1.100";
 
     @DisplayName("Subscribe returns a non-null SseEmitter")

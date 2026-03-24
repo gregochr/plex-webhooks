@@ -21,6 +21,16 @@
     </Match>
 
     <!--
+        CSRF is intentionally disabled. CineLight is a stateless, single-user home-network
+        appliance that uses HTTP Basic auth. There are no browser session cookies so CSRF is
+        not a threat vector. See SecurityConfig.securityFilterChain().
+    -->
+    <Match>
+        <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
+        <Class name="gregochr.services.config.SecurityConfig"/>
+    </Match>
+
+    <!--
         HTTP Basic over plain HTTP is the security model for the local-network admin endpoint.
         This is accepted risk for a home-network appliance — documented in SecurityConfig.
     -->

@@ -1,5 +1,6 @@
 package gregochr.services.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,11 @@ public class SecurityConfig {
     @Value("${app.admin.password}")
     private String adminPassword;
 
+    @SuppressFBWarnings(
+            value = "SPRING_CSRF_PROTECTION_DISABLED",
+            justification = "CineLight is a stateless, single-user home-network appliance using HTTP Basic auth. "
+                    + "There are no browser session cookies, so CSRF is not a threat vector here."
+    )
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -37,7 +43,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/debug/**").authenticated()
                 .anyRequest().permitAll()
             )
-            .httpBasic(Customizer.withDefaults());
+                .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }

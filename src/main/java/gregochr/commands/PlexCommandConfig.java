@@ -13,7 +13,9 @@ public class PlexCommandConfig {
     }
 
     public boolean isCommandEnabled(PlexEvent event, PlexMediaType mediaType) {
-        if (mediaType == null) return false;
+        if (mediaType == null) {
+            return false;
+        }
         PlexMediaTypeConfig config = configs.get(mediaType);
         return config != null && config.isEventEnabled(event);
     }
@@ -32,11 +34,16 @@ public class PlexCommandConfig {
                 PlexMediaTypeConfig current = configs.getOrDefault(mediaType,
                         new PlexMediaTypeConfig(false, false, false, false, false));
                 configs.put(mediaType, new PlexMediaTypeConfig(
-                        Boolean.parseBoolean(updates.getOrDefault(prefix + "play-enabled", String.valueOf(current.playEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(prefix + "resume-enabled", String.valueOf(current.resumeEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(prefix + "stop-enabled", String.valueOf(current.stopEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(prefix + "pause-enabled", String.valueOf(current.pauseEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(prefix + "scrobble-enabled", String.valueOf(current.scrobbleEnabled())))
+                        Boolean.parseBoolean(updates.getOrDefault(
+                                prefix + "play-enabled", String.valueOf(current.playEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(
+                                prefix + "resume-enabled", String.valueOf(current.resumeEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(
+                                prefix + "stop-enabled", String.valueOf(current.stopEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(
+                                prefix + "pause-enabled", String.valueOf(current.pauseEnabled()))),
+                        Boolean.parseBoolean(updates.getOrDefault(
+                                prefix + "scrobble-enabled", String.valueOf(current.scrobbleEnabled())))
                 ));
             }
         }

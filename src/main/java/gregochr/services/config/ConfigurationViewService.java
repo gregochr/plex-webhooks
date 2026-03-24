@@ -13,7 +13,8 @@ public class ConfigurationViewService {
 
     private static final Set<String> VALID_MEDIA_TYPES = Set.of("movie", "episode", "clip");
     private static final Set<String> VALID_SCENE_KEYS = Set.of("hue.start-scene", "hue.stop-scene");
-    private static final Set<String> VALID_PROPERTY_KEYS = Set.of("sse.heartbeat-interval", "hue.status-interval", "dirigera.status-interval");
+    private static final Set<String> VALID_PROPERTY_KEYS =
+            Set.of("sse.heartbeat-interval", "hue.status-interval", "dirigera.status-interval");
 
     private final PropertiesRepository repository;
     private final ConfigurationViewFormatter formatter;

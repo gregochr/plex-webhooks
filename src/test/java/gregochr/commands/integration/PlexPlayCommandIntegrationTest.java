@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-public class PlexPlayCommandIntegrationTest {
+public class PlexPlayCommandIntegrationTest extends PlexCommandIntegrationTestBase {
 
     @Autowired
     private HueSceneController hueSceneController;

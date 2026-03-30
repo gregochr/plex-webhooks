@@ -29,7 +29,7 @@
         <spotbugs.version>4.9.3</spotbugs.version>
         <findsecbugs.version>1.13.0</findsecbugs.version>
         <pitest.version>1.17.3</pitest.version>
-        <pitest-junit5.version>1.2.1</pitest-junit5.version>
+        <pitest-junit5.version>1.2.3</pitest-junit5.version>
         <owasp-dependency-check.version>12.1.0</owasp-dependency-check.version>
 
         <!-- Coverage threshold -->

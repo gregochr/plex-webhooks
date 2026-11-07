@@ -145,8 +145,8 @@ cancelled):
 - `CLAUDE.md`: one line saying that releases are run by the owner with `./release.sh` and that sessions never
   tag.
 - `AGENTS.md`: the deploy invariants. The settings file lives outside the image, the `container` health group
-  excludes third parties, `/actuator/**` is denied except health, and nothing on the host clones the repo (the runner checks out the tag), so nothing on the
-  host clones it.
+  excludes third parties, `/actuator/**` is denied except health, and nothing on the host clones the repo (the
+  runner checks out the tag).
 
 ### Owner actions for D1 (before the first release)
 

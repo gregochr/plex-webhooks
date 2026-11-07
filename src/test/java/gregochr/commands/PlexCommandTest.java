@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -33,7 +35,7 @@ public class PlexCommandTest {
     public void testPlexPlayMovieCommand() {
         PlexCommand plexPlayCommand = new PlexCommand(PlexEvent.PLAY, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        when(hueSceneController.startMovieLightScene()).thenReturn(true);
+        when(hueSceneController.startMovieLightScene()).thenReturn(Optional.of("start-scene"));
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE)).thenReturn(true);
 
@@ -58,7 +60,7 @@ public class PlexCommandTest {
         PlexCommand plexResumeCommand =
                 new PlexCommand(PlexEvent.RESUME, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        when(hueSceneController.startMovieLightScene()).thenReturn(true);
+        when(hueSceneController.startMovieLightScene()).thenReturn(Optional.of("start-scene"));
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.RESUME, PlexMediaType.MOVIE)).thenReturn(true);
 
@@ -83,7 +85,7 @@ public class PlexCommandTest {
     public void testPlexStopMovieCommand() {
         PlexCommand plexStopCommand = new PlexCommand(PlexEvent.STOP, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        when(hueSceneController.stopMovieLightScene()).thenReturn(true);
+        when(hueSceneController.stopMovieLightScene()).thenReturn(Optional.of("stop-scene"));
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.STOP, PlexMediaType.MOVIE)).thenReturn(true);
 
@@ -107,7 +109,7 @@ public class PlexCommandTest {
     public void testPlexPauseMovieCommand() {
         PlexCommand plexPauseCommand = new PlexCommand(PlexEvent.PAUSE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        when(hueSceneController.stopMovieLightScene()).thenReturn(true);
+        when(hueSceneController.stopMovieLightScene()).thenReturn(Optional.of("stop-scene"));
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.MOVIE)).thenReturn(true);
 
@@ -133,7 +135,7 @@ public class PlexCommandTest {
         PlexCommand plexScrobbleCommand =
                 new PlexCommand(PlexEvent.SCROBBLE, "Good Will Hunting", 123, PlexMediaType.MOVIE);
 
-        when(hueSceneController.stopMovieLightScene()).thenReturn(true);
+        when(hueSceneController.stopMovieLightScene()).thenReturn(Optional.of("stop-scene"));
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.MOVIE)).thenReturn(true);
 
@@ -261,15 +263,14 @@ public class PlexCommandTest {
         verifyNoMoreInteractions(hueSceneController, plexCommandConfig);
     }
 
-    @DisplayName("A command with no media type is skipped as disabled")
+    @DisplayName("A command with no media type is skipped without consulting the per-type config")
     @Test
     public void testNoMediaTypeSkipped() {
         PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Heat", 1, null);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
-        when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, null)).thenReturn(false);
 
         assertFalse(command.execute(hueSceneController, configService, plexCommandConfig));
-        verifyNoMoreInteractions(hueSceneController);
+        verifyNoMoreInteractions(hueSceneController, plexCommandConfig);
     }
 
     @DisplayName("When Hue integration is off, the per-type config is not consulted")
@@ -289,7 +290,7 @@ public class PlexCommandTest {
         PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Heat", 1, PlexMediaType.MOVIE);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
         when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE)).thenReturn(true);
-        when(hueSceneController.startMovieLightScene()).thenReturn(false);
+        when(hueSceneController.startMovieLightScene()).thenReturn(Optional.empty());
 
         assertFalse(command.execute(hueSceneController, configService, plexCommandConfig));
         verify(hueSceneController).startMovieLightScene();
@@ -305,5 +306,92 @@ public class PlexCommandTest {
 
         assertFalse(plexScrobbleCommand.execute(hueSceneController, configService, plexCommandConfig));
         verifyNoMoreInteractions(hueSceneController);
+    }
+
+    @DisplayName("run reports SCENE_APPLIED with the scene id the Hue path returned")
+    @Test
+    public void testRunSceneApplied() {
+        PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Heat", 1, PlexMediaType.MOVIE);
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE)).thenReturn(true);
+        when(hueSceneController.startMovieLightScene()).thenReturn(Optional.of("start-scene"));
+
+        assertEquals(PlexOutcome.applied("start-scene"),
+                command.run(hueSceneController, configService, plexCommandConfig));
+    }
+
+    @DisplayName("run reports FAILED, with no scene id, when the bridge does not activate the scene")
+    @Test
+    public void testRunFailed() {
+        PlexCommand command = new PlexCommand(PlexEvent.STOP, "Heat", 1, PlexMediaType.MOVIE);
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.STOP, PlexMediaType.MOVIE)).thenReturn(true);
+        when(hueSceneController.stopMovieLightScene()).thenReturn(Optional.empty());
+
+        assertEquals(PlexOutcome.of(PlexOutcome.Kind.FAILED),
+                command.run(hueSceneController, configService, plexCommandConfig));
+    }
+
+    @DisplayName("run reports IGNORED_RULE_OFF when the rule for the event and type is off")
+    @Test
+    public void testRunRuleOff() {
+        PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Heat", 1, PlexMediaType.EPISODE);
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+        when(plexCommandConfig.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.EPISODE)).thenReturn(false);
+
+        assertEquals(PlexOutcome.Kind.IGNORED_RULE_OFF,
+                command.run(hueSceneController, configService, plexCommandConfig).kind());
+        verifyNoMoreInteractions(hueSceneController);
+    }
+
+    @DisplayName("run reports IGNORED_HUE_DISABLED when Hue integration is off")
+    @Test
+    public void testRunHueDisabled() {
+        PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Heat", 1, PlexMediaType.MOVIE);
+        when(configService.isHueIntegrationEnabled()).thenReturn(false);
+
+        assertEquals(PlexOutcome.Kind.IGNORED_HUE_DISABLED,
+                command.run(hueSceneController, configService, plexCommandConfig).kind());
+    }
+
+    @DisplayName("run reports IGNORED_UNKNOWN_TYPE, not rule off, for a recognised event with no media type")
+    @Test
+    public void testRunUnknownType() {
+        PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Heat", 1, null);
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+
+        assertEquals(PlexOutcome.Kind.IGNORED_UNKNOWN_TYPE,
+                command.run(hueSceneController, configService, plexCommandConfig).kind());
+        verifyNoMoreInteractions(hueSceneController, plexCommandConfig);
+    }
+
+    @DisplayName("run reports IGNORED_UNSUPPORTED for an unrecognised event")
+    @Test
+    public void testRunUnsupported() {
+        PlexCommand command = new PlexCommand("media.rate", PlexMediaType.MOVIE);
+        when(configService.isHueIntegrationEnabled()).thenReturn(true);
+
+        assertEquals(PlexOutcome.Kind.IGNORED_UNSUPPORTED,
+                command.run(hueSceneController, configService, plexCommandConfig).kind());
+    }
+
+    @DisplayName("An unrecognised event is reported unsupported even when Hue integration is off")
+    @Test
+    public void testRunUnsupportedWinsOverHueDisabled() {
+        PlexCommand command = new PlexCommand("media.rate", PlexMediaType.MOVIE);
+        when(configService.isHueIntegrationEnabled()).thenReturn(false);
+
+        assertEquals(PlexOutcome.Kind.IGNORED_UNSUPPORTED,
+                command.run(hueSceneController, configService, plexCommandConfig).kind());
+        verifyNoMoreInteractions(hueSceneController, plexCommandConfig);
+    }
+
+    @DisplayName("PlexOutcome applied carries the scene id; any other outcome carries none and is not applied")
+    @Test
+    public void testOutcomeFactories() {
+        assertEquals("scene-1", PlexOutcome.applied("scene-1").sceneId());
+        assertTrue(PlexOutcome.applied("scene-1").isApplied());
+        assertNull(PlexOutcome.of(PlexOutcome.Kind.FAILED).sceneId());
+        assertFalse(PlexOutcome.of(PlexOutcome.Kind.FAILED).isApplied());
     }
 }

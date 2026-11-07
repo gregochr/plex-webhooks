@@ -1,0 +1,42 @@
+{
+  "errors": [],
+  "data": [
+    {
+      "type": "zone",
+      "id": "zone-downstairs",
+      "metadata": {"name": "Downstairs"}
+    },
+    {
+      "type": "scene",
+      "id": "scene-zone",
+      "metadata": {"name": "Evening"},
+      "group": {"rid": "zone-downstairs", "rtype": "zone"},
+      "actions": [
+        {
+          "target": {"rid": "light-1", "rtype": "light"},
+          "action": {"on": {"on": true}, "dimming": {"brightness": 33.4}}
+        },
+        {
+          "target": {"rid": "light-2", "rtype": "light"},
+          "action": {"on": {"on": true}, "dimming": {"brightness": 33.4}}
+        },
+        {
+          "target": {"rid": "light-3", "rtype": "light"},
+          "action": {"on": {"on": true}, "dimming": {"brightness": 34.0}}
+        }
+      ]
+    },
+    {
+      "type": "scene",
+      "id": "scene-orphan",
+      "metadata": {"name": "Orphan"},
+      "group": {"rid": "room-missing", "rtype": "room"},
+      "actions": []
+    },
+    {
+      "type": "scene",
+      "id": "scene-no-group",
+      "metadata": {"name": "No group"}
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 package gregochr.controllers;
 
+import gregochr.services.config.ClientConfig;
+import gregochr.services.config.ClientConfigService;
 import gregochr.services.config.ConfigService;
 import gregochr.services.config.ConfigurationViewService;
 import gregochr.services.sse.SseService;
@@ -22,27 +24,34 @@ public class ConfigController {
     private final ConfigService configService;
     private final SseService sseService;
     private final ConfigurationViewService configurationViewService;
+    private final ClientConfigService clientConfigService;
 
     public ConfigController(ConfigService configService, SseService sseService,
-                            ConfigurationViewService configurationViewService) {
+                            ConfigurationViewService configurationViewService,
+                            ClientConfigService clientConfigService) {
         this.configService = configService;
         this.sseService = sseService;
         this.configurationViewService = configurationViewService;
+        this.clientConfigService = clientConfigService;
     }
 
+    /** The dashboard configuration; the same shape the {@code config} SSE event carries. Credential-free. */
     @GetMapping
-    public Map<String, Object> getConfig() {
-        return Map.of("hueIntegrationEnabled", configService.isHueIntegrationEnabled());
+    public ClientConfig getConfig() {
+        return clientConfigService.snapshot();
     }
 
     @PutMapping("/hue-enabled")
-    public Map<String, Object> setHueEnabled(@RequestBody Map<String, Boolean> body) {
+    public ClientConfig setHueEnabled(@RequestBody Map<String, Boolean> body) {
         boolean enabled = body.getOrDefault("enabled", true);
         configService.setHueIntegrationEnabled(enabled);
 
-        Map<String, Object> config = Map.of("hueIntegrationEnabled", configService.isHueIntegrationEnabled());
-        sseService.broadcastConfig(config);
+        return broadcastConfig();
+    }
 
+    private ClientConfig broadcastConfig() {
+        ClientConfig config = clientConfigService.snapshot();
+        sseService.broadcastConfig(config);
         return config;
     }
 
@@ -72,6 +81,7 @@ public class ConfigController {
         }
 
         configurationViewService.saveProperties(updates);
+        broadcastConfig();
 
         return ResponseEntity.ok(body);
     }
@@ -90,6 +100,7 @@ public class ConfigController {
         }
 
         configurationViewService.saveProperties(Map.of(key, sceneId));
+        broadcastConfig();
 
         return ResponseEntity.ok(Map.of("key", key, "sceneId", sceneId));
     }

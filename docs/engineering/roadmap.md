@@ -25,10 +25,4 @@ future Apple TV adapter both publish to it; the Hue controller subscribes.
 
 ## React UI rewrite
 
-Replace the Thymeleaf dashboard with a standalone React SPA.
-
-- The REST API (`/api/**`) and SSE (`/api/events`) stay unchanged; the React app is a pure consumer.
-- Served as static assets by Spring Boot, or a separate dev server with a proxy.
-- React Query for server state, local state for UI; real-time updates from the existing SSE stream.
-- When it lands, port goldenhour's frontend gates (Vitest coverage floor, changed-lines coverage, `npm audit`,
-  Playwright smoke).
+Planned in detail, with the owner's decisions, in `react-ui-plan.md` (2026-11-07).

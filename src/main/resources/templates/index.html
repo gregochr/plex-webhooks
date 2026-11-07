@@ -1349,19 +1349,27 @@
             events.unshift({ command, timestamp: data.timestamp });
             if (events.length > 50) events.pop();
 
-            const eventHtml = events.map(e => `
-                <div class="event-item">
-                    <span class="event-type">${getEventIcon(e.command.event)} ${e.command.event || 'unknown'}</span>
-                    <div class="event-title">${e.command.title || 'Unknown Title'}</div>
-                    <div class="event-time">
-                        ${formatDuration(e.command.duration)}
-                        &middot;
-                        ${new Date(e.timestamp || Date.now()).toLocaleTimeString()}
-                    </div>
-                </div>
-            `).join('');
+            // Every server-supplied string (event name, title) goes in through textContent, never innerHTML.
+            eventList.replaceChildren(...events.map(e => {
+                const item = document.createElement('div');
+                item.className = 'event-item';
 
-            eventList.innerHTML = eventHtml;
+                const type = document.createElement('span');
+                type.className = 'event-type';
+                type.textContent = getEventIcon(e.command.event) + ' ' + (e.command.event || 'unknown');
+
+                const title = document.createElement('div');
+                title.className = 'event-title';
+                title.textContent = e.command.title || 'Unknown Title';
+
+                const time = document.createElement('div');
+                time.className = 'event-time';
+                time.textContent = formatDuration(e.command.duration) + ' \u00b7 '
+                    + new Date(e.timestamp || Date.now()).toLocaleTimeString();
+
+                item.append(type, title, time);
+                return item;
+            }));
         }
 
         function showToast(data) {
@@ -1665,6 +1673,23 @@
             }
         }
 
+        // Resource types come from the bridge, so they are set as properties (text), never spliced into markup.
+        function buildResourceTypeRadio(id, value, label, checked) {
+            const fragment = document.createDocumentFragment();
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.id = id;
+            input.name = 'hue-resource-type';
+            input.value = value;
+            input.checked = checked;
+            input.addEventListener('change', applyHueResourceFilter);
+            const labelEl = document.createElement('label');
+            labelEl.htmlFor = id;
+            labelEl.textContent = label;
+            fragment.append(input, labelEl);
+            return fragment;
+        }
+
         function renderHueResourceFilter(data) {
             const container = document.getElementById('hue-resource-type-filter');
             container.innerHTML = '';
@@ -1672,8 +1697,7 @@
 
             const allItem = document.createElement('div');
             allItem.className = 'radio-item';
-            allItem.innerHTML = '<input type="radio" id="hue-rt-all" name="hue-resource-type" value="all" checked><label for="hue-rt-all">All</label>';
-            allItem.querySelector('input').addEventListener('change', applyHueResourceFilter);
+            allItem.appendChild(buildResourceTypeRadio('hue-rt-all', 'all', 'All', true));
             container.appendChild(allItem);
 
             types.forEach(type => {
@@ -1681,8 +1705,7 @@
                 item.className = 'radio-item';
                 const id = 'hue-rt-' + type;
                 const label = type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                item.innerHTML = '<input type="radio" id="' + id + '" name="hue-resource-type" value="' + type + '"><label for="' + id + '">' + label + '</label>';
-                item.querySelector('input').addEventListener('change', applyHueResourceFilter);
+                item.appendChild(buildResourceTypeRadio(id, type, label, false));
                 container.appendChild(item);
             });
 

@@ -1,0 +1,53 @@
+{
+  "event": "media.play",
+  "user": true,
+  "owner": true,
+  "Account": {
+    "id": 1,
+    "thumb": "https://plex.tv/users/0123456789abcdef/avatar?c=1700000000",
+    "title": "alice"
+  },
+  "Server": {
+    "title": "Home Plex",
+    "uuid": "9f8e7d6c5b4a39281706f5e4d3c2b1a0f9e8d7c6"
+  },
+  "Player": {
+    "local": true,
+    "publicAddress": "203.0.113.42",
+    "title": "Living Room TV",
+    "uuid": "abcdef0123456789-player-uuid"
+  },
+  "Metadata": {
+    "librarySectionType": "show",
+    "ratingKey": "51234",
+    "key": "/library/metadata/51234",
+    "parentRatingKey": "51200",
+    "grandparentRatingKey": "51100",
+    "guid": "plex://episode/5d9c0867f4c2b7001f1b5f3a",
+    "parentGuid": "plex://season/5d9c0867f4c2b7001f1b5f3b",
+    "grandparentGuid": "plex://show/5d9c0867f4c2b7001f1b5f3c",
+    "type": "episode",
+    "title": "Cold Open",
+    "grandparentKey": "/library/metadata/51100",
+    "parentKey": "/library/metadata/51200",
+    "librarySectionTitle": "TV Shows",
+    "librarySectionID": 2,
+    "librarySectionKey": "/library/sections/2",
+    "grandparentTitle": "Slow Horses",
+    "parentTitle": "Season 4",
+    "summary": "A long synopsis of the episode.",
+    "index": 2,
+    "parentIndex": 4,
+    "year": 2025,
+    "thumb": "/library/metadata/51234/thumb/1700000000",
+    "parentThumb": "/library/metadata/51200/thumb/1700000000",
+    "grandparentThumb": "/library/metadata/51100/thumb/1700000000",
+    "grandparentArt": "/library/metadata/51100/art/1700000000",
+    "duration": 2700000,
+    "viewOffset": 123000,
+    "addedAt": 1700000000,
+    "updatedAt": 1700000100,
+    "Guid": [{"id": "imdb://tt1234567"}, {"id": "tvdb://987654"}],
+    "Role": [{"tag": "Gary Oldman"}]
+  }
+}

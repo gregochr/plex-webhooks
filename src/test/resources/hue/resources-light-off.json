@@ -1,0 +1,38 @@
+{
+  "errors": [],
+  "data": [
+    {
+      "type": "room",
+      "id": "room-den",
+      "metadata": {"name": "Den"}
+    },
+    {
+      "type": "scene",
+      "id": "scene-half-off",
+      "metadata": {"name": "Half off"},
+      "group": {"rid": "room-den", "rtype": "room"},
+      "actions": [
+        {
+          "target": {"rid": "light-1", "rtype": "light"},
+          "action": {"on": {"on": true}, "dimming": {"brightness": 80.0}}
+        },
+        {
+          "target": {"rid": "light-2", "rtype": "light"},
+          "action": {"on": {"on": false}}
+        }
+      ]
+    },
+    {
+      "type": "scene",
+      "id": "scene-all-off",
+      "metadata": {"name": "Everything off"},
+      "group": {"rid": "room-den", "rtype": "room"},
+      "actions": [
+        {
+          "target": {"rid": "light-1", "rtype": "light"},
+          "action": {"on": {"on": false}, "dimming": {"brightness": 90.0}}
+        }
+      ]
+    }
+  ]
+}

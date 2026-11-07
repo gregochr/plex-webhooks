@@ -1,9 +1,9 @@
 package gregochr.services.sse;
 
-import gregochr.commands.PlexCommand;
-import gregochr.commands.PlexEvent;
-import gregochr.commands.PlexMediaType;
+import gregochr.commands.PlexOutcome;
 import gregochr.services.config.PropertiesUpdatedEvent;
+import gregochr.services.events.NowPlaying;
+import gregochr.services.events.PlaybackEvent;
 import gregochr.support.TaskSchedulers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -68,10 +68,10 @@ public class SseServiceTest {
         return (RecordingSseEmitter) service.subscribe(clientId, CHROME_MAC, IP);
     }
 
-    private static SseEventDto playEvent() {
-        return new SseEventDto(
-                new PlexCommand(PlexEvent.PLAY, "Test Movie", 7200000, PlexMediaType.MOVIE),
-                "{\"event\":\"media.play\"}", FIXED);
+    private static PlaybackEvent playEvent() {
+        return new PlaybackEvent(7, "2024-03-15T12:00:00Z", "media.play", "movie", "Test Movie", null, null, null,
+                1997, "Living Room", PlexOutcome.Kind.SCENE_APPLIED, "scene-1", "plex",
+                "{\"event\":\"media.play\"}", new PlaybackEvent.Command("media.play", "Test Movie", 7200000));
     }
 
     // ---- subscribe ----
@@ -218,16 +218,35 @@ public class SseServiceTest {
 
     // ---- broadcasts ----
 
-    @DisplayName("broadcast sends the event as a message event with the command, raw payload and clock timestamp")
+    @DisplayName("broadcast sends the event as a message event: outcome, raw JSON payload and the legacy command")
     @Test
     public void broadcastSendsMessageEvent() {
         RecordingSseEmitter emitter = subscribe("client-1");
 
         service.broadcast(playEvent());
 
-        assertEquals(List.of(CONNECTED, "event:message\ndata:{\"command\":{\"event\":\"media.play\","
-                + "\"title\":\"Test Movie\",\"duration\":7200000},\"payload\":{\"event\":\"media.play\"},"
-                + "\"timestamp\":\"2024-03-15T12:00:00Z\"}\n\n"), emitter.sent());
+        assertEquals(List.of(CONNECTED, "event:message\ndata:{\"id\":7,\"timestamp\":\"2024-03-15T12:00:00Z\","
+                + "\"event\":\"media.play\",\"mediaType\":\"movie\",\"title\":\"Test Movie\","
+                + "\"grandparentTitle\":null,\"parentIndex\":null,\"index\":null,\"year\":1997,"
+                + "\"player\":\"Living Room\",\"outcome\":\"SCENE_APPLIED\",\"sceneId\":\"scene-1\","
+                + "\"source\":\"plex\",\"payload\":{\"event\":\"media.play\"},"
+                + "\"command\":{\"event\":\"media.play\",\"title\":\"Test Movie\",\"duration\":7200000}}\n\n"),
+                emitter.sent());
+    }
+
+    @DisplayName("broadcastNowPlaying sends a now-playing event with the state as its label")
+    @Test
+    public void broadcastNowPlayingSendsNowPlayingEvent() {
+        RecordingSseEmitter emitter = subscribe("client-1");
+        NowPlaying nowPlaying = new NowPlaying(NowPlaying.State.PAUSED, "2024-03-15T12:00:00Z", "episode", "Pilot",
+                "Slow Horses", 4, 2, 2025, "TV", "scene-2");
+
+        service.broadcastNowPlaying(nowPlaying);
+
+        assertEquals(List.of(CONNECTED, "event:now-playing\ndata:{\"state\":\"Paused\","
+                + "\"since\":\"2024-03-15T12:00:00Z\",\"mediaType\":\"episode\",\"title\":\"Pilot\","
+                + "\"grandparentTitle\":\"Slow Horses\",\"parentIndex\":4,\"index\":2,\"year\":2025,"
+                + "\"player\":\"TV\",\"sceneId\":\"scene-2\"}\n\n"), emitter.sent());
     }
 
     @DisplayName("broadcastConfig sends a config event")

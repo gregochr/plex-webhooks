@@ -7,11 +7,12 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 /**
  * Supplies the {@link TaskScheduler} behind every {@code ScheduledTaskManager}. The pool has one thread for each
- * periodic task (SSE heartbeat, Hue status, DIRIGERA status) so a slow hub check cannot delay the others.
+ * periodic task (SSE heartbeat, Hue status, Hue scene catalog, DIRIGERA status) so a slow hub check cannot delay the
+ * others.
  */
 @Configuration
 public class SchedulingConfig {
-    static final int POOL_SIZE = 3;
+    static final int POOL_SIZE = 4;
     static final String THREAD_NAME_PREFIX = "cinelight-scheduler-";
 
     @Bean

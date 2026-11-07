@@ -1,8 +1,8 @@
 package gregochr.services.plex.dto;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -38,7 +38,7 @@ public class PlexDtoTest {
         String json = "{\"event\":\"media.pause\",\"user\":true,"
                 + "\"Metadata\":{\"type\":\"episode\",\"title\":\"Pilot\",\"duration\":2700000,\"year\":2008}}";
 
-        PlexPayloadDto payload = new ObjectMapper().readValue(json, PlexPayloadDto.class);
+        PlexPayloadDto payload = new JsonMapper().readValue(json, PlexPayloadDto.class);
 
         assertEquals("media.pause", payload.event());
         assertEquals(new PlexMetadataDto("Pilot", 2700000, "episode"), payload.metadata());
@@ -47,7 +47,7 @@ public class PlexDtoTest {
     @DisplayName("PlexPayloadDto has no metadata when the payload omits it")
     @Test
     public void payloadWithoutMetadata() throws Exception {
-        PlexPayloadDto payload = new ObjectMapper().readValue("{\"event\":\"media.stop\"}", PlexPayloadDto.class);
+        PlexPayloadDto payload = new JsonMapper().readValue("{\"event\":\"media.stop\"}", PlexPayloadDto.class);
 
         assertNull(payload.metadata());
     }

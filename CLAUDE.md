@@ -1,8 +1,8 @@
 # CLAUDE.md — CineLight (plex-webhooks)
 
 CineLight turns Plex media-server webhook events into Philips Hue (and IKEA DIRIGERA) lighting changes: a movie
-starts, the lights go down. Java 17, Spring Boot 3.5.7, Maven (`./mvnw`), Thymeleaf dashboard, Spring Security
-(stateless HTTP Basic), Server-Sent Events.
+starts, the lights go down. Java 25, Spring Boot 4.1.2 (Framework 7, Jackson 3), Maven (`./mvnw`), Thymeleaf
+dashboard, Spring Security 7 (stateless HTTP Basic), Server-Sent Events.
 
 ## ⚠️ Keep this file small
 

@@ -1,12 +1,12 @@
 package gregochr.services.sse;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gregochr.commands.PlexCommand;
 import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import static gregochr.support.TestClocks.FIXED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,11 +56,12 @@ public class SseEventDtoTest {
 
     @DisplayName("DTO serialises the payload as raw JSON, not an escaped string")
     @Test
-    public void testPayloadSerializedAsRawJson() throws JsonProcessingException {
+    public void testPayloadSerializedAsRawJson() {
         String rawPayload = "{\"event\":\"media.play\",\"title\":\"Test\",\"librarySectionType\":\"movie\"}";
         PlexCommand command = new PlexCommand(PlexEvent.PLAY, "Test", 1000, PlexMediaType.MOVIE);
 
-        String json = new ObjectMapper().writeValueAsString(new SseEventDto(command, rawPayload, FIXED));
+        JsonMapper mapper = JsonMapper.builder().disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY).build();
+        String json = mapper.writeValueAsString(new SseEventDto(command, rawPayload, FIXED));
 
         assertEquals("{\"command\":{\"event\":\"media.play\",\"title\":\"Test\",\"duration\":1000},"
                 + "\"payload\":" + rawPayload + ",\"timestamp\":\"2024-03-15T12:00:00Z\"}", json);

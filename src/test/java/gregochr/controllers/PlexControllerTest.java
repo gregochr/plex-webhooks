@@ -1,6 +1,5 @@
 package gregochr.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import gregochr.commands.PlexCommandConfig;
 import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
@@ -13,8 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import tools.jackson.core.JacksonException;
 
-import java.io.IOException;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +54,7 @@ public class PlexControllerTest {
 
     @DisplayName("A play event is broadcast to SSE clients with the command, the raw payload and the clock timestamp")
     @Test
-    public void broadcastsEvent() throws IOException {
+    public void broadcastsEvent() {
         String payload = payload("media.play", "movie");
 
         controller.plexEvent(payload);
@@ -67,9 +66,34 @@ public class PlexControllerTest {
                 "2024-03-15T12:00:00Z"), event.getValue());
     }
 
+    @DisplayName("A play event whose Metadata has no duration is read as duration 0 and still starts the scene")
+    @Test
+    public void missingDurationReadsAsZero() {
+        controller.plexEvent("{\"event\":\"media.play\",\"Metadata\":{\"title\":\"x\",\"type\":\"movie\"}}");
+
+        assertBroadcastDuration0();
+        verify(hueSceneController).startMovieLightScene();
+    }
+
+    @DisplayName("A play event whose duration is null is read as duration 0 and still starts the scene")
+    @Test
+    public void nullDurationReadsAsZero() {
+        controller.plexEvent(
+                "{\"event\":\"media.play\",\"Metadata\":{\"title\":\"x\",\"duration\":null,\"type\":\"movie\"}}");
+
+        assertBroadcastDuration0();
+        verify(hueSceneController).startMovieLightScene();
+    }
+
+    private void assertBroadcastDuration0() {
+        ArgumentCaptor<SseEventDto> event = ArgumentCaptor.forClass(SseEventDto.class);
+        verify(sseService).broadcast(event.capture());
+        assertEquals(0, event.getValue().command().duration());
+    }
+
     @DisplayName("An enabled play event for a movie starts the movie light scene")
     @Test
-    public void playMovieStartsScene() throws IOException {
+    public void playMovieStartsScene() {
         controller.plexEvent(payload("media.play", "movie"));
 
         verify(hueSceneController).startMovieLightScene();
@@ -78,7 +102,7 @@ public class PlexControllerTest {
 
     @DisplayName("An enabled stop event for a movie stops the movie light scene")
     @Test
-    public void stopMovieStopsScene() throws IOException {
+    public void stopMovieStopsScene() {
         controller.plexEvent(payload("media.stop", "movie"));
 
         verify(hueSceneController).stopMovieLightScene();
@@ -87,7 +111,7 @@ public class PlexControllerTest {
 
     @DisplayName("A scrobble event for a movie is broadcast but, being disabled, does not touch the lights")
     @Test
-    public void disabledScrobbleBroadcastsButDoesNotActivate() throws IOException {
+    public void disabledScrobbleBroadcastsButDoesNotActivate() {
         controller.plexEvent(payload("media.scrobble", "movie"));
 
         verify(sseService).broadcast(ArgumentCaptor.forClass(SseEventDto.class).capture());
@@ -96,7 +120,7 @@ public class PlexControllerTest {
 
     @DisplayName("A play event for an episode is broadcast but, being disabled, does not touch the lights")
     @Test
-    public void disabledEpisodeDoesNotActivate() throws IOException {
+    public void disabledEpisodeDoesNotActivate() {
         controller.plexEvent(payload("media.play", "episode"));
 
         verifyNoInteractions(hueSceneController);
@@ -104,7 +128,7 @@ public class PlexControllerTest {
 
     @DisplayName("With Hue integration off, an enabled play event is broadcast but does not touch the lights")
     @Test
-    public void integrationOffDoesNotActivate() throws IOException {
+    public void integrationOffDoesNotActivate() {
         configService.setHueIntegrationEnabled(false);
 
         controller.plexEvent(payload("media.play", "movie"));
@@ -115,7 +139,7 @@ public class PlexControllerTest {
 
     @DisplayName("An unrecognised event is broadcast under its own name and does not touch the lights")
     @Test
-    public void unknownEventBroadcastOnly() throws IOException {
+    public void unknownEventBroadcastOnly() {
         controller.plexEvent(payload("media.rate", "movie"));
 
         ArgumentCaptor<SseEventDto> event = ArgumentCaptor.forClass(SseEventDto.class);
@@ -127,7 +151,7 @@ public class PlexControllerTest {
 
     @DisplayName("A payload without Metadata is broadcast under its event name and does not touch the lights")
     @Test
-    public void payloadWithoutMetadataBroadcastOnly() throws IOException {
+    public void payloadWithoutMetadataBroadcastOnly() {
         controller.plexEvent("{\"event\":\"media.play\"}");
 
         ArgumentCaptor<SseEventDto> event = ArgumentCaptor.forClass(SseEventDto.class);
@@ -138,7 +162,7 @@ public class PlexControllerTest {
 
     @DisplayName("Every recognised event name is mapped to its PlexEvent")
     @Test
-    public void everyEventNameMaps() throws IOException {
+    public void everyEventNameMaps() {
         for (PlexEvent plexEvent : PlexEvent.values()) {
             controller.plexEvent(payload(plexEvent.getEvent(), "movie"));
         }
@@ -149,10 +173,10 @@ public class PlexControllerTest {
                 events.getAllValues().stream().map(e -> e.command().event()).toList());
     }
 
-    @DisplayName("A payload that is not JSON raises a JsonProcessingException and broadcasts nothing")
+    @DisplayName("A payload that is not JSON raises a JacksonException and broadcasts nothing")
     @Test
     public void invalidJsonRaises() {
-        assertThrows(JsonProcessingException.class, () -> controller.plexEvent("not json"));
+        assertThrows(JacksonException.class, () -> controller.plexEvent("not json"));
 
         verifyNoInteractions(sseService, hueSceneController);
     }

@@ -6,7 +6,7 @@ same PR.
 
 ## Local setup
 
-- JDK 17 is the target (CI uses Temurin 17). JDK 21 and 25 also build: the SpotBugs plugin 4.9.8.3 runs on 25.
+- JDK 25 is the target (`maven.compiler.release` 25; CI uses Temurin 25). Older JDKs cannot build it.
 - Copy `src/main/resources/application.properties.example` to `application.properties` (git-ignored).
 - `CINELIGHT_ADMIN_PASSWORD` sets the admin password (dev fallback `changeme`).
 - `./mvnw spring-boot:run` starts the app; the dashboard is `GET /`.
@@ -32,7 +32,8 @@ Tests mirror this layout under `src/test/java`.
 
 Gate on the exit code. In order:
 
-1. **Checkstyle** at `validate` (seconds): `.checkstyle/checkstyle.xml`, Google style with 4-space indentation.
+1. **Checkstyle** 13 at `validate` (seconds): `.checkstyle/checkstyle.xml`, Google style with 4-space indentation.
+   `IllegalImport` bans Jackson 2 (`com.fasterxml.jackson.databind`/`.core`) in the app's code.
 2. **Tests**: every test except those tagged `real-api` (`surefire.excludedGroups`). Tags: none = unit,
    `integration` = Spring context or several real components (no network), `real-api` = live third-party calls.
 3. **JaCoCo** (`check` in `verify`, report at `test`; `target/site/jacoco/`):
@@ -41,7 +42,9 @@ Gate on the exit code. In order:
      comment naming the exact unreachable line and why, as goldenhour does; never exclude a class from checking;
    - a bundle rule (80% line) is the backstop.
    - A class with no branches has no branch ratio, and JaCoCo skips that counter.
-4. **SpotBugs + FindSecBugs**, threshold High, `effort` Max, `spotbugs-exclude.xml`.
+4. **SpotBugs + FindSecBugs**, threshold High, `effort` Max, `spotbugs-exclude.xml`. The engine version is
+   `spotbugs.version` (4.10.5), separate from the plugin's: an engine older than the class-file version cannot read
+   the classes.
 
 Changed-lines coverage is CI-only (PRs): see below. To reproduce it locally after `verify`:
 
@@ -57,7 +60,7 @@ The report must show real percentages. "No lines with coverage information" on a
 
 | What | Command | Where it runs |
 |---|---|---|
-| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage` | Weekly (`pitest.yml`), never on PRs. PIT 1.22.1 (1.17.3's ASM could not read JDK 25 classes and silently skipped some). Threshold 98 (`pitest.mutation.threshold`), measured 98.77% (241/244) on 2026-11-07; the 3 survivors are 2 equivalent mutants and `SecurityConfig.securityFilterChain` returning null, which PIT cannot kill through a cached Spring context. With ~4 survivors of headroom, a new equivalent mutant can turn the weekly run red: decide then whether it is a test gap or equivalent. Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes a few minutes locally. |
+| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage` | Weekly (`pitest.yml`), never on PRs. PIT 1.30.1 with pitest-junit5-plugin 1.2.3 (JUnit 6). Threshold 98 (`pitest.mutation.threshold`), measured 99% (264/267) after Phase 3 on 2026-11-07; the 3 survivors are 2 equivalent mutants and `SecurityConfig.securityFilterChain` returning null, which PIT cannot kill through a cached Spring context. With ~4 survivors of headroom, a new equivalent mutant can turn the weekly run red: decide then whether it is a test gap or equivalent. Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes a few minutes locally. |
 | Live third-party APIs | `./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api` | Weekly (`real-api-smoke.yml`), which fails if 0 tests ran. |
 | OWASP Dependency-Check | `./mvnw dependency-check:check` (needs `NVD_API_KEY`) | **Not in CI** until a valid `NVD_API_KEY` secret is set (the current one is rejected by NVD). Fails on CVSS ≥ 7; suppressions in `owasp-suppressions.xml`. |
 

@@ -248,10 +248,115 @@ Still unproven: a Dependabot PR auto-merging (next Monday's batch). The supersed
 Existing tests that pin the old behaviour change to the new. The gates stay as they are: JaCoCo 95/90 per class,
 PIT 98, diff-cover 90%.
 
-## Phase 3 — JDK 25 and Spring Boot 4 (separate, later)
+## Phase 3 — JDK 25 and Spring Boot 4.1 (plan, 2026-11-07, reviewed)
 
-Under the Phase 1–2 gates. It needs JaCoCo ≥ 0.8.13 (Phase 1 already brings 0.8.14) and `@MockitoBean` (Phase 2).
-Checkstyle 13 (#20) belongs here if it needs a newer JDK. Otherwise out of scope.
+One PR, branch `build/phase3-jdk25-boot4`, under the Phase 1–2 gates unchanged (JaCoCo 95/90 per class with no
+overrides, PIT 98, diff-cover 90%). The target is what goldenhour already runs in production: **JDK 25, Spring Boot
+4.1.2** (latest on Maven Central today), Spring Framework 7, Spring Security 7, Jackson 3, Tomcat 11, JUnit 6.
+
+### Versions
+
+| What | From | To | Why |
+|---|---|---|---|
+| `spring-boot-starter-parent` | 3.5.7 | 4.1.2 | goldenhour's version |
+| `maven.compiler.release` (drop `source`/`target`) | 17 | 25 | |
+| CI `java-version` in `ci.yml`, `pitest.yml`, `real-api-smoke.yml` | 17 | 25 | |
+| JaCoCo | 0.8.14 | 0.8.16 | goldenhour's, full Java 25 support |
+| PIT / pitest-junit5-plugin | 1.22.1 / 1.2.3 | 1.30.1 / 1.2.3 | goldenhour's, runs on JUnit 6 |
+| SpotBugs plugin / FindSecBugs | 4.9.8.3 / 1.13.0 | 4.10.5.0 / 1.14.0 | goldenhour's |
+| `spotbugs.version` (engine + annotations) | 4.9.3 | 4.10.5 | **blocker**: the 4.9.3 engine's ASM cannot read release-25 class files; the plugin bump alone leaves it in place |
+| Checkstyle | 10.21.4 | 13.4.2 | needs JDK 21+, so it belongs here; supersedes Dependabot #20. **Unverified**: goldenhour runs the plugin's default 9.3, so nothing shows 13.x with plugin 3.6.0 yet. Watch `RedundantModifier` |
+
+If a version above does not work, use the newest that does and say so; do not lower a gate to make it pass.
+
+### Dependencies
+
+- `spring-boot-starter-web` → `spring-boot-starter-webmvc` (renamed in Boot 4).
+- Add `spring-boot-starter-webmvc-test` and `spring-boot-starter-security-test` (test scope): Boot 4 split the
+  test auto-configuration into modules. `@WebMvcTest` and `@AutoConfigureMockMvc` move to
+  `org.springframework.boot.webmvc.test.autoconfigure`.
+- **Remove every hard-coded version that Boot manages**: `spring-boot-starter-validation` is pinned to `3.5.7`
+  (a Boot 3 starter inside a Boot 4 app) and `log4j-api`/`log4j-core` are pinned to `2.24.3`.
+- Remove `log4j-core` entirely and keep `log4j-api` unversioned. Nothing uses log4j-core: the app calls only
+  log4j-api, and Boot's `log4j-to-slf4j` routes that to Logback, so routing does not change.
+- Remove `spring-security-test`, which `spring-boot-starter-security-test` replaces.
+- Remove the explicit `com.fasterxml.jackson.core:jackson-databind`. `hue-java-client` v1.0.0 still brings
+  Jackson 2 transitively for its own use; Boot 4 still manages the Jackson 2 BOM, and that library stays
+  untouched (it is Spring-free and on its own release cycle).
+
+### Jackson 3: the trap
+
+Spring Framework 7's `RestClient.create()` and MVC's converters use **Jackson 3 (`tools.jackson`) when it is on
+the classpath**, and Boot 4's webmvc starter puts it there. Jackson 3 still reads the shared
+`com.fasterxml.jackson.annotation` annotations (`@JsonProperty`, `@JsonIgnoreProperties`, `@JsonRawValue`), but it
+**ignores Jackson 2's `com.fasterxml.jackson.databind.annotation.JsonDeserialize`**. So
+`SunriseSunsetResponseDto.ResultsDeserializer` (blank string → null) would silently stop running: it compiles,
+and only a test that goes through `RestClient` would notice.
+
+So the app's own Jackson code moves to Jackson 3: `SunriseSunsetResponseDto` (deserializer becomes a
+`tools.jackson.databind.ValueDeserializer` with Jackson 3's `@JsonDeserialize`), `PlexController`, `SseService`
+and the tests that use `ObjectMapper`. `JsonProcessingException` becomes `JacksonException` (unchecked in 3):
+keep the existing handling and logging behaviour. The proof already exists:
+`SunriseSunsetClientTest.blankStringResultsHasNullResult` goes through `MockRestServiceServer` and the real
+`RestClient`. Mutation-check it: break the deserializer (back up with `cp`) and watch that test go red.
+
+Two more behaviour changes Jackson 3 would make silently, both of which this PR prevents:
+
+- **Property order.** Jackson 3 sorts properties alphabetically by default (`MapperFeature.SORT_PROPERTIES_ALPHABETICALLY`
+  is `true` in 3.x). Keep today's declaration order on the wire: build the app's own mappers with
+  `JsonMapper.builder().disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)`, and if any payload goes through
+  Boot's auto-configured mapper (MVC responses, `SseEmitter.send` of an object), disable it there with a
+  `JsonMapperBuilderCustomizer` bean. **In code, not in `application.properties`**: the live properties file is
+  the owner's and git-ignored. `SseEventDtoTest`'s exact-string assertions stay unchanged.
+- **Malformed Plex payloads.** `JacksonException` is unchecked, so it no longer reaches
+  `GlobalExceptionHandler.handleIOException`. Add a `JacksonException` handler that keeps today's status (500)
+  and body, with a test, and update `PlexControllerTest`'s expectation of `JsonProcessingException`.
+- **Stop Jackson 2 creeping back.** `hue-java-client` keeps Jackson 2 databind on the compile classpath, so a
+  half-migrated file would still compile. Add `com.fasterxml.jackson.databind` and `com.fasterxml.jackson.core`
+  to Checkstyle's `IllegalImport` (the shared `com.fasterxml.jackson.annotation` stays allowed).
+
+### Other Boot 4 checks
+
+- Mockito self-attaches its agent, and JDK 25 warns about that. Add `-XX:+EnableDynamicAgentLoading` to surefire's
+  `argLine`, which must start with `@{argLine}` or JaCoCo's agent is dropped and the coverage gate breaks.
+- Run once with `spring-boot-properties-migrator` against `application.properties.example` and fix any renamed
+  key, then remove the migrator.
+- `SecurityConfig` uses only string `requestMatchers`, `httpBasic` and `authorizeHttpRequests`, which Security 7
+  keeps. `SecurityConfigTest` and `DashboardSecretsTest` must pass unchanged in what they assert.
+- The `@SpringBootTest` (`DashboardSecretsTest`) must still prove no credential reaches the page, SSE or
+  `/api/hue/status`.
+- The app must still start: `./mvnw spring-boot:run` with the example properties, `GET /` returns 200, then stop
+  it.
+- Fix new compiler, Checkstyle 13 or SpotBugs 4.10 findings in code. A rule that Checkstyle 13 renamed or removed
+  may be changed in `.checkstyle/checkstyle.xml` with a comment; do not switch rules off to get a pass.
+
+### Docs (planner)
+
+`CLAUDE.md`, `AGENTS.md`, `dev-and-testing.md` (including the SpotBugs line), `roadmap.md` and `docs/index.html`
+("Requires Java 17+") move from Java 17 / Boot 3.5 to Java 25 / Boot 4.1.
+
+### Result
+
+Built on branch `build/phase3-jdk25-boot4`. Every planned version landed, Checkstyle 13.4.2 included with no rule
+changes. 639 tests, JaCoCo per class with no overrides, PIT 99% (264/267, the same 3 survivors), diff-cover 100%.
+The app starts on JDK 25 and serves `/` and the SSE stream.
+
+**Three Jackson 3 default changes, each one silent and each now pinned by a test:**
+
+1. `SORT_PROPERTIES_ALPHABETICALLY` is on. The app's mappers turn it off, so payloads keep declaration order.
+2. `FAIL_ON_EMPTY_BEANS` is off (an empty bean serialises as `{}`). `SseService` turns it back on, so a payload
+   that cannot be represented is dropped, not broadcast.
+3. `FAIL_ON_NULL_FOR_PRIMITIVES` is on. **All 634 tests passed with it**, and Plex payloads without `duration`
+   would have returned 500, as would postcodes.io answers with null coordinates. The planner's review found it by
+   parsing such payloads against the build. `PlexController`'s mapper and the `RestClient` (`RestClientConfig`)
+   turn it off; new tests send missing and null primitives through both paths.
+
+Lesson for the next major library bump: list the library's changed defaults and test each one against real
+payload shapes, because a suite written against the old defaults cannot see them.
+
+### Owner action this creates
+
+Whatever runs CineLight at home must run it on **JDK 25** after this merges.
 
 ## Owner actions
 

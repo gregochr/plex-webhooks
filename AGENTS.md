@@ -1,6 +1,6 @@
 # AGENTS.md
 
-CineLight: a single-module Spring Boot 3.5 / Java 17 app that turns Plex webhook events into Philips Hue (and IKEA
+CineLight: a single-module Spring Boot 4.1 / Java 25 app that turns Plex webhook events into Philips Hue (and IKEA
 DIRIGERA) lighting changes. `CLAUDE.md` is the project guide; `docs/engineering/test-standards.md` holds the test
 rules.
 
@@ -42,4 +42,7 @@ Focus on:
 - **`real-api` tests excluded from the build**, run weekly instead. A provider's data changing must not break PRs.
 - **Public read endpoints** (dashboard, SSE, Hue/DIRIGERA status, config views): the app runs on a home LAN and
   the dashboard is meant to be viewable without signing in. Writes are what is protected.
+- **Jackson 3 (`tools.jackson`) in the app's own code; Jackson 2 only inside `hue-java-client`.** Checkstyle bans
+  `com.fasterxml.jackson.databind`/`.core` imports (the shared `com.fasterxml.jackson.annotation` is fine).
+  Jackson 3 silently ignores Jackson 2's `@JsonDeserialize`, so a Jackson 2 import is a defect, not a style nit.
 - **Admin password default `changeme`** via `${CINELIGHT_ADMIN_PASSWORD:changeme}`: a development fallback only.

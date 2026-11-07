@@ -1,174 +1,92 @@
-# CineLight (plex-webhooks) — Claude Code Guide
+# CLAUDE.md — CineLight (plex-webhooks)
 
-## Project Overview
+CineLight turns Plex media-server webhook events into Philips Hue (and IKEA DIRIGERA) lighting changes: a movie
+starts, the lights go down. Java 17, Spring Boot 3.5.7, Maven (`./mvnw`), Thymeleaf dashboard, Spring Security
+(stateless HTTP Basic), Server-Sent Events.
 
-**CineLight** is a Spring Boot application that automates Philips Hue lighting based on Plex media server webhook events. When a movie plays, pauses, or stops in Plex, the application adjusts smart lights accordingly.
+## ⚠️ Keep this file small
 
-- **Language:** Java 17
-- **Framework:** Spring Boot 3.5.7
-- **Build:** Maven (wrapper included — use `./mvnw`)
-- **Templating:** Thymeleaf
-- **Auth:** Spring Security (HTTP Basic, stateless)
-- **Real-time:** Server-Sent Events (SSE)
+It is loaded into every session and subagent. Add a line here only for something a session must know *before it
+opens any file*: a command, an invariant, a safety rule. Everything else goes in `docs/engineering/`:
+
+| Topic | File |
+|---|---|
+| Builds, gates, CI workflows, what runs where | `docs/engineering/dev-and-testing.md` |
+| How to write tests (read before touching any test) | `docs/engineering/test-standards.md` |
+| The testing/CI reboot and its open phases | `docs/engineering/reboot-plan.md` |
+| Roadmap (Apple TV, React UI) | `docs/engineering/roadmap.md` |
+| Code review rules and deliberate decisions | `AGENTS.md` |
 
 ---
 
-## Build & Run
+## ⚠️ How every code change is made (owner rule, 2026-11-07)
+
+**Opus and Fable plan and review; Sonnet writes all the code.** A planning session never edits source, tests,
+build files or workflows itself, not even a one-line fix. Docs (this file, `docs/`, `AGENTS.md`) may be written by
+the planner.
+
+1. **Plan, then review the plan adversarially**, with agents sized to the risk. A multi-phase change gets a plan
+   doc under `docs/engineering/`.
+2. **Delegate the build to a Sonnet subagent** (Agent tool, `model: "sonnet"`, its own worktree). The brief carries
+   the plan, the files, the tests to write, the gates below and the `changelog.d/` entry. Sonnet runs the gates
+   until green; the planner reviews the diff read-only and sends fixes back to Sonnet.
+3. **Commit** on a feature branch (conventional commit, changelog entry).
+4. **Push and open a ready PR** (not a draft) against `master`.
+5. **Wait for CI and Codex, fix what they find** (through Sonnet), push again. Codex reviews a PR when it is opened
+   and on an `@codex review` comment, **not** on later pushes: after a fix push, comment `@codex review`. 👀 means
+   running (never merge on it), 👍 is a clean review, comments are findings.
+6. **Merge (squash) only when CI is green and Codex has given 👍 on the exact head commit.** Re-read both
+   immediately before merging, and merge with `gh pr merge --squash --match-head-commit <sha>`. There is no branch
+   protection on this private repo, so this step *is* the gate.
+7. **Multi-phase plans repeat 2–6 per phase**, each branched from the updated `master`.
+
+Never done by a session: creating or deleting tags, pushing to `master`, force-pushing a shared branch.
+
+---
+
+## The build ladder (gate on Maven's exit code, never on a grep of its output)
 
 ```bash
-# Build (skip tests)
-./mvnw clean package -DskipTests
-
-# Build with tests
-./mvnw clean verify
-
-# Run
-./mvnw spring-boot:run
-
-# Run all tests (unit + integration; `real-api` tests are excluded by default)
-./mvnw test
-
-# Run the live third-party API tests on purpose (need network; may drift with provider data)
-./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api
-
-# Run integration tests only
-./mvnw test -Dgroups=integration
-
-# Mutation testing (PIT) — opt-in profile
-./mvnw verify -P mutation-testing
-
-# OWASP Dependency-Check — opt-in profile, slow (needs NVD_API_KEY env var)
-./mvnw verify -P security-scan -DskipTests
+./mvnw compile -q                                            # seconds
+./mvnw test -Dtest=SomeClassTest -q                          # one class
+./mvnw checkstyle:check                                      # style only
+./mvnw clean verify --batch-mode --no-transfer-progress      # the CI gate
 ```
 
-> `src/main/resources/application.properties` is listed in `.gitignore`. Copy `application.properties.example` and fill in your values.
-> The admin password is sourced from `CINELIGHT_ADMIN_PASSWORD` env var (falls back to `changeme` in dev).
-> `hue-java-client` is resolved from JitPack (`https://jitpack.io`) — no token or `settings.xml` entry needed.
+`clean verify` is exactly CI's `Build, Test & Coverage` job: Checkstyle (at `validate`), all unit and integration
+tests, JaCoCo (**95% line and 90% branch per class**, listed overrides at their measured figure, 80% bundle), and
+SpotBugs + FindSecBugs (High). PRs also need **90% of changed `src/main/java` lines** covered (`diff-cover`). Run
+Maven in the foreground. Detail, plus PIT, the live-API tests and OWASP: `docs/engineering/dev-and-testing.md`.
+
+- `application.properties` is git-ignored: copy `src/main/resources/application.properties.example`. The admin
+  password comes from `CINELIGHT_ADMIN_PASSWORD` (dev fallback `changeme`).
+- `hue-java-client` resolves from JitPack (`com.github.gregochr:hue-java-client:v1.0.0`); no token needed.
 
 ---
 
-## Project Structure
+## Cross-cutting invariants
 
-```
-src/main/java/gregochr/
-├── Main.java                          Entry point (@SpringBootApplication + @EnableScheduling)
-├── RestClientConfig.java              Spring RestClient bean
-├── clients/                           LocationClient, SunriseSunsetClient (+ dto/) — external HTTP APIs
-├── commands/                          Plex command model (PlexCommand, PlexEvent, PlexMediaType, PlexCommandFactory, *Config)
-├── controllers/
-│   ├── PlexController.java            POST /plex — receives Plex webhooks
-│   ├── DashboardController.java       GET / — Thymeleaf dashboard
-│   ├── ConfigController.java          GET|PUT /api/config/** — config API
-│   ├── SseController.java             GET /api/events — SSE subscription
-│   ├── DebugController.java           POST /api/debug/{command} — fire a Plex command manually
-│   ├── GlobalExceptionHandler.java
-│   ├── hue/                           Hue REST controllers (/api/hue/**) + HueConfig bean
-│   └── dirigera/                      IKEA DIRIGERA hub status (/api/dirigera/status)
-└── services/
-    ├── ScheduledTaskManager.java      Reschedule-able periodic tasks
-    ├── config/                        ConfigService, PropertiesRepository, ConfigurationView*, SecurityConfig, events
-    ├── plex/dto/                      PlexPayloadDto, PlexMetadataDto
-    └── sse/                           SseService, SseClient, SseEventDto
-```
-
-Tests mirror this layout; `UnitTestSuite` / `IntegrationTestSuite` in the default package are aggregators excluded from Surefire.
-
-### External Library
-
-`hue-java-client` (`com.github.gregochr:hue-java-client:v1.0.0`) is the standalone Philips Hue HTTP client, built by JitPack from the `v1.0.0` tag of `gregochr/hue-java-client`. It has **no Spring dependency** — pure `java.net.http.HttpClient`.
+- **Credentials never reach the browser.** `SensitiveKeys` defines what a credential is; the dashboard, the APIs
+  and SSE carry only "set / not set". `GET /`, the SSE stream and the status APIs are public.
+- **Hot-reload, no restarts.** Config changes go through `PropertiesRepository` and publish
+  `PropertiesUpdatedEvent`; listeners update `volatile` fields. Only whitelisted keys are writable
+  (`ConfigurationViewService`).
+- **Graceful degradation.** A Hue, DIRIGERA or third-party failure logs and carries on; it never crashes the app or
+  fails the Plex webhook.
+- **Periodic work uses `ScheduledTaskManager`**; do not invent another scheduling pattern.
+- **`hue-java-client` stays Spring-free.** Bridge-API concerns go there; application concerns in
+  `gregochr.controllers.hue`.
+- **Live network calls only in `@Tag("real-api")` tests**, which the gate excludes.
 
 ---
 
-## Architecture Notes
+## Code standards and git
 
-- **Hot-reload config:** `PropertiesUpdatedEvent` is published when properties change via the API. Components listen via `@EventListener` and update volatile fields without restart.
-- **Thread safety:** Shared mutable state in `ConfigService`, `HueSceneController`, and `LocationClient` uses `volatile` fields for cross-thread visibility.
-- **Graceful degradation:** Hue/Dirigera failures log warnings but never crash the application.
-- **Property whitelisting:** Only a defined set of keys can be written via the config API (`ConfigurationViewService`).
-
----
-
-## Non-Negotiables
-
-These requirements apply to every PR and must be enforced in CI.
-
-### 1. Test Coverage — 80% Minimum
-
-- Line coverage must be ≥ 80%, enforced by JaCoCo in `verify` (fails the build below threshold).
-- Unit tests live in `src/test/java`, tagged by default (no tag = unit).
-- Integration tests are tagged `@Tag("integration")`.
-- Tests that call a live third-party service are tagged `@Tag("real-api")` and are excluded from the build gate (`surefire.excludedGroups` in `pom.xml`).
-- Do not mock what you can test for real (e.g. use real `PropertiesRepository` with temp files rather than mocking file I/O unless truly impractical).
-
-### 2. GitHub Actions CI Pipeline
-
-Defined in `.github/workflows/ci.yml`; runs on every push and pull request to `master` (and `main`).
-
-#### CI Jobs
-
-| Job | Tool | Notes |
-|-----|------|-------|
-| **Build & Verify** | `./mvnw verify` | Runs all tests + JaCoCo, Checkstyle, SpotBugs gates |
-| **Integration Tests** | `./mvnw test -Dgroups=integration` | Separate job, after build |
-| **Mutation Testing** | PIT, `-P mutation-testing` | Threshold 70% (`pitest.mutation.threshold`) |
-| **OWASP / CVE Scan** | Dependency-Check, `-P security-scan` | Fail on CVSS ≥ 7; NVD DB cached |
-| **Dependency Updates** | Dependabot (`.github/dependabot.yml`) | Maven + Actions, weekly (Mon); Spring and log4j grouped |
-
-Thresholds live as properties at the top of `pom.xml`. Dependabot auto-merge is **not** configured.
-
-### 3. Mutation Testing
-
-Use **PIT** (`pitest-maven`, `mutation-testing` profile). Runs in CI on every push/PR. Target packages: `gregochr.commands`, `gregochr.services`, `gregochr.controllers`. Threshold is currently 70% (`pitest.mutation.threshold`); raise to 80% over time.
-
-### 4. Code Style
-
-**Checkstyle** based on Google Java Style, but with 4-space indentation to match the codebase. Configuration at `.checkstyle/checkstyle.xml`. Violations fail the build. IDE plugin recommended.
-
-### 5. Bug Detection
-
-**SpotBugs** with the **Find Security Bugs** plugin. Fail on any bug of category HIGH or above. Suppress with `@SuppressFBWarnings` (or `spotbugs-exclude.xml`) only with a documented justification.
-
-### 6. OWASP / CVE Scanning
-
-**OWASP Dependency-Check** Maven plugin. Fail the build on any dependency with CVSS score ≥ 7.0. Run in CI (not required locally due to download time). NVD API key configured as a GitHub Actions secret.
-
----
-
-## Roadmap & Future Work
-
-### Philips Hue Client — published (done)
-
-`hue-java-client` now lives in `gregochr/hue-java-client` and is consumed from JitPack as `com.github.gregochr:hue-java-client:v1.0.0`; the local `../hue-java-client` copy is gone. Library API and the intentional trust-all SSL context (for self-signed LAN bridge certs) are documented in that repo's README.
-
----
-
-### Apple TV Integration
-
-Two deployment flavours:
-
-1. **Plex-only** (current) — unchanged
-2. **AppleTV** — listens for media playback events from the Apple TV (via MQTT, ATV remote, or `pyatv`-style HTTP bridge) so that light automation works across **any** app (Netflix, Disney+, etc.), not just Plex
-
-**Approach:** Abstract the lighting trigger behind a `MediaPlaybackEvent` interface. Both the Plex webhook handler and the future Apple TV adapter publish to the same interface. The Hue controller subscribes to it.
-
----
-
-### React UI Rewrite
-
-Replace the Thymeleaf server-rendered dashboard with a standalone React SPA.
-
-- The existing REST API (`/api/**`) and SSE (`/api/events`) stay unchanged — the React app is a pure consumer
-- Host the React app as static assets served by Spring Boot (or a separate dev server with proxy)
-- State management: React Query for server state, local state for UI
-- Real-time updates: consume the existing SSE stream
-
----
-
-## Development Guidelines
-
-- **Do not commit `application.properties`** — it is git-ignored. Use `application.properties.example` as the template.
-- Keep `hue-java-client` free of Spring dependencies. It must remain a plain Java library.
-- New features that touch Hue should go into `hue-java-client` if they are bridge-API concerns, or into `gregochr.controllers.hue` if they are application concerns.
-- All config changes go via `PropertiesRepository` + `PropertiesUpdatedEvent` — do not restart to pick up property changes.
-- Prefer `@EventListener` + volatile fields over synchronized blocks for hot-reload scenarios.
-- The `ScheduledTaskManager` is the standard way to create reschedule-able periodic tasks — reuse it, don't invent a new pattern.
+- Checkstyle (`.checkstyle/checkstyle.xml`, Google style with 4-space indent) and SpotBugs (High) fail the build.
+  Suppress a SpotBugs finding only with a written justification (`spotbugs-exclude.xml`).
+- Conventional commits: `feat:`, `fix:`, `test:`, `build:`, `ci:`, `docs:`, `refactor:`, `chore:`.
+- Every meaningful change adds its own `changelog.d/YYYYMMDD-<slug>.md` (see `changelog.d/README.md`).
+- Never commit `application.properties` or any secret.
+- When you change behaviour a `docs/engineering/` file describes, update that file in the same PR.
+- **When mutating source to prove a test can fail, never restore with `git checkout --`, `git restore` or `git
+  stash`**: they silently delete uncommitted work. Back up and restore with `cp`.

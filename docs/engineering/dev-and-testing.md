@@ -77,7 +77,11 @@ Gate on the exit code. In order:
 1. **Checkstyle** 13 at `validate` (seconds): `.checkstyle/checkstyle.xml`, Google style with 4-space indentation.
    `IllegalImport` bans Jackson 2 (`com.fasterxml.jackson.databind`/`.core`) in the app's code.
 2. **Tests**: every test except those tagged `real-api` (`surefire.excludedGroups`). Tags: none = unit,
-   `integration` = Spring context or several real components (no network), `real-api` = live third-party calls.
+   `integration` = Spring context or several real components (no network), `real-api` = live third-party calls,
+   `postgres` = runs against embedded PostgreSQL 16 (`io.zonky.test:embedded-postgres`, one server per JVM,
+   `gregochr.support.EmbeddedPostgresSupport`). No Docker is needed, so these run in the gate on the Mac and in CI.
+   Never replace them with H2. They are excluded from PIT (see below), so keep database logic behind
+   `PlaybackEventRepository` and test it with `FakePlaybackEventRepository`.
 3. **JaCoCo** (`check` in `verify`, report at `test`; `target/site/jacoco/`):
    - every class **95% line, 90% branch**, with **no exceptions** (the last overrides were removed in Phase 2,
      2026-11-07). If a class genuinely cannot reach the bar, an override at its measured figure needs an XML
@@ -102,7 +106,7 @@ The report must show real percentages. "No lines with coverage information" on a
 
 | What | Command | Where it runs |
 |---|---|---|
-| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage -Dfrontend.skip=true` | Weekly (`pitest.yml`), never on PRs. PIT 1.30.1 with pitest-junit5-plugin 1.2.3 (JUnit 6). Threshold 98 (`pitest.mutation.threshold`), measured 99% (264/267) after Phase 3 on 2026-11-07; the 3 survivors are 2 equivalent mutants and `SecurityConfig.securityFilterChain` returning null, which PIT cannot kill through a cached Spring context. With ~4 survivors of headroom, a new equivalent mutant can turn the weekly run red: decide then whether it is a test gap or equivalent. Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes a few minutes locally. |
+| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage -Dfrontend.skip=true` | Weekly (`pitest.yml`), never on PRs. PIT 1.30.1 with pitest-junit5-plugin 1.2.3 (JUnit 6). Threshold 98 (`pitest.mutation.threshold`), measured 99% (264/267) after Phase 3 on 2026-11-07; the 3 survivors are 2 equivalent mutants and `SecurityConfig.securityFilterChain` returning null, which PIT cannot kill through a cached Spring context. With ~4 survivors of headroom, a new equivalent mutant can turn the weekly run red: decide then whether it is a test gap or equivalent. `postgres`-tagged tests, `PostgresPlaybackEventRepository` and `PlaybackDatabaseConfig` are excluded from PIT (D2). Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes a few minutes locally. |
 | Live third-party APIs | `./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api -Dfrontend.skip=true` | Weekly (`real-api-smoke.yml`), which fails if 0 tests ran. |
 | OWASP Dependency-Check | `./mvnw dependency-check:check` (needs `NVD_API_KEY`) | **Not in CI** until a valid `NVD_API_KEY` secret is set (the current one is rejected by NVD). Fails on CVSS ≥ 7; suppressions in `owasp-suppressions.xml`. |
 
@@ -185,17 +189,26 @@ Ported from goldenhour on 2026-11-07; the design and its reasons are in `deploy-
 - **On the host:** `~/cinelight/` holds `docker-compose.yml` (copied from the tag) and `.env` (owner-held:
   `CINELIGHT_ADMIN_PASSWORD`, `CINELIGHT_UID`, `CINELIGHT_GID`). `~/cinelight-data/config/application.properties`
   is the live settings file, bind-mounted as a directory at `/config`. `~/cinelight-data/releases/<version>/`
-  holds the rollback manifest (the outgoing image digest and a 0600 copy of the settings).
+  holds the rollback manifest (the outgoing image digest, a 0600 copy of the settings and, from D2, a 0600
+  `pg_dump` of the `cinelight` database with its state: `db=dump`, `db=none` or `db=unavailable`).
+- **Playback history database (D2):** the `cinelight` database and role in the shared `utils-pg`, created once by
+  `scripts/utils-pg-bootstrap.sh` with `CINELIGHT_DB_PASSWORD` from `.env`. The container joins `apps-net`
+  (external). With no `spring.datasource.url` (development) there is no database at all and history is memory-only.
+  With one that is down, the app starts anyway, retries the Flyway migration every 30 s and stores nothing until it
+  succeeds; the Plex webhook never waits on the database. Rows older than 90 days are deleted daily.
 - **Settings file:** the container sets `SPRING_CONFIG_IMPORT=file:/config/application.properties` and
   `CINELIGHT_CONFIG_FILE`. `PropertiesRepository` then reads and writes that file atomically, keeping its
   permissions. Without `cinelight.config-file` (development) it uses the classpath file as before. A missing file
   stops startup with the path in the message.
-- **Health:** `GET /actuator/health/container` (`ping` only, so a Hue or DIRIGERA outage never restarts the
-  container). Every other `/actuator` path is denied. `scripts/prod-health.sh` checks compose health, that
+- **Health:** `GET /actuator/health/container` (`ping` only, so a Hue, DIRIGERA or database outage never restarts
+  the container). `GET /actuator/health/database` is the database (set in compose only); `prod-health.sh` warns
+  when it is not UP. Every other `/actuator` path is denied. `scripts/prod-health.sh` checks compose health, that
   endpoint and `GET /`, and only warns if the Hue bridge is unreachable. `prod-health.yml` runs it daily on the
   runner, with an off-box watchdog.
-- **Rollback (images and settings only until D2):** `scripts/rollback.sh <version>` pins the previous digest in
-  `docker-compose.override.yml` and restores the settings copy. A deploy refuses to run while that pin exists:
+- **Rollback:** `scripts/rollback.sh <version>` pins the previous digest in `docker-compose.override.yml` and
+  restores the settings copy. `--restore-db` (never the default: it discards history written since the release)
+  also drops and recreates the `cinelight` database and restores that release's dump, before the settings; it
+  refuses when there is no checked dump, and on a failed restore it stops before starting the old image. A deploy refuses to run while that pin exists:
   delete it to roll forward.
 - **Self-hosted runner rule (public repo):** a `runs-on: self-hosted` job runs only on a tag push, `schedule` or
   `workflow_dispatch`, never on a PR or comment trigger.

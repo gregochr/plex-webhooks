@@ -276,7 +276,7 @@ the self-hosted runner, and calls `verify.sh`. The logic lives in the script so 
 | Backups | **none**. The host's only database backups are goldenhour's (`goldenhour-backup.timer` and a 3am `pg_dump` cron of `goldenhour-db`). `wainwrights` is not backed up today. |
 | Port 8080 | free |
 
-### Design (refined 2026-11-07 against the code React PR 1 merged; revised after review)
+### Design (refined 2026-11-07 against the code React PR 1 merged; revised after review; built 2026-11-07)
 
 React PR 1 (#27) added `PlaybackHistory`: an in-memory ring of the last 100 media events, appended by
 `PlaybackService.process` **inside the lock** that also assigns ids and broadcasts SSE, so two webhooks are
@@ -392,11 +392,14 @@ do not fall back to H2.
 - `docker-compose.yml`: the `cinelight` service joins `apps-net` (`external: true`) **as well as** its default
   network, and gets `SPRING_DATASOURCE_URL=jdbc:postgresql://utils-pg:5432/cinelight`,
   `SPRING_DATASOURCE_USERNAME=cinelight` and `SPRING_DATASOURCE_PASSWORD=${CINELIGHT_DB_PASSWORD}` from `.env`.
-- **Health:** a `db` group, **not** in `container`. It is declared **only** in `docker-compose.yml`
-  (`MANAGEMENT_ENDPOINT_HEALTH_GROUP_DB_INCLUDE=db`), never in `application.yml`: Boot validates group
-  membership at startup, and with no `DataSource` there is no `db` contributor, so a yml group would fail
-  every test context and every dev boot. `/actuator/health/**` is already public. `prod-health.sh` **warns**
-  when `db` is not `UP`.
+- **Health:** a `database` group (`GET /actuator/health/database`, Boot's `db` indicator), **not** in
+  `container`. It is declared **only** in `docker-compose.yml` (`MANAGEMENT_ENDPOINT_HEALTH_GROUP_DATABASE_INCLUDE=db`),
+  never in `application.yml`: Boot validates group membership at startup, and with no `DataSource` there is no
+  `db` contributor, so a yml group would fail every test context and every dev boot. It cannot be named `db`
+  either: Boot refuses to start when a group has a contributor's name (found in the build, 2026-11-07).
+  `/actuator/health/**` is already public. `prod-health.sh` **warns** when `database` is not `UP`. With the
+  database down the aggregate `/actuator/health` reports DOWN too; nothing reads it (Docker, compose and the
+  scripts all read `container`), and that must stay so.
 - **Deploy (`pre-release.sh`):** dumps the outgoing state with
   `docker exec -i utils-pg pg_dump -U postgres -Fc -d cinelight` (never `-t`, which corrupts binary output)
   into the release folder (mode 600). It checks the dump with `pg_restore -l` (or `-f /dev/null`) before

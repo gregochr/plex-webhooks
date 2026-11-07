@@ -170,8 +170,9 @@ reviewed version. Ported from goldenhour's `backup-postgres.sh`, `goldenhour-bac
   - Enumerate the databases (`datallowconn` and not a template, excluding `postgres`), so a new app's
     database is backed up with no edit.
   - For each, `docker exec utils-pg pg_dump -U postgres -Fc -d <db>` to `~/backups/utils-pg/daily/<db>/`.
-  - Also dump `pg_dumpall --globals-only` (roles, without passwords), so a restore onto a new server can
-    recreate the owners.
+  - Also dump `pg_dumpall --globals-only --no-role-passwords`, so a rebuild can recreate the owners (their
+    passwords live in each app's `.env`).
+  - It never touches goldenhour's own `goldenhour-db` container, which has its own backups.
   - Rotation: 7 daily and 4 weekly per database, as goldenhour.
   - Each dump goes to a temp name and is renamed only after `pg_restore --list` reads it, so a truncated dump is
     never kept as the newest.
@@ -181,10 +182,12 @@ reviewed version. Ported from goldenhour's `backup-postgres.sh`, `goldenhour-bac
     then not updated.
 - **`utils-pg-backup.service` and `utils-pg-backup.timer`**: daily at 02:30 (clear of goldenhour's 02:00 and its
   03:00 cron), `Persistent=true`, `Requires=docker.service`, `TimeoutStartSec=30min`.
-- **`.github/workflows/utils-pg-backup-verify.yml`**, daily on the self-hosted runner:
+- **`.github/workflows/utils-pg-backup-verify.yml`**, daily (`schedule` + `workflow_dispatch` only, per the
+  self-hosted runner rule) on the self-hosted runner, after the 02:30 backup:
   - fail if the marker is older than 26 hours;
-  - for **each** database, restore the newest dump into a throwaway `postgres:16` container
-    (`--no-owner --role` the app's role, after creating the role from the globals dump);
+  - for **each** database, restore the newest dump into a throwaway `postgres:16` container as its superuser,
+    with `pg_restore --no-owner --no-acl --exit-on-error` (no app roles needed). Also check the globals dump
+    parses (`psql -f` into the same scratch server);
   - fail if the restore errors, has zero user tables, or has zero rows in total. A dump of an empty database
     restores cleanly, so only counting rows proves anything;
   - always remove the container, and open an issue on failure through `ci-failure-issue.yml`, with

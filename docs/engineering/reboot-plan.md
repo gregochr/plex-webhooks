@@ -177,6 +177,15 @@ override list matches `jacoco.csv`; a throwaway docs-only PR shows the skip step
 `real-api-smoke.yml` each pass once via `workflow_dispatch` (the smoke run reports more than 0 tests); one
 minor/patch Dependabot PR auto-merges after green checks, and a red or stale-base one does not.
 
+## Phase 1 — status
+
+Merged 2026-11-07 as `f852399` (PR #23). Post-merge checks:
+- the first `pitest.yml` run passed (80%);
+- the first `real-api-smoke.yml` run passed (7 tests).
+
+Still unproven: a Dependabot PR auto-merging (next Monday's batch). The superseded Dependabot PRs #7, #9, #13, #14,
+#16, #18 and #19 are closed.
+
 ## Phase 2 — tests to goldenhour's bar
 
 - Raise every class to 95% line and 90% branch and delete every JaCoCo override that can be deleted. An override
@@ -190,6 +199,31 @@ minor/patch Dependabot PR auto-merges after green checks, and a red or stale-bas
 - Boundary tests for every threshold (sunset comparison, Plex event/media-type gating, config validation).
 - Run PIT locally (the codebase is small enough), kill survivors, and raise `pitest.mutation.threshold` to the
   measured score rounded down.
+
+**Result (2026-11-07):**
+- **Coverage:** all nine JaCoCo overrides are deleted; every class is ≥ 95% line and ≥ 90% branch.
+- **Tests:** 301 → 552.
+- **PIT:** 98.77% (241/244) on PIT 1.22.1; the threshold is now 98.
+- **Smells:** no `@MockBean`, `lenient()`, `Thread.sleep`, `@Disabled`, or `any()` in `verify`/`when`.
+  `DashboardSecretsTest` is the only `@SpringBootTest` left.
+- **Production changes:**
+  - `Clock` and a shared `TaskScheduler` are injected (`ClockConfig`, `SchedulingConfig`).
+  - Test seams for the DIRIGERA socket, the SSE emitter and the properties resource.
+  - sunrise-sunset.org's `"results":""` error body now reads as a null result instead of throwing.
+
+### Bugs found in Phase 2, pinned by tests but not changed (follow-ups)
+
+1. **iPhone/iPad Safari is reported as macOS.** `SseClient.getBrowserInfo()` checks `Mac OS X` before `iPhone`.
+2. **Interval hot-reload is unvalidated.** A non-numeric value throws `NumberFormatException` from the event
+   listener *after* the file is written; `0` or a negative value would fail in the scheduler. The config API should
+   reject them before writing.
+3. **Boolean parsing disagrees.** `PlexCommandConfigFactory` reads booleans through Spring (`yes`/`on` → true),
+   while `PropertiesRepository.readBooleanProperties` and `PlexCommandConfig.onPropertiesUpdated` accept only
+   `"true"`.
+4. **`PlexCommandFactory` throws NPE when a payload has no `Metadata`**, for example server-level Plex events. The
+   webhook must degrade gracefully.
+5. **`ConfigurationViewService.isValidMediaType` rejects `track` and `photo`**, although the enum and the config
+   have them.
 
 ## Phase 3 — JDK 25 and Spring Boot 4 (separate, later)
 

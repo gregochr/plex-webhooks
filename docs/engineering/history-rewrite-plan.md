@@ -1,7 +1,7 @@
 # History rewrite before going public
 
-Status: **planned 2026-11-07**. Owner decision: rotate the Hue key **and** rewrite history, then make the code
-public. This file names no real values. The mapping with the real values (`replacements.txt`) exists only on
+Status: **planned 2026-11-07**. Owner decisions: rotate the Hue key **and** rewrite history; publish the
+rewritten history as a **new public repo, `gregochr/cinelight`** (confirmed). This file names no real values. The mapping with the real values (`replacements.txt`) exists only on
 the owner's machine and is never committed.
 
 ## What is exposed (scanned 2026-11-07, every ref)
@@ -24,6 +24,20 @@ GitHub Support purges them (a manual request with no fixed turnaround).
 So: **push the rewritten history to a new public repo, `gregochr/cinelight`, and archive `plex-webhooks` as
 private.** The old repo keeps its PR and issue history privately. The new name matches the image
 (`ghcr.io/gregochr/cinelight`). It is the right moment: D1's runner, secrets and image are not set up yet.
+
+## Stand-ins (public; the scrub PR and the rewrite use exactly these)
+
+| Real item | Stand-in |
+|---|---|
+| Hue application key | `fake-hue-application-key-0000000000000000` |
+| Bridge ID | `fakehubid0000000` |
+| Postcode, in all four spellings found (with and without the space, upper and lower case) | `SW1A 1AA` / `SW1A1AA` / `sw1a 1aa` / `sw1a1aa` |
+| Home coordinates | `51.50101`, `-0.141563` (SW1A 1AA's centroid; the sign comes from the surrounding text) |
+| The nearby point | `51.507351`, `-0.127758` (Trafalgar Square) |
+
+The scan found no postcodes.io area fields (ward, parish, eastings) in any fixture, so these five items are the
+whole list. `replacements.txt` (10 lines, mode 600) was written on 2026-11-07 to the planning session's scratchpad on
+the owner's Mac. Copy it somewhere you keep, because the scratchpad is temporary.
 
 ## Steps
 

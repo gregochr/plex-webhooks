@@ -34,6 +34,10 @@ Focus on:
   `/actuator/health/**` is reachable, and the `container` health group includes no third party. **A
   `runs-on: self-hosted` job must never trigger on `pull_request`, `pull_request_target` or `issue_comment`**:
   this repo is public, and the runner is the production host.
+- **Backup scripts (`ops/utils-pg/`) fail closed and leak nothing.** This repo's workflow logs are public, so
+  no table name, row, `set -x` output or dump artifact may reach them. A missing database, a partial dump or a
+  low restored row count must fail, never warn. Scripts are installed with temp-then-`mv`, never `cp` over a
+  file that may be running.
 - **Tests that cannot fail.** `any()` where the value is knowable, `lenient()`, `Thread.sleep`, a fixed `Clock` on
   a date that could be today, a live network call outside a `real-api` test.
 

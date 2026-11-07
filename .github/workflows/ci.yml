@@ -68,8 +68,12 @@ jobs:
           printf '%s\n' "$CHANGED" | sed 's/^/  /'
 
           # Documentation is *.md anywhere or anything under docs/. Everything else is code,
-          # including .github/workflows/** and changelog.d/ entries other than *.md.
+          # including .github/workflows/**, changelog.d/ entries other than *.md, and everything under
+          # frontend/ (the React app: even a stray .md there counts as code, so the build and the
+          # frontend job always see frontend/ changes).
           NON_DOC=$(echo "$CHANGED" | grep -vE '(^docs/|\.md$)' || true)
+          FRONTEND=$(echo "$CHANGED" | grep -E '^frontend/' || true)
+          NON_DOC=$(printf '%s\n%s' "$NON_DOC" "$FRONTEND" | sed '/^$/d')
 
           if [ -z "$NON_DOC" ]; then
             echo "Documentation only: skipping the build."
@@ -172,5 +176,85 @@ jobs:
           if-no-files-found: warn
 
       - name: Documentation-only change, build skipped
+        if: needs.changes.outputs.docs_only == 'true'
+        run: echo "Every changed path is documentation (*.md or docs/**)."
+
+  # ── Frontend: lint, test, coverage ───────────────────────────────────────────
+  # The React app in frontend/. The Java job above also builds it (frontend-maven-plugin runs
+  # npm ci + npm run build at generate-resources), so a broken build fails there; this job is the
+  # fast feedback on lint, unit tests, coverage and the dependency audit.
+  frontend:
+    needs: changes
+    name: Frontend, Lint & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.docs_only != 'true'
+        with:
+          # diff-cover needs the base branch's history to compute the PR diff.
+          fetch-depth: 0
+
+      - name: Set up Node 22
+        if: needs.changes.outputs.docs_only != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        if: needs.changes.outputs.docs_only != 'true'
+        run: cd frontend && npm ci
+
+      - name: Lint (0 warnings)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: cd frontend && npm run lint
+
+      - name: Unit tests and coverage floor (Vitest, 90% lines / 85% branches)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: cd frontend && npm run test:coverage
+
+      # Changed-lines coverage: at least 90% of the lines a PR adds or changes under frontend/src
+      # must be covered. diff-cover reads coverage/lcov.info and ignores diff lines in files absent
+      # from it (tests, src/test/**, src/main.jsx), so a PR touching no covered source reports "No
+      # lines with coverage information" and passes.
+      # lcov `SF:` paths are relative to frontend/ but diff-cover resolves them against the repo
+      # root: run from frontend/ it silently matches nothing and passes. So the step prefixes `SF:`
+      # with `frontend/` and runs from the repo root.
+      - name: Set up Python (diff-cover)
+        if: needs.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Changed-lines coverage (diff-cover, 90%)
+        if: needs.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          pip install diff-cover==10.0.0
+          git fetch --no-tags origin "$BASE_REF"
+          sed 's#^SF:#SF:frontend/#' frontend/coverage/lcov.info > "$RUNNER_TEMP/lcov-root.info"
+          set +e
+          diff-cover "$RUNNER_TEMP/lcov-root.info" \
+            --compare-branch="origin/$BASE_REF" \
+            --fail-under=90 \
+            --format "markdown:$RUNNER_TEMP/diff-cover.md"
+          STATUS=$?
+          set -e
+          {
+            echo "### Changed-lines coverage (frontend, minimum 90%)"
+            cat "$RUNNER_TEMP/diff-cover.md" 2>/dev/null || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$STATUS"
+
+      - name: Dependency audit (npm, high)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: cd frontend && npm audit --audit-level=high
+
+      - name: Documentation-only change, frontend checks skipped
         if: needs.changes.outputs.docs_only == 'true'
         run: echo "Every changed path is documentation (*.md or docs/**)."

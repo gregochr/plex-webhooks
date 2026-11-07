@@ -29,6 +29,9 @@
         <pitest.version>1.30.1</pitest.version>
         <pitest-junit5.version>1.2.3</pitest-junit5.version>
         <owasp-dependency-check.version>12.2.2</owasp-dependency-check.version>
+        <frontend-plugin.version>2.0.2</frontend-plugin.version>
+        <!-- Node 22 LTS, downloaded into target/ by frontend-maven-plugin (no system Node needed). -->
+        <frontend.node.version>v22.23.4</frontend.node.version>
 
         <!-- Coverage threshold -->
         <jacoco.line.coverage.minimum>0.80</jacoco.line.coverage.minimum>
@@ -36,6 +39,9 @@
         <pitest.mutation.threshold>98</pitest.mutation.threshold>
         <!-- OWASP: fail on CVSS >= 7 -->
         <owasp.failBuildOnCVSS>7</owasp.failBuildOnCVSS>
+        <!-- Skip the React build (npm ci + npm run build) with -Dfrontend.skip=true: for the inner Java loop, and
+             for the PIT and live-API workflows, which never need the SPA. Java tests do not depend on it. -->
+        <frontend.skip>false</frontend.skip>
         <!-- Tests tagged "real-api" call live third-party services (sunrise-sunset.org, postcodes.io).
              They are excluded from the build gate so provider data changes cannot break every PR.
              Run them on purpose with: ./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api -->
@@ -55,6 +61,54 @@
             </plugins>
         </pluginManagement>
         <plugins>
+
+            <!-- ── React frontend: npm ci + vite build into target/classes/static ──────────────────────── -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>${frontend-plugin.version}</version>
+                <configuration>
+                    <workingDirectory>frontend</workingDirectory>
+                    <installDirectory>target</installDirectory>
+                    <skip>${frontend.skip}</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>${frontend.node.version}</nodeVersion>
+                            <skip>${frontend.skip}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-ci</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>ci</arguments>
+                            <skip>${frontend.skip}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-run-build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <arguments>run build</arguments>
+                            <skip>${frontend.skip}</skip>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
 
             <!-- ── Surefire: excludes the live-API group by default ────────── -->
             <plugin>

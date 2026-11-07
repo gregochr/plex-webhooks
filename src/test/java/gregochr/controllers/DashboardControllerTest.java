@@ -33,15 +33,15 @@ public class DashboardControllerTest {
         return new DashboardController(configService, configurationViewService, adminTabEnabled);
     }
 
-    @DisplayName("Dashboard returns index view name")
+    @DisplayName("Dashboard returns the classic view name")
     @Test
-    public void testDashboardReturnsIndexView() {
+    public void testDashboardReturnsClassicView() {
         DashboardController controller = createController(true);
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
         String viewName = controller.dashboard(model);
 
-        assertEquals("index", viewName);
+        assertEquals("classic", viewName);
     }
 
     @DisplayName("Dashboard adds hueIntegrationEnabled to model when true")

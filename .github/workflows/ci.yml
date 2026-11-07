@@ -98,7 +98,7 @@ jobs:
           # diff-cover needs the base branch's history to compute the PR diff.
           fetch-depth: 0
 
-      - name: Set up JDK 17
+      - name: Set up JDK 25
         if: needs.changes.outputs.docs_only != 'true'
         uses: actions/setup-java@v4
         with:

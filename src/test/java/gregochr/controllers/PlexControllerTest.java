@@ -66,6 +66,31 @@ public class PlexControllerTest {
                 "2024-03-15T12:00:00Z"), event.getValue());
     }
 
+    @DisplayName("A play event whose Metadata has no duration is read as duration 0 and still starts the scene")
+    @Test
+    public void missingDurationReadsAsZero() {
+        controller.plexEvent("{\"event\":\"media.play\",\"Metadata\":{\"title\":\"x\",\"type\":\"movie\"}}");
+
+        assertBroadcastDuration0();
+        verify(hueSceneController).startMovieLightScene();
+    }
+
+    @DisplayName("A play event whose duration is null is read as duration 0 and still starts the scene")
+    @Test
+    public void nullDurationReadsAsZero() {
+        controller.plexEvent(
+                "{\"event\":\"media.play\",\"Metadata\":{\"title\":\"x\",\"duration\":null,\"type\":\"movie\"}}");
+
+        assertBroadcastDuration0();
+        verify(hueSceneController).startMovieLightScene();
+    }
+
+    private void assertBroadcastDuration0() {
+        ArgumentCaptor<SseEventDto> event = ArgumentCaptor.forClass(SseEventDto.class);
+        verify(sseService).broadcast(event.capture());
+        assertEquals(0, event.getValue().command().duration());
+    }
+
     @DisplayName("An enabled play event for a movie starts the movie light scene")
     @Test
     public void playMovieStartsScene() {

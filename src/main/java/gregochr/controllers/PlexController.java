@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -24,6 +25,8 @@ public class PlexController {
     private static final Logger LOGGER = LogManager.getLogger(PlexController.class);
     private static final JsonMapper OBJECT_MAPPER = JsonMapper.builder()
             .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+            // Jackson 2 read a missing or null duration as 0; Plex omits it for some media, so it must not 500.
+            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
             .build();
     private final HueSceneController hueSceneController;
     private final SseService sseService;

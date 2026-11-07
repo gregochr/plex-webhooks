@@ -59,7 +59,8 @@ public class PlexControllerTest {
         configs.put(PlexMediaType.MOVIE, new PlexMediaTypeConfig(true, true, true, true, false));
         configs.put(PlexMediaType.EPISODE, new PlexMediaTypeConfig(false, false, false, false, false));
         playbackService = new PlaybackService(hueSceneController, configService, new PlexCommandConfig(configs),
-                sseService, new PlexPayloadSanitizer(), new PlaybackHistory(), FIXED);
+                sseService, new PlexPayloadSanitizer(), new PlaybackHistory(), FIXED,
+                Optional.empty());
         controller = new PlexController(playbackService);
     }
 
@@ -76,8 +77,9 @@ public class PlexControllerTest {
 
         controller.plexEvent(payload("media.play", "movie"));
 
-        assertEquals(new PlaybackEvent(1, "2024-03-15T12:00:00Z", "media.play", "movie", "Good Will Hunting", null,
-                null, null, 1997, "Den", PlexOutcome.Kind.SCENE_APPLIED, "start-scene", "plex",
+        assertEquals(new PlaybackEvent(1_710_504_000_000_000L, "2024-03-15T12:00:00Z", "media.play", "movie",
+                "Good Will Hunting", null, null, null, 1997, "Den", PlexOutcome.Kind.SCENE_APPLIED,
+                "start-scene", "plex",
                 "{\"event\":\"media.play\",\"user\":true,\"Player\":{\"title\":\"Den\"},"
                         + "\"Metadata\":{\"type\":\"movie\",\"title\":\"Good Will Hunting\",\"year\":1997,"
                         + "\"duration\":7620000}}",

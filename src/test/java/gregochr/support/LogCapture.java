@@ -24,8 +24,17 @@ public final class LogCapture implements AutoCloseable {
 
     /** The formatted messages logged at WARN or above. */
     public List<String> warnings() {
+        return messagesAtOrAbove(Level.WARN);
+    }
+
+    /** The formatted messages logged at INFO or above. */
+    public List<String> infos() {
+        return messagesAtOrAbove(Level.INFO);
+    }
+
+    private List<String> messagesAtOrAbove(Level level) {
         return appender.list.stream()
-                .filter(e -> e.getLevel().isGreaterOrEqual(Level.WARN))
+                .filter(e -> e.getLevel().isGreaterOrEqual(level))
                 .map(ILoggingEvent::getFormattedMessage)
                 .toList();
     }

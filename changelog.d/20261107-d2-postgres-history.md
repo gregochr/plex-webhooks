@@ -1,0 +1,5 @@
+### Added — Playback history survives a restart, stored in the shared Postgres (utils-pg)
+
+Each recorded Plex event is now also copied into a `cinelight` database in `utils-pg` by a background writer, and the last 100 are loaded back into the dashboard's history when CineLight starts, so "Recent" no longer empties on every release. The database is optional and never in the way of the lights: with no `spring.datasource.url` history stays in memory exactly as before, and with a database that is down CineLight starts, handles Plex events as usual, and keeps retrying the migration every 30 s. Rows older than 90 days are deleted daily. Event ids are now time-based (they were 1, 2, 3 after every restart), so a restart can no longer reuse a stored id.
+
+On the host, run `scripts/utils-pg-bootstrap.sh` once (after adding `CINELIGHT_DB_PASSWORD` to `~/cinelight/.env`) to create the role and database. `pre-release.sh` now also dumps the database into the release folder (`db=dump|none|unavailable` in the manifest, a warning rather than a block), `rollback.sh --restore-db <version>` restores it, and `prod-health.sh` warns when `/actuator/health/database` is not UP.

@@ -2,8 +2,10 @@ package gregochr.services.config;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Repository;
 
 import java.io.BufferedReader;
@@ -23,9 +25,17 @@ public class PropertiesRepository {
     private static final Logger LOGGER = LogManager.getLogger(PropertiesRepository.class);
 
     private final Environment environment;
+    private final Resource propertiesResource;
 
+    @Autowired
     public PropertiesRepository(Environment environment) {
+        this(environment, new ClassPathResource("application.properties"));
+    }
+
+    /** Lets tests supply the properties file, so unreadable and unusual files can be exercised. */
+    PropertiesRepository(Environment environment, Resource propertiesResource) {
         this.environment = environment;
+        this.propertiesResource = propertiesResource;
     }
 
     public List<PropertySection> readAllEntries() {
@@ -35,7 +45,7 @@ public class PropertiesRepository {
 
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(
-                        new ClassPathResource("application.properties").getInputStream(), StandardCharsets.UTF_8))) {
+                        propertiesResource.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String trimmed = line.trim();
@@ -71,7 +81,7 @@ public class PropertiesRepository {
         Map<String, Boolean> result = new LinkedHashMap<>();
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(
-                        new ClassPathResource("application.properties").getInputStream(), StandardCharsets.UTF_8))) {
+                        propertiesResource.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 String trimmed = line.trim();
@@ -116,7 +126,7 @@ public class PropertiesRepository {
     }
 
     public Path resolvePropertiesPath() throws IOException {
-        return new ClassPathResource("application.properties").getFile().toPath();
+        return propertiesResource.getFile().toPath();
     }
 
     String resolveValue(String key) {

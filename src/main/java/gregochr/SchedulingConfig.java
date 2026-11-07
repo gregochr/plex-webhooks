@@ -1,0 +1,25 @@
+package gregochr;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+/**
+ * Supplies the {@link TaskScheduler} behind every {@code ScheduledTaskManager}. The pool has one thread for each
+ * periodic task (SSE heartbeat, Hue status, DIRIGERA status) so a slow hub check cannot delay the others.
+ */
+@Configuration
+public class SchedulingConfig {
+    static final int POOL_SIZE = 3;
+    static final String THREAD_NAME_PREFIX = "cinelight-scheduler-";
+
+    @Bean
+    public TaskScheduler taskScheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(POOL_SIZE);
+        scheduler.setThreadNamePrefix(THREAD_NAME_PREFIX);
+        scheduler.setRemoveOnCancelPolicy(true);
+        return scheduler;
+    }
+}

@@ -211,7 +211,7 @@ Still unproven: a Dependabot PR auto-merging (next Monday's batch). The supersed
   - Test seams for the DIRIGERA socket, the SSE emitter and the properties resource.
   - sunrise-sunset.org's `"results":""` error body now reads as a null result instead of throwing.
 
-### Bugs found in Phase 2, pinned by tests but not changed (follow-ups)
+### Bugs found in Phase 2 (fixed in the follow-up PR, branch `fix/phase2-bugs`)
 
 1. **iPhone/iPad Safari is reported as macOS.** `SseClient.getBrowserInfo()` checks `Mac OS X` before `iPhone`.
 2. **Interval hot-reload is unvalidated.** A non-numeric value throws `NumberFormatException` from the event
@@ -224,6 +224,29 @@ Still unproven: a Dependabot PR auto-merging (next Monday's batch). The supersed
    webhook must degrade gracefully.
 5. **`ConfigurationViewService.isValidMediaType` rejects `track` and `photo`**, although the enum and the config
    have them.
+
+#### Fix plan (2026-11-07)
+
+1. **iOS detection.** Check `iPhone`/`iPad` before `Mac OS X` (iOS user agents contain "like Mac OS X"). Keep
+   `Android` before `Linux`. Tests: real iPhone, iPad and macOS Safari user-agent strings.
+2. **Interval validation, before the write.** `ConfigurationViewService` gains a value check for the three
+   interval keys: a whole number of milliseconds from **1000 to 86 400 000** (1 s to 1 day; the upper bound keeps
+   `now + interval` far from overflow). `PUT /api/config/properties` returns **400 and writes nothing** if any
+   whitelisted key has an invalid value (no partial writes). Defence in depth: `ScheduledTaskManager` ignores an
+   unparseable or out-of-range value in `onPropertiesUpdated`, logs a warning and keeps its current schedule.
+   Tests: `abc`, empty, `0`, `-1`, `999`, `1000`, `86400000`, `86400001`, and a mixed valid + invalid body.
+3. **One boolean parser.** A single helper with Spring's semantics, case-insensitive and trimmed: `true`, `on`,
+   `yes`, `1` → true; anything else (including null, empty and garbage) → false. Used by
+   `PlexCommandConfigFactory`, `PropertiesRepository.readBooleanProperties` and
+   `PlexCommandConfig.onPropertiesUpdated`, so startup, the dashboard view and hot-reload always agree.
+4. **No `Metadata`.** `PlexCommandFactory` returns an unrecognised command (`new PlexCommand(event, null)`) when
+   `metadata` is null, so `execute` ignores it. Same for a null media type. Tests: the factory, and a
+   `POST /plex` with a server-level payload returning 200 without touching Hue.
+5. **Media types from the enum.** `VALID_MEDIA_TYPES` derives from `PlexMediaType.values()`, so `track` and
+   `photo` are accepted and a new enum value never needs a second edit.
+
+Existing tests that pin the old behaviour change to the new. The gates stay as they are: JaCoCo 95/90 per class,
+PIT 98, diff-cover 90%.
 
 ## Phase 3 — JDK 25 and Spring Boot 4 (separate, later)
 

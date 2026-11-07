@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { FakeEventSource, stubFetch } from '../test/fakeEventSource';
-import { RECONNECT_MAX_MS, reconnectDelay, useCineLight } from './useCineLight';
+import { RECONNECT_MAX_MS, newClientId, reconnectDelay, useCineLight } from './useCineLight';
 
 const NOW = { state: 'Playing', title: 'Heat', sceneId: 's1' };
 const HISTORY = [
@@ -162,5 +162,25 @@ describe('useCineLight', () => {
 
     expect(FakeEventSource.instances).toHaveLength(1);
     expect(FakeEventSource.instances[0].closed).toBe(true);
+  });
+
+  it('works without a secure context: crypto.randomUUID is undefined', async () => {
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
+    const { result } = renderHook(() => useCineLight());
+    await waitFor(() => expect(result.current.nowPlaying).toEqual(NOW));
+    expect(FakeEventSource.last.url).toMatch(/^\/api\/events\?clientId=[0-9a-f]{32}$/);
+  });
+});
+
+describe('newClientId', () => {
+  it('is 32 hex characters and differs between calls', () => {
+    const a = newClientId();
+    expect(a).toMatch(/^[0-9a-f]{32}$/);
+    expect(newClientId()).not.toBe(a);
+  });
+
+  it('falls back to Math.random when there is no crypto at all', () => {
+    vi.stubGlobal('crypto', undefined);
+    expect(newClientId()).toMatch(/^[0-9a-f]{32}$/);
   });
 });

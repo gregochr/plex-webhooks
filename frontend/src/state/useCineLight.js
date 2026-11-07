@@ -27,8 +27,23 @@ export function reconnectDelay(attempt) {
   return Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
 }
 
-function newClientId() {
-  return crypto.randomUUID();
+const hex = (byte) => byte.toString(16).padStart(2, '0');
+
+/**
+ * A random client id that works on plain HTTP: crypto.randomUUID exists only in secure contexts, and the
+ * dashboard is normally opened over http://<lan-ip>:8080. getRandomValues is available everywhere; Math.random
+ * is the last resort when there is no crypto at all.
+ */
+export function newClientId() {
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(bytes);
+  } else {
+    bytes.forEach((_, i) => {
+      bytes[i] = Math.floor(Math.random() * 256);
+    });
+  }
+  return Array.from(bytes, hex).join('');
 }
 
 async function fetchSeeds(keys) {

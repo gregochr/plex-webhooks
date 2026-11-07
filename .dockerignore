@@ -1,0 +1,11 @@
+# Keep secrets and bulk out of the build context. ci.yml proves the first two stay out of the image
+# (scripts/docker-build-test.sh).
+.env
+src/main/resources/application.properties
+
+target/
+.git
+.claude/
+.idea/
+*.iml
+frontend/node_modules/

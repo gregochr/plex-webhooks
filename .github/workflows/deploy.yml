@@ -1,0 +1,165 @@
+name: Deploy
+
+# A `v*` tag (pushed by ./release.sh, which only the owner runs) builds the image, pushes it to GHCR and
+# deploys it to the host.
+#
+# NO SSH, NO CLONE ON THE HOST. goldenhour's deploy SSHes to the host and runs `git fetch` in a clone
+# there, which works only because goldenhour is public. This repository is PRIVATE: a clone with no
+# credentials cannot fetch it. The self-hosted runner already sits on the host, so the hop adds nothing:
+# the deploy job checks the tag out onto the runner itself and runs everything from that checkout. There
+# is no appleboy/ssh-action and no DEPLOY_SSH_KEY.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+# One deploy at a time, and a deploy in progress is never cancelled: killing one between `docker compose
+# pull` and `up` would leave the host half-updated. (A second tag pushed while one deploys waits; GitHub
+# keeps only the newest waiting run.)
+concurrency:
+  group: cinelight-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run CI
+    uses: ./.github/workflows/ci.yml
+
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          # One image manifest, not an index with attestations: scripts/pre-release.sh and rollback.sh pin
+          # the digest of exactly what is running.
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            GIT_COMMIT_SHA=${{ github.sha }}
+          tags: |
+            ghcr.io/gregochr/cinelight:latest
+            ghcr.io/gregochr/cinelight:${{ github.ref_name }}
+
+  deploy:
+    # release.sh finds this job by this exact name to print the health check lines. Do not rename it.
+    name: Deploy to Production
+    runs-on: self-hosted
+    needs: build-and-push
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      # The tag being released, onto the runner. Everything below runs from this checkout, so the
+      # scripts and docker-compose.yml are exactly the release's, never an older copy on the host.
+      - uses: actions/checkout@v4
+
+      - name: Deploy
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          COMPOSE_DIR="$HOME/cinelight"
+          DATA_DIR="$HOME/cinelight-data"
+          SETTINGS_FILE="$DATA_DIR/config/application.properties"
+
+          # Refuse to deploy over an active rollback pin.
+          #
+          # scripts/rollback.sh writes docker-compose.override.yml, which Compose auto-loads, so without
+          # this guard the `docker compose up` below would silently apply the pinned OLD digest and the
+          # release would appear to succeed while deploying nothing. Clearing the pin is a deliberate
+          # act, not something a deploy should do behind your back.
+          if [ -f "$COMPOSE_DIR/docker-compose.override.yml" ]; then
+            echo "ERROR: $COMPOSE_DIR/docker-compose.override.yml exists — production is pinned by a rollback." >&2
+            echo "       Deploying now would silently re-apply the pinned image." >&2
+            echo "       Remove it once you are ready to roll forward:  rm $COMPOSE_DIR/docker-compose.override.yml" >&2
+            exit 1
+          fi
+
+          # Refuse to start without the settings file. The container imports it WITHOUT `optional:`, so a
+          # missing file would crash-loop it; failing here says why, before anything is pulled or stopped.
+          if [ ! -f "$SETTINGS_FILE" ]; then
+            echo "ERROR: $SETTINGS_FILE is missing." >&2
+            echo "       Copy your application.properties there (see docs/engineering/deploy-plan.md, owner actions)." >&2
+            exit 1
+          fi
+          if [ ! -f "$COMPOSE_DIR/.env" ]; then
+            echo "ERROR: $COMPOSE_DIR/.env is missing (CINELIGHT_ADMIN_PASSWORD, CINELIGHT_UID, CINELIGHT_GID)." >&2
+            exit 1
+          fi
+
+          # Log in to GHCR with the job's own token, under a DOCKER_CONFIG that exists only for this job,
+          # so the host never stores a credential. The Compose plugin is symlinked in because a CLI plugin
+          # installed under ~/.docker/cli-plugins would not be found under a different DOCKER_CONFIG.
+          DOCKER_CONFIG="$(mktemp -d)"
+          export DOCKER_CONFIG
+          trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+          if [ -d "$HOME/.docker/cli-plugins" ]; then
+            ln -s "$HOME/.docker/cli-plugins" "$DOCKER_CONFIG/cli-plugins"
+          fi
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+          # Capture the outgoing image digest and a copy of the settings BEFORE pulling. `docker compose
+          # pull` moves :latest, which is the only other handle on the outgoing build: after that there
+          # is nothing left to record and nothing to roll back to. Failure aborts the release.
+          scripts/pre-release.sh "$RELEASE_VERSION"
+
+          # docker compose reads these from the project directory, so a stale copy would ship the new
+          # image against old config. Copied via a temp file in the same directory, then renamed.
+          COMPOSE_TMP="$(mktemp "$COMPOSE_DIR/docker-compose.yml.XXXXXX")"
+          cp docker-compose.yml "$COMPOSE_TMP"
+          chmod 644 "$COMPOSE_TMP"
+          mv "$COMPOSE_TMP" "$COMPOSE_DIR/docker-compose.yml"
+
+          cd "$COMPOSE_DIR"
+          docker compose pull cinelight
+          docker compose up -d --no-deps cinelight
+          cd "$GITHUB_WORKSPACE"
+
+          # Verify the release actually came up: compose health, the container health group, and the
+          # dashboard. A failure fails this job, which notify-failure below turns into an issue and
+          # which release.sh's watch loop already reports with its bell.
+          COMPOSE_DIR="$COMPOSE_DIR" scripts/prod-health.sh --deploy
+
+          # Record what is now running, while its digest is still readable (a RepoDigest survives only
+          # until a newer :latest displaces the image). Non-fatal by design: the release has already
+          # succeeded, and a missing ledger costs only the next release's fallback.
+          scripts/record-deployed-images.sh || true
+
+  # A failed deploy leaves the tag pushed and the image in GHCR while production quietly keeps serving
+  # the old build; every other signal says the release shipped, so a failure must come and find you.
+  notify-failure:
+    needs: [test, build-and-push, deploy]
+    if: failure()
+    permissions:
+      issues: write
+    uses: ./.github/workflows/ci-failure-issue.yml
+    with:
+      workflow-name: Deploy to Production

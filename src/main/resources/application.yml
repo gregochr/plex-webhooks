@@ -1,0 +1,24 @@
+# Framework configuration that is the same everywhere and holds no secrets.
+#
+# Kept apart from application.properties on purpose: application.properties is git-ignored (it carries the
+# Hue key and the admin password), so it never reaches the Docker image, and PropertiesRepository reads only
+# that file, so nothing here ever appears on the dashboard or in /api/config.
+spring:
+  application:
+    name: cinelight
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Health and nothing else. SecurityConfig also denies every other /actuator path.
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      group:
+        # What Docker's HEALTHCHECK and prod-health.sh read. `ping` only, so a Hue, DIRIGERA or third-party
+        # outage can never mark the container unhealthy and have Docker restart it.
+        container:
+          include: ping

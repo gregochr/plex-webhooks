@@ -14,6 +14,7 @@ opens any file*: a command, an invariant, a safety rule. Everything else goes in
 | Builds, gates, CI workflows, what runs where | `docs/engineering/dev-and-testing.md` |
 | How to write tests (read before touching any test) | `docs/engineering/test-standards.md` |
 | The testing/CI reboot and its open phases | `docs/engineering/reboot-plan.md` |
+| Deploy, release and Postgres phases | `docs/engineering/deploy-plan.md` |
 | Roadmap (Apple TV) | `docs/engineering/roadmap.md` |
 | The React UI redesign and its phases | `docs/engineering/react-ui-plan.md` |
 | Code review rules and deliberate decisions | `AGENTS.md` |
@@ -41,7 +42,8 @@ the planner.
    protection on this private repo, so this step *is* the gate.
 7. **Multi-phase plans repeat 2–6 per phase**, each branched from the updated `master`.
 
-Never done by a session: creating or deleting tags, pushing to `master`, force-pushing a shared branch.
+Never done by a session: creating or deleting tags, pushing to `master`, force-pushing a shared branch, running
+`./release.sh` (the owner releases; see `docs/engineering/dev-and-testing.md` "Release and deploy").
 
 ---
 

@@ -40,6 +40,10 @@ public class SecurityConfig {
                         "/api/config", "/api/config/plex-commands/**", "/api/config/hue-scenes").permitAll()
                 .requestMatchers(HttpMethod.POST, "/plex").permitAll()
                 .requestMatchers("/favicon.svg", "/philips-hue-logo.png", "/hue-logo.png").permitAll()
+                // Health only: Docker's HEALTHCHECK and prod-health.sh call it without credentials. Everything
+                // else under /actuator is denied outright, so an endpoint exposed later is not public by accident.
+                .requestMatchers("/actuator/health/**").permitAll()
+                .requestMatchers("/actuator/**").denyAll()
                 .requestMatchers(HttpMethod.PUT, "/api/config/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/debug/**").authenticated()
                 .anyRequest().permitAll()

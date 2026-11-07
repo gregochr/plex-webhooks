@@ -1,0 +1,36 @@
+services:
+  cinelight:
+    image: ghcr.io/gregochr/cinelight:latest
+    container_name: cinelight
+    ports:
+      - "8080:8080"
+    # The host user's ids, from ~/cinelight/.env (`id -u`, `id -g`). The app rewrites its settings file in
+    # /config, and the files it writes must stay readable by that host user and by scripts/rollback.sh: the
+    # host has no non-interactive sudo, so a file owned by some container uid could never be restored.
+    user: "${CINELIGHT_UID:?CINELIGHT_UID must be set in .env (id -u)}:${CINELIGHT_GID:?CINELIGHT_GID must be set in .env (id -g)}"
+    env_file:
+      - ./.env
+    environment:
+      # Not `optional:`. A missing settings file must stop startup naming the path, not run on defaults.
+      SPRING_CONFIG_IMPORT: file:/config/application.properties
+      # Where the dashboard's saves are written (PropertiesRepository).
+      CINELIGHT_CONFIG_FILE: /config/application.properties
+    volumes:
+      # The DIRECTORY, never the file. Saves write a temp file beside the settings file and rename it over the
+      # original, and a rename onto a bind-mounted file fails with EBUSY.
+      - /home/gregochr/cinelight-data/config:/config
+    restart: always
+    # Docker's default stop budget is 10 s; this gives a graceful shutdown a little longer.
+    stop_grace_period: 20s
+    healthcheck:
+      # `ping` only (see application.yml), so a Hue or DIRIGERA outage never marks this unhealthy.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/container >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

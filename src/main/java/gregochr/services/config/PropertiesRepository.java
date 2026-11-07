@@ -5,15 +5,20 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Repository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,6 +27,12 @@ import java.util.Map;
 
 @Repository
 public class PropertiesRepository {
+    /**
+     * When set (the container sets it through {@code CINELIGHT_CONFIG_FILE}), the settings file is this path
+     * outside the app. When unset, development keeps reading and writing the classpath file.
+     */
+    public static final String CONFIG_FILE_PROPERTY = "cinelight.config-file";
+
     private static final Logger LOGGER = LogManager.getLogger(PropertiesRepository.class);
 
     private final Environment environment;
@@ -29,7 +40,15 @@ public class PropertiesRepository {
 
     @Autowired
     public PropertiesRepository(Environment environment) {
-        this(environment, new ClassPathResource("application.properties"));
+        this(environment, settingsResource(environment));
+    }
+
+    private static Resource settingsResource(Environment environment) {
+        String configFile = environment.getProperty(CONFIG_FILE_PROPERTY);
+        if (configFile == null || configFile.isBlank()) {
+            return new ClassPathResource("application.properties");
+        }
+        return new FileSystemResource(configFile.trim());
     }
 
     /** Lets tests supply the properties file, so unreadable and unusual files can be exercised. */
@@ -122,7 +141,42 @@ public class PropertiesRepository {
             }
             output.add(line);
         }
-        Files.write(propertiesFile, output);
+        writeAtomically(propertiesFile, output);
+    }
+
+    /**
+     * Replaces {@code target} without ever leaving it half-written: the new content goes to a temp file in the
+     * same directory (a rename is atomic only within one filesystem), the original's POSIX permissions are copied
+     * onto it, it is fsynced, and only then moved over the original. A failure at any point deletes the temp file
+     * and leaves the original untouched. The directory, not the file, is what the container bind-mounts, because
+     * renaming onto a bind-mounted file fails with EBUSY.
+     */
+    private void writeAtomically(Path target, List<String> lines) throws IOException {
+        byte[] content = (String.join(System.lineSeparator(), lines) + System.lineSeparator())
+                .getBytes(StandardCharsets.UTF_8);
+        Path directory = target.toAbsolutePath().getParent();
+        Path temp = Files.createTempFile(directory, target.getFileName() + ".", ".tmp");
+        try {
+            try (FileChannel channel = FileChannel.open(temp, StandardOpenOption.WRITE)) {
+                ByteBuffer buffer = ByteBuffer.wrap(content);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
+                // Set after the content is written: an original that is read-only (0400) must not stop us
+                // writing its replacement.
+                Files.setPosixFilePermissions(temp, Files.getPosixFilePermissions(target));
+                channel.force(true);
+            }
+            moveIntoPlace(temp, target);
+        } catch (IOException | RuntimeException e) {
+            Files.deleteIfExists(temp);
+            throw e;
+        }
+    }
+
+    /** The final step of a save; its own method so tests can make it fail. */
+    void moveIntoPlace(Path temp, Path target) throws IOException {
+        Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE);
     }
 
     public Path resolvePropertiesPath() throws IOException {

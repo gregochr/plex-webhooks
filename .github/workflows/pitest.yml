@@ -36,7 +36,7 @@ jobs:
         id: pitest
         run: |
           set -o pipefail
-          ./mvnw test-compile pitest:mutationCoverage --batch-mode --no-transfer-progress 2>&1 | tee pitest-output.log
+          ./mvnw test-compile pitest:mutationCoverage -Dfrontend.skip=true --batch-mode --no-transfer-progress 2>&1 | tee pitest-output.log
           MUTATIONS=$(grep -oE 'Generated [0-9]+ mutations Killed [0-9]+ \([0-9]+%\)' pitest-output.log | tail -1 || true)
           STRENGTH=$(grep -oE 'Test strength [0-9]+%' pitest-output.log | tail -1 || true)
           echo "summary=${MUTATIONS:-No summary found}, ${STRENGTH:-test strength n/a}" >> "$GITHUB_OUTPUT"

@@ -194,6 +194,36 @@ public class SecurityConfigTest {
                 .andExpect(header().doesNotExist("WWW-Authenticate"));
     }
 
+    @DisplayName("Every protected write sent as an XHR, with no or wrong credentials, gets a bare 401")
+    @Test
+    public void testEveryXhrWriteGetsBare401() throws Exception {
+        for (String path : List.of("/api/config/hue-scene", "/api/config/plex-commands/movie",
+                "/api/config/properties")) {
+            mockMvc.perform(put(path).header("X-Requested-With", "XMLHttpRequest")
+                            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(header().doesNotExist("WWW-Authenticate"));
+            mockMvc.perform(put(path).header("X-Requested-With", "XMLHttpRequest")
+                            .with(httpBasic("admin", "wrong"))
+                            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(header().doesNotExist("WWW-Authenticate"));
+        }
+        mockMvc.perform(post("/api/debug/play").header("X-Requested-With", "XMLHttpRequest"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().doesNotExist("WWW-Authenticate"));
+    }
+
+    @DisplayName("Without the XHR header a 401 still carries the Basic challenge (curl and scripts keep working)")
+    @Test
+    public void testNonXhrWriteKeepsChallenge() throws Exception {
+        mockMvc.perform(put("/api/config/hue-enabled")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":true}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("WWW-Authenticate", org.hamcrest.Matchers.startsWith("Basic")));
+    }
+
     @DisplayName("PUT /api/config/hue-enabled returns 401 without authentication")
     @Test
     public void testPutConfigNoAuth() throws Exception {

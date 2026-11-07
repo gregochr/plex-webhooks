@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * HTTP-level check that the public dashboard never carries credential values. Uses the full application
+ * HTTP-level check that the public (classic) dashboard never carries credential values. Uses the full application
  * context (as SecurityConfigTest does) because the leak path spans SecurityConfig, PropertiesRepository,
  * the formatter and the Thymeleaf template, none of which a sliced test would wire together.
  */
@@ -33,7 +33,7 @@ public class DashboardSecretsTest {
     private MockMvc mockMvc;
 
     private String getDashboardBody() throws Exception {
-        MvcResult result = mockMvc.perform(get("/")).andExpect(status().isOk()).andReturn();
+        MvcResult result = mockMvc.perform(get("/classic")).andExpect(status().isOk()).andReturn();
         return result.getResponse().getContentAsString();
     }
 

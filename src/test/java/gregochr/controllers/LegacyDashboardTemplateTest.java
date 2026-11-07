@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class LegacyDashboardTemplateTest {
 
     private static String template() throws IOException {
-        try (InputStream in = LegacyDashboardTemplateTest.class.getResourceAsStream("/templates/index.html")) {
+        try (InputStream in = LegacyDashboardTemplateTest.class.getResourceAsStream("/templates/classic.html")) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
     }

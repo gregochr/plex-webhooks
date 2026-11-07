@@ -1,0 +1,159 @@
+/* App shell. Uses only the Classical tokens from classical.css. One breakpoint: 768px. */
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Theater is the dark ground (HANDOVER 1.2). */
+.app[data-mode='theater'] {
+  background: color-mix(in srgb, var(--color-neutral-900) 80%, black);
+  color: var(--color-neutral-200);
+}
+
+.app-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.app-header[data-mode='theater'] {
+  border-bottom-color: color-mix(in srgb, var(--color-neutral-200) 14%, transparent);
+}
+
+.wordmark {
+  margin: 0 auto 0 0;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.app-header[data-mode='theater'] .wordmark {
+  color: var(--color-neutral-100);
+}
+
+.mode-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+
+.app-header[data-mode='theater'] .mode-status {
+  color: var(--color-neutral-400);
+}
+
+.mode-button {
+  white-space: nowrap;
+  flex: none;
+}
+
+.app-header[data-mode='theater'] .btn {
+  color: var(--color-neutral-200);
+  border-color: color-mix(in srgb, var(--color-neutral-200) 25%, transparent);
+}
+
+.app-header[data-mode='theater'] .btn:hover {
+  border-color: var(--color-accent-400);
+  color: var(--color-accent-300);
+  background: transparent;
+}
+
+.label-short {
+  display: none;
+}
+
+.more {
+  position: relative;
+  flex: none;
+}
+
+.more-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 10;
+  width: 260px;
+  padding: var(--space-3);
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.app-main {
+  min-height: 0;
+  padding: var(--space-6) 32px;
+}
+
+.placeholder {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 400;
+}
+
+.login-dialog {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.login-dialog::backdrop {
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}
+
+.login-dialog .dialog {
+  margin: 0;
+  width: min(440px, calc(100vw - 32px));
+}
+
+.login-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-accent-700);
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 12px 24px;
+    gap: var(--space-2);
+  }
+
+  .wordmark {
+    font-size: 22px;
+  }
+
+  .mode-status {
+    display: none;
+  }
+
+  .label-long {
+    display: none;
+  }
+
+  .label-short {
+    display: inline;
+  }
+
+  /* Tap targets: at least 44px. */
+  .btn,
+  .input {
+    min-height: 44px;
+  }
+
+  .app-main {
+    padding: var(--space-4) 24px;
+  }
+
+  .placeholder {
+    font-size: 24px;
+  }
+}

@@ -22,11 +22,11 @@ public class DashboardController {
         this.adminTabEnabled = adminTabEnabled;
     }
 
-    @GetMapping("/")
+    @GetMapping("/classic")
     public String dashboard(Model model) {
         model.addAttribute("adminTabEnabled", adminTabEnabled);
         model.addAttribute("hueIntegrationEnabled", configService.isHueIntegrationEnabled());
         model.addAttribute("configSections", configurationViewService.getConfigurationSections());
-        return "index";
+        return "classic";
     }
 }

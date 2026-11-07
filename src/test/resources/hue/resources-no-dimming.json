@@ -1,0 +1,22 @@
+{
+  "errors": [],
+  "data": [
+    {
+      "type": "room",
+      "id": "room-hall",
+      "metadata": {"name": "Hall"}
+    },
+    {
+      "type": "scene",
+      "id": "scene-colour-only",
+      "metadata": {"name": "Sunset"},
+      "group": {"rid": "room-hall", "rtype": "room"},
+      "actions": [
+        {
+          "target": {"rid": "light-1", "rtype": "light"},
+          "action": {"on": {"on": true}, "color": {"xy": {"x": 0.5, "y": 0.4}}}
+        }
+      ]
+    }
+  ]
+}

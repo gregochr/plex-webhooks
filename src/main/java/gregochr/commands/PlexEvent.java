@@ -14,9 +14,9 @@ public enum PlexEvent {
     SCROBBLE("media.scrobble", HueSceneController::stopMovieLightScene);
 
     private final String event;
-    private final Function<HueSceneController, Boolean> action;
+    private final Function<HueSceneController, Optional<String>> action;
 
-    PlexEvent(String event, Function<HueSceneController, Boolean> action) {
+    PlexEvent(String event, Function<HueSceneController, Optional<String>> action) {
         this.event = event;
         this.action = action;
     }
@@ -25,7 +25,8 @@ public enum PlexEvent {
         return event;
     }
 
-    public boolean execute(HueSceneController hueSceneController) {
+    /** Runs the scene change; returns the id of the scene activated, or empty if the bridge did not activate it. */
+    public Optional<String> execute(HueSceneController hueSceneController) {
         return action.apply(hueSceneController);
     }
 

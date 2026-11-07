@@ -1,6 +1,14 @@
 package gregochr.services.config;
 
 import gregochr.commands.PlexCommandConfig;
+import gregochr.commands.PlexMediaType;
+import gregochr.commands.PlexMediaTypeConfig;
+import gregochr.controllers.PlaybackController;
+import gregochr.controllers.hue.HueSceneCatalog;
+import gregochr.controllers.hue.HueSceneCatalogController;
+import gregochr.services.events.PlaybackHistory;
+import gregochr.services.events.PlaybackService;
+import gregochr.services.events.PlexPayloadSanitizer;
 import gregochr.controllers.ConfigController;
 import gregochr.controllers.DebugController;
 import gregochr.controllers.PlexController;
@@ -21,8 +29,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Clock;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 import static gregochr.support.TestClocks.FIXED;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
@@ -31,6 +43,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -41,13 +55,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Security Config Tests")
 @WebMvcTest(
         controllers = {ConfigController.class, PlexController.class, DebugController.class,
-                HueStatusController.class},
+                HueStatusController.class, PlaybackController.class, HueSceneCatalogController.class},
         properties = {
                 "app.admin.username=admin",
                 "app.admin.password=cinelight",
                 "hue.hub-address=192.168.1.100",
-                "hue.status-interval=30000"})
-@Import({SecurityConfig.class, ConfigService.class, ConfigurationViewService.class})
+                "hue.status-interval=30000",
+                "hue.application-key=SECRET-CANARY-1234"})
+@Import({SecurityConfig.class, ConfigService.class, ConfigurationViewService.class, ClientConfigService.class,
+        PlaybackService.class, PlaybackHistory.class, PlexPayloadSanitizer.class})
 public class SecurityConfigTest {
 
     @TestConfiguration
@@ -61,6 +77,13 @@ public class SecurityConfigTest {
         TaskScheduler taskScheduler() {
             return mock(TaskScheduler.class);
         }
+
+        @Bean
+        PlexCommandConfig plexCommandConfig() {
+            Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(PlexMediaType.class);
+            configs.put(PlexMediaType.MOVIE, new PlexMediaTypeConfig(true, false, false, false, false));
+            return new PlexCommandConfig(configs);
+        }
     }
 
     @Autowired
@@ -73,7 +96,7 @@ public class SecurityConfigTest {
     private HueSceneController hueSceneController;
 
     @MockitoBean
-    private PlexCommandConfig plexCommandConfig;
+    private HueSceneCatalog hueSceneCatalog;
 
     @MockitoBean
     private HueBridgeClient hueBridgeClient;
@@ -84,12 +107,91 @@ public class SecurityConfigTest {
     @MockitoBean
     private ConfigurationViewFormatter configurationViewFormatter;
 
-    @DisplayName("GET /api/config is accessible without authentication")
+    @DisplayName("GET /api/config is accessible without authentication and returns the shared config shape")
     @Test
     public void testGetConfigNoAuth() throws Exception {
+        when(hueSceneController.getStartScene()).thenReturn("start-id");
+        when(hueSceneController.getStopScene()).thenReturn("stop-id");
+
         mockMvc.perform(get("/api/config"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("{\"hueIntegrationEnabled\":true}"));
+                .andExpect(jsonPath("$.hueIntegrationEnabled").value(true))
+                .andExpect(jsonPath("$.scenes.start").value("start-id"))
+                .andExpect(jsonPath("$.scenes.stop").value("stop-id"))
+                .andExpect(jsonPath("$.plexCommands.movie['plex.movie-play-enabled']").value(true))
+                .andExpect(jsonPath("$.plexCommands.movie['plex.movie-resume-enabled']").value(false))
+                .andExpect(jsonPath("$.plexCommands.photo['plex.photo-play-enabled']").value(false));
+    }
+
+    @DisplayName("GET /api/config never carries a credential value, to anyone")
+    @Test
+    public void testGetConfigHasNoCredentials() throws Exception {
+        String body = mockMvc.perform(get("/api/config")).andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString();
+
+        assertFalse(body.contains("SECRET-CANARY-1234"), body);
+        assertFalse(body.contains("cinelight"), body);
+        assertFalse(body.toLowerCase().contains("password"), body);
+        assertFalse(body.toLowerCase().contains("application-key"), body);
+    }
+
+    @DisplayName("GET /api/playback/history and /api/playback/now are public")
+    @Test
+    public void testPlaybackEndpointsArePublic() throws Exception {
+        mockMvc.perform(get("/api/playback/history")).andExpect(status().isOk()).andExpect(jsonPath("$").isArray());
+        mockMvc.perform(get("/api/playback/now")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").isString());
+    }
+
+    @DisplayName("GET /api/hue/scenes is public")
+    @Test
+    public void testHueScenesArePublic() throws Exception {
+        when(hueSceneCatalog.view()).thenReturn(new HueSceneCatalog.View(List.of(),
+                new HueSceneCatalog.Selection("a", null), new HueSceneCatalog.Selection("b", null)));
+
+        mockMvc.perform(get("/api/hue/scenes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.start.id").value("a"));
+    }
+
+    @DisplayName("PUT /api/config/** returns 401 without credentials, whichever sub-path")
+    @Test
+    public void testEveryConfigWriteRequiresAuth() throws Exception {
+        for (String path : List.of("/api/config/hue-scene", "/api/config/plex-commands/movie",
+                "/api/config/properties", "/api/config/hue-enabled", "/api/config/anything-else")) {
+            mockMvc.perform(put(path).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @DisplayName("POST /api/debug/** returns 401 without credentials, whichever command")
+    @Test
+    public void testEveryDebugCommandRequiresAuth() throws Exception {
+        for (String command : List.of("play", "pause", "resume", "stop", "scrobble", "anything")) {
+            mockMvc.perform(post("/api/debug/" + command)).andExpect(status().isUnauthorized());
+        }
+    }
+
+    @DisplayName("A debug event with credentials goes through the pipeline and reports its outcome")
+    @Test
+    public void testDebugReportsOutcome() throws Exception {
+        mockMvc.perform(post("/api/debug/play")
+                        .with(httpBasic("admin", "cinelight"))
+                        .param("type", "episode"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.outcome").value("IGNORED_RULE_OFF"));
+    }
+
+    @DisplayName("An unauthenticated write sent as an XHR gets a 401 with no WWW-Authenticate challenge")
+    @Test
+    public void testXhrWriteGetsBare401() throws Exception {
+        mockMvc.perform(put("/api/config/hue-enabled")
+                        .header("X-Requested-With", "XMLHttpRequest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":true}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().doesNotExist("WWW-Authenticate"));
     }
 
     @DisplayName("PUT /api/config/hue-enabled returns 401 without authentication")
@@ -109,7 +211,7 @@ public class SecurityConfigTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"enabled\":false}"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("{\"hueIntegrationEnabled\":false}"));
+                .andExpect(jsonPath("$.hueIntegrationEnabled").value(false));
     }
 
     @DisplayName("PUT /api/config/hue-enabled returns 401 with wrong credentials")

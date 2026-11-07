@@ -111,8 +111,9 @@ public class ConfigurationViewServiceTest {
         Set<String> keys = service.getValidPropertyKeys();
         assertTrue(keys.contains("sse.heartbeat-interval"));
         assertTrue(keys.contains("hue.status-interval"));
+        assertTrue(keys.contains("hue.scene-catalog-interval"));
         assertTrue(keys.contains("dirigera.status-interval"));
-        assertEquals(3, keys.size());
+        assertEquals(4, keys.size());
     }
 
     @DisplayName("saveProperties publishes PropertiesUpdatedEvent after save")

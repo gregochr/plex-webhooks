@@ -19,8 +19,8 @@ public class ConfigurationViewService {
             .map(PlexMediaType::getType)
             .collect(Collectors.toUnmodifiableSet());
     private static final Set<String> VALID_SCENE_KEYS = Set.of("hue.start-scene", "hue.stop-scene");
-    private static final Set<String> VALID_PROPERTY_KEYS =
-            Set.of("sse.heartbeat-interval", "hue.status-interval", "dirigera.status-interval");
+    private static final Set<String> VALID_PROPERTY_KEYS = Set.of("sse.heartbeat-interval", "hue.status-interval",
+            "hue.scene-catalog-interval", "dirigera.status-interval");
 
     public static final long MIN_INTERVAL_MS = 1_000L;
     public static final long MAX_INTERVAL_MS = 86_400_000L;

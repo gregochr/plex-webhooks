@@ -57,24 +57,42 @@ public class PlexCommand {
                 this.mediaType != null ? this.mediaType.getType() : "unknown");
     }
 
+    /** Legacy form of {@link #run}: true only when a scene was activated. */
     public boolean execute(HueSceneController hueSceneController, ConfigService configService,
             PlexCommandConfig plexCommandConfig) {
-        if (!configService.isHueIntegrationEnabled()) {
-            LOGGER.info("[ Hue integration disabled, skipping ]");
-            return false;
-        }
+        return run(hueSceneController, configService, plexCommandConfig).isApplied();
+    }
 
+    /**
+     * Runs the command and reports what happened. The checks run in order: an unsupported event first (it never
+     * touches the lights whatever the Hue switch says), then Hue disabled, an unknown media type, the per-type rule,
+     * and finally the scene change itself.
+     */
+    public PlexOutcome run(HueSceneController hueSceneController, ConfigService configService,
+            PlexCommandConfig plexCommandConfig) {
         if (plexEvent == null) {
             LOGGER.debug("[ Ignoring unrecognized Plex event: {} ]", this);
-            return false;
+            return PlexOutcome.of(PlexOutcome.Kind.IGNORED_UNSUPPORTED);
+        }
+
+        if (!configService.isHueIntegrationEnabled()) {
+            LOGGER.info("[ Hue integration disabled, skipping ]");
+            return PlexOutcome.of(PlexOutcome.Kind.IGNORED_HUE_DISABLED);
+        }
+
+        if (mediaType == null) {
+            LOGGER.info("[ Plex {} command has an unknown media type, skipping ]", plexEvent.name());
+            return PlexOutcome.of(PlexOutcome.Kind.IGNORED_UNKNOWN_TYPE);
         }
 
         if (!plexCommandConfig.isCommandEnabled(plexEvent, mediaType)) {
             LOGGER.info("[ Plex {} command disabled for type {}, skipping ]", plexEvent.name(), mediaType);
-            return false;
+            return PlexOutcome.of(PlexOutcome.Kind.IGNORED_RULE_OFF);
         }
 
         LOGGER.info("[ Executing Plex {} Command: {} ]", plexEvent.name(), this);
-        return plexEvent.execute(hueSceneController);
+        return plexEvent.execute(hueSceneController)
+                .map(PlexOutcome::applied)
+                .orElseGet(() -> PlexOutcome.of(PlexOutcome.Kind.FAILED));
     }
 }

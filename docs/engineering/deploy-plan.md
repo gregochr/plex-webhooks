@@ -1,4 +1,4 @@
-# Deploy plan: Docker, release.sh and Postgres, ported from goldenhour
+# Deploy plan: Docker, release.sh and Postgres (`utils-pg`), ported from goldenhour
 
 Status: **planned 2026-11-07**. Source: `~/IdeaProjects/goldenhour` (`release.sh`, `.github/workflows/deploy.yml`,
 `docker-compose.yml`, `scripts/`), which deploys to the same host.
@@ -8,7 +8,7 @@ Status: **planned 2026-11-07**. Source: `~/IdeaProjects/goldenhour` (`release.sh
 | Question | Decision |
 |---|---|
 | Host | **goldenhour's box**: `dockermacmini`, Ubuntu, `gregochr@100.76.73.16` (Tailscale), on the home LAN with the Hue bridge and DIRIGERA hub. |
-| Database | **PostgreSQL in the existing shared `pg-utils` container** on the host (the misc database for one-off, low-volume apps). CineLight gets its own database and role there, not a container of its own. Flyway, Testcontainers. It holds event history and, later, settings. |
+| Database | **PostgreSQL in the existing shared `utils-pg` container** on the host (the misc database for one-off, low-volume apps). CineLight gets its own database and role there, not a container of its own. Flyway, Testcontainers. It holds event history and, later, settings. |
 | Release flow | goldenhour's: `./release.sh` tags `master`, a tag push builds images to GHCR and deploys over SSH from a self-hosted runner. |
 
 ## What CineLight has today, and what that means for a container
@@ -105,37 +105,55 @@ outside the image, health group excludes third parties).
 6. After the first deploy, point Plex's webhook at `http://<dockermacmini LAN IP>:8080/plex` and stop the old
    instance.
 
-## D2: Postgres in `pg-utils` (after React PR 1)
+## D2: Postgres in `utils-pg` (after React PR 1)
 
-- **No database container of our own.** CineLight connects to the shared `pg-utils` Postgres, to a database
-  `cinelight` owned by a role `cinelight` that has rights on that database only (never superuser, nothing on
-  the other apps' databases). The role and database are created once, by the owner or by an idempotent
-  `scripts/pg-utils-bootstrap.sql` the owner runs; the app never creates them.
-- **Reaching it:** the `cinelight` service joins `pg-utils`'s Docker network as an `external` network in compose,
-  and the JDBC URL uses the container name. No published port is needed. `SPRING_DATASOURCE_URL`, `_USERNAME`
-  and `_PASSWORD` come from `.env`.
-- `spring-boot-starter-data-jpa`, `spring-boot-starter-flyway`, `flyway-database-postgresql`, the PostgreSQL
-  driver. Testcontainers runs repository tests on the **same major version as `pg-utils`**, so Docker becomes a
-  prerequisite for `clean verify`, as in goldenhour (document it).
-- `V1__event_history.sql`: the history React PR 1 keeps in memory moves to a table, written after each event
-  is executed. Retention: 90 days, pruned by a `ScheduledTaskManager` task. The UI label changes from "since
-  CineLight started" to real history.
-- Graceful degradation: a `pg-utils` outage must not fail the Plex webhook or stop startup. History writes log
-  and carry on, and the lights still change. Flyway at startup is the exception to decide (see open questions).
-- Health: `db` joins the `container` group only if a database outage should mark CineLight unhealthy. Default:
-  it does **not**, because the lights still work. A separate `db` group exists for `prod-health.sh` to warn on.
-- **Backups belong to `pg-utils`, not to CineLight.** If `pg-utils` already dumps every database nightly, D2
-  only adds the pre-release dump of `cinelight` (`pg_dump -d cinelight` through `docker exec`) to the deploy,
-  so `rollback.sh` can restore it. If it does not, that is a `pg-utils` gap for every app: fix it there, once,
-  not per app.
+### What `utils-pg` is (read from the host by the owner, 2026-11-07)
 
-### Open questions for the owner (needed before D2, not D1)
+| Fact | Value |
+|---|---|
+| Container | `utils-pg`, `postgres:16` (16.13), `restart: unless-stopped`, healthy |
+| Compose project | `/home/gregochr/services/utils-pg`; data `/srv/utils-pg/data`; root password from a secret file |
+| Network | `apps-net`, aliases `utils-pg` and `postgres`; **no port published to the host** |
+| Init scripts | `/home/gregochr/services/utils-pg/init`, which runs only when the data directory is first created, so it will **not** run for a new app now |
+| Existing pattern | one database plus one non-superuser role per app (`wainwrights`/`wainwrights`), and that app's containers on `apps-net` |
+| Backups | **none**. The host's only database backups are goldenhour's (`goldenhour-backup.timer` and a 3am `pg_dump` cron of `goldenhour-db`). `wainwrights` is not backed up today. |
+| Port 8080 | free |
 
-1. Is `pg-utils` on `dockermacmini`? What are its container name, Docker network and Postgres major version?
-2. How is it administered: a superuser role, or an init script per app?
-3. Does it already back up nightly, and is the restore checked?
-4. If `pg-utils` is down when CineLight starts, should CineLight still start (Flyway skipped, history off) or
-   refuse to start?
+### Design
+
+- **Follow the `wainwrights` pattern.** A database `cinelight` owned by a role `cinelight` (LOGIN, no superuser,
+  no CREATEDB, no CREATEROLE), with `CONNECT` revoked from `PUBLIC` on `cinelight`. Created once by
+  `scripts/utils-pg-bootstrap.sh`, run by the owner. It is idempotent (it checks `pg_roles` and `pg_database`
+  first) and uses `docker exec utils-pg psql -U postgres`. The password is read from `~/cinelight/.env`, never
+  passed on the command line. Put a copy in `utils-pg/init/` too, for a rebuild from scratch.
+- **Network:** the `cinelight` service joins `apps-net` (`external: true` in compose) and connects to
+  `jdbc:postgresql://utils-pg:5432/cinelight`. `SPRING_DATASOURCE_*` come from `.env`.
+- **Plain JDBC, not JPA:** `spring-boot-starter-jdbc` with `JdbcClient`, the PostgreSQL driver,
+  `spring-boot-starter-flyway` with `flyway-database-postgresql`. There is one table, and Hibernate would need
+  a connection at boot.
+- **CineLight starts and works when `utils-pg` is down** (the graceful-degradation invariant: the lights matter,
+  history does not):
+  - Boot's automatic Flyway run is off, and Hikari's `initialization-fail-timeout` is `-1`.
+  - A `ScheduledTaskManager` task runs Flyway with a retry until it succeeds, then flags the database ready.
+  - History writes are skipped, with a rate-limited warning, until that flag is set, and on any later
+    `DataAccessException`.
+  - Tests start the app with the database unreachable and check that a Plex play event still changes the
+    lights; and that history appears once the database comes back.
+- `V1__event_history.sql`: the history React PR 1 keeps in memory moves to a table, written after each event is
+  executed. Retention: 90 days, pruned by a `ScheduledTaskManager` task. The UI label changes from "since
+  CineLight started" to real history. Testcontainers uses **`postgres:16`** to match. Docker becomes a
+  prerequisite for `clean verify`, as in goldenhour: document it.
+- Health: a separate `db` group, which `prod-health.sh` warns on. It is **not** in `container`, so a database
+  outage never makes Docker restart CineLight.
+- **Backups:** the deploy dumps `cinelight` before pulling (`docker exec utils-pg pg_dump -U postgres -d cinelight
+  -Fc`), so `rollback.sh` can restore it.
+
+### Prerequisite owner decision: back up `utils-pg` itself (a gap for every app, not just CineLight)
+
+`utils-pg` has no backup, so `wainwrights` is unprotected now. Fix it once in `/home/gregochr/services/utils-pg`, not
+per app: a nightly `pg_dumpall` (or one `pg_dump -Fc` per database) with rotation, and a restore check modelled on
+goldenhour's `backup-verify.yml`. That work belongs to the `utils-pg` setup, which is not in this repo. It should
+land before CineLight's history matters, but it does not block D1.
 
 ## D3: settings in Postgres
 

@@ -76,6 +76,12 @@ The report must show real percentages. "No lines with coverage information" on a
 - PR runs are cancelled by a newer push; `master` runs never are.
 - There is no PR filter on base branch, so stacked PRs get CI too.
 
+- The same job also runs `shellcheck` over `release.sh` and `scripts/`, the script fixture tests
+  (`scripts/tests/*-test.sh`, with `docker` and `curl` faked on `PATH`), and `scripts/docker-build-test.sh`.
+  That script writes a marker `application.properties`, builds the image and fails if the marker is inside it,
+  so no settings file or `.env` can ever be baked into an image.
+- `ci.yml` is also a reusable workflow (`workflow_call`): `deploy.yml` runs the same gate on a release tag.
+
 ### `pitest.yml` and `real-api-smoke.yml` (weekly Monday, manual dispatch)
 
 Both call `ci-failure-issue.yml` on `failure` **or** `cancelled` (a timed-out job ends as cancelled).
@@ -110,3 +116,41 @@ are always merged by hand.
 
 Maven and GitHub Actions, weekly on Monday; Spring and log4j updates are grouped. It labels PRs `dependencies` and
 `github-actions`.
+
+## Release and deploy
+
+Ported from goldenhour on 2026-11-07; the design and its reasons are in `deploy-plan.md`.
+
+- **Only the owner releases:** `./release.sh` on an up-to-date, clean `master`. It shows the commits since the
+  last tag and asks one question, the version (the first release offers `1.0.0`). Then it folds `changelog.d/`
+  into `CHANGELOG.md` through a docs-only PR. It merges that PR only after `Build, Test & Coverage` has passed
+  **and** Codex has given 👍 on its head commit, waiting up to 20 minutes (then merge it by hand). It tags,
+  pushes, and watches the Deploy run, with a bell and a macOS notification. Sessions never tag.
+- **`deploy.yml`** (on a `v*` tag):
+  1. CI runs.
+  2. The image is built and pushed to `ghcr.io/gregochr/cinelight:{latest,<version>}`.
+  3. "Deploy to Production" runs on the **self-hosted runner on `dockermacmini`**. It checks the tag out there;
+     the host has no clone.
+  4. An issue is opened on failure.
+
+  Deploys never run in parallel (group `cinelight-deploy`). GitHub keeps only the newest waiting run, so a
+  tag pushed while an older one is still waiting replaces it: the newest tag is what ships.
+- **On the host:** `~/cinelight/` holds `docker-compose.yml` (copied from the tag) and `.env` (owner-held:
+  `CINELIGHT_ADMIN_PASSWORD`, `CINELIGHT_UID`, `CINELIGHT_GID`). `~/cinelight-data/config/application.properties`
+  is the live settings file, bind-mounted as a directory at `/config`. `~/cinelight-data/releases/<version>/`
+  holds the rollback manifest (the outgoing image digest and a 0600 copy of the settings).
+- **Settings file:** the container sets `SPRING_CONFIG_IMPORT=file:/config/application.properties` and
+  `CINELIGHT_CONFIG_FILE`. `PropertiesRepository` then reads and writes that file atomically, keeping its
+  permissions. Without `cinelight.config-file` (development) it uses the classpath file as before. A missing file
+  stops startup with the path in the message.
+- **Health:** `GET /actuator/health/container` (`ping` only, so a Hue or DIRIGERA outage never restarts the
+  container). Every other `/actuator` path is denied. `scripts/prod-health.sh` checks compose health, that
+  endpoint and `GET /`, and only warns if the Hue bridge is unreachable. `prod-health.yml` runs it daily on the
+  runner, with an off-box watchdog.
+- **Rollback (images and settings only until D2):** `scripts/rollback.sh <version>` pins the previous digest in
+  `docker-compose.override.yml` and restores the settings copy. A deploy refuses to run while that pin exists:
+  delete it to roll forward.
+- **Self-hosted runner rule (public repo):** a `runs-on: self-hosted` job runs only on a tag push, `schedule` or
+  `workflow_dispatch`, never on a PR or comment trigger.
+- **Not yet proven on the host.** The image was built only in CI, because the planning Mac has no Docker. The
+  first release is the first real deploy, so watch it.

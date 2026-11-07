@@ -29,6 +29,11 @@ Focus on:
   So any new state-changing route is public unless it is added to an `authenticated()` matcher: flag that, and any
   secret logged, returned in a response or rendered into a page. The public dashboard's config tab must never carry
   a credential value (`hue.application-key`, passwords, tokens) in its HTML, masked or not.
+- **Deploy safety.** Nothing may bake `application.properties` or `.env` into the image (`.dockerignore`, and the
+  CI image test). Settings are read and written only at `cinelight.config-file` when it is set. Only
+  `/actuator/health/**` is reachable, and the `container` health group includes no third party. **A
+  `runs-on: self-hosted` job must never trigger on `pull_request`, `pull_request_target` or `issue_comment`**:
+  this repo is public, and the runner is the production host.
 - **Tests that cannot fail.** `any()` where the value is knowable, `lenient()`, `Thread.sleep`, a fixed `Clock` on
   a date that could be today, a live network call outside a `real-api` test.
 

@@ -1,36 +1,105 @@
 package gregochr.services.config;
 
+import gregochr.commands.PlexCommandConfig;
+import gregochr.controllers.ConfigController;
+import gregochr.controllers.DebugController;
+import gregochr.controllers.PlexController;
+import gregochr.controllers.hue.HueSceneController;
+import gregochr.controllers.hue.HueStatusController;
+import gregochr.hue.client.HueBridgeClient;
+import gregochr.services.sse.SseService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Clock;
+
+import static gregochr.support.TestClocks.FIXED;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * The security filter chain in front of the real controllers it protects. A web slice is enough: the chain,
+ * ConfigController (with the real property whitelist), PlexController, DebugController and HueStatusController are
+ * real, and everything behind them is mocked.
+ */
 @DisplayName("Security Config Tests")
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(
+        controllers = {ConfigController.class, PlexController.class, DebugController.class,
+                HueStatusController.class},
+        properties = {
+                "app.admin.username=admin",
+                "app.admin.password=cinelight",
+                "hue.hub-address=192.168.1.100",
+                "hue.status-interval=30000"})
+@Import({SecurityConfig.class, ConfigService.class, ConfigurationViewService.class})
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class SecurityConfigTest {
+
+    @TestConfiguration
+    static class FixedTimeConfig {
+        @Bean
+        Clock clock() {
+            return FIXED;
+        }
+
+        @Bean
+        TaskScheduler taskScheduler() {
+            return mock(TaskScheduler.class);
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private SseService sseService;
+
+    @MockitoBean
+    private HueSceneController hueSceneController;
+
+    @MockitoBean
+    private PlexCommandConfig plexCommandConfig;
+
+    @MockitoBean
+    private HueBridgeClient hueBridgeClient;
+
+    @MockitoBean
+    private PropertiesRepository propertiesRepository;
+
+    @MockitoBean
+    private ConfigurationViewFormatter configurationViewFormatter;
 
     @DisplayName("GET /api/config is accessible without authentication")
     @Test
     public void testGetConfigNoAuth() throws Exception {
         mockMvc.perform(get("/api/config"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"hueIntegrationEnabled\":true}"));
     }
 
+    // Runs first: PIT credits the filter chain's lines to whichever test first builds the cached context, so that
+    // test must be one that fails if the chain is missing.
     @DisplayName("PUT /api/config/hue-enabled returns 401 without authentication")
+    @Order(1)
     @Test
     public void testPutConfigNoAuth() throws Exception {
         mockMvc.perform(put("/api/config/hue-enabled")
@@ -45,8 +114,29 @@ public class SecurityConfigTest {
         mockMvc.perform(put("/api/config/hue-enabled")
                         .with(httpBasic("admin", "cinelight"))
                         .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"hueIntegrationEnabled\":false}"));
+    }
+
+    @DisplayName("PUT /api/config/hue-enabled returns 401 with wrong credentials")
+    @Test
+    public void testPutConfigWrongCredentials() throws Exception {
+        mockMvc.perform(put("/api/config/hue-enabled")
+                        .with(httpBasic("admin", "wrongpassword"))
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"enabled\":true}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
+    }
+
+    @DisplayName("PUT /api/config/hue-enabled returns 401 for the right password under another username")
+    @Test
+    public void testPutConfigWrongUsername() throws Exception {
+        mockMvc.perform(put("/api/config/hue-enabled")
+                        .with(httpBasic("root", "cinelight"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":true}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @DisplayName("POST /plex is accessible without authentication")
@@ -76,13 +166,23 @@ public class SecurityConfigTest {
                 .andExpect(status().isOk());
     }
 
-    @DisplayName("PUT /api/config/hue-enabled returns 401 with wrong credentials")
+    @DisplayName("PUT /api/config/properties accepts a whitelisted interval with valid credentials")
     @Test
-    public void testPutConfigWrongCredentials() throws Exception {
-        mockMvc.perform(put("/api/config/hue-enabled")
-                        .with(httpBasic("admin", "wrongpassword"))
+    public void testPutPropertiesAcceptsWhitelistedKey() throws Exception {
+        mockMvc.perform(put("/api/config/properties")
+                        .with(httpBasic("admin", "cinelight"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"enabled\":true}"))
+                        .content("{\"sse.heartbeat-interval\":\"20000\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"sse.heartbeat-interval\":\"20000\"}"));
+    }
+
+    @DisplayName("PUT /api/config/properties returns 401 without authentication")
+    @Test
+    public void testPutPropertiesNoAuth() throws Exception {
+        mockMvc.perform(put("/api/config/properties")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sse.heartbeat-interval\":\"20000\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -109,7 +209,10 @@ public class SecurityConfigTest {
     @DisplayName("GET /api/hue/status is accessible without authentication")
     @Test
     public void testGetHueStatusNoAuth() throws Exception {
+        when(hueBridgeClient.getHubId()).thenReturn("001788fffe7107c8");
+
         mockMvc.perform(get("/api/hue/status"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"hubId\":\"001788fffe7107c8\",\"timestamp\":\"2024-03-15T12:00:00Z\"}"));
     }
 }

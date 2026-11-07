@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.env.MockEnvironment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,6 +82,28 @@ public class PlexCommandConfigFactoryTest {
     @Test
     public void testFactoryUpperCaseFalse() {
         MockEnvironment env = new MockEnvironment().withProperty("plex.movie-play-enabled", "FALSE");
+
+        PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
+
+        assertFalse(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("Factory reads yes, on, 1 and padded true as enabled, matching Spring")
+    @ParameterizedTest(name = "[{0}]")
+    @ValueSource(strings = {"yes", "on", "1", " true ", "YES", "On"})
+    public void testFactoryAcceptsSpringTrueValues(String value) {
+        MockEnvironment env = new MockEnvironment().withProperty("plex.movie-play-enabled", value);
+
+        PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
+
+        assertTrue(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("Factory reads no, off, 0, empty and garbage as disabled")
+    @ParameterizedTest(name = "[{0}]")
+    @ValueSource(strings = {"no", "off", "0", "", "maybe", "truee"})
+    public void testFactoryRejectsOtherValues(String value) {
+        MockEnvironment env = new MockEnvironment().withProperty("plex.movie-play-enabled", value);
 
         PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
 

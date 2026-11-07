@@ -100,6 +100,9 @@ public class ConfigController {
         Map<String, String> updates = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : body.entrySet()) {
             if (configurationViewService.getValidPropertyKeys().contains(entry.getKey())) {
+                if (!configurationViewService.isValidPropertyValue(entry.getKey(), entry.getValue())) {
+                    return ResponseEntity.badRequest().build();
+                }
                 updates.put(entry.getKey(), entry.getValue());
             }
         }

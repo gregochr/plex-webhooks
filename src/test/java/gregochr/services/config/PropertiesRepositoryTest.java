@@ -113,6 +113,26 @@ public class PropertiesRepositoryTest {
         assertEquals(Boolean.FALSE, result.get("plex.movie-stop-enabled"));
     }
 
+    @DisplayName("readBooleanProperties reads yes, on and 1 as true and no, off, 0 as false, like startup does")
+    @Test
+    public void testReadBooleanPropertiesSpringSemantics() {
+        MockEnvironment env = new MockEnvironment()
+                .withProperty("plex.movie-play-enabled", "yes")
+                .withProperty("plex.movie-resume-enabled", "on")
+                .withProperty("plex.movie-stop-enabled", "1")
+                .withProperty("plex.movie-pause-enabled", "off")
+                .withProperty("plex.movie-scrobble-enabled", "0");
+
+        Map<String, Boolean> result = new PropertiesRepository(env).readBooleanProperties("plex.movie-");
+
+        assertEquals(Map.of(
+                "plex.movie-play-enabled", true,
+                "plex.movie-resume-enabled", true,
+                "plex.movie-stop-enabled", true,
+                "plex.movie-pause-enabled", false,
+                "plex.movie-scrobble-enabled", false), result);
+    }
+
     @DisplayName("readBooleanProperties returns an empty map when no key matches the prefix")
     @Test
     public void testReadBooleanPropertiesNoMatch() {
@@ -281,11 +301,11 @@ public class PropertiesRepositoryTest {
         assertEquals(Map.of("plex.movie-stop-enabled", true), repo.readBooleanProperties("plex.movie-"));
     }
 
-    @DisplayName("readBooleanProperties reads any value other than 'true' as false")
+    @DisplayName("readBooleanProperties reads a value that is not a Spring true value as false")
     @Test
     public void testReadBooleanPropertiesNonBooleanValue() {
-        PropertiesRepository repo = repositoryFor("plex.movie-play-enabled=yes\n",
-                new MockEnvironment().withProperty("plex.movie-play-enabled", "yes"));
+        PropertiesRepository repo = repositoryFor("plex.movie-play-enabled=maybe\n",
+                new MockEnvironment().withProperty("plex.movie-play-enabled", "maybe"));
 
         assertEquals(Map.of("plex.movie-play-enabled", false), repo.readBooleanProperties("plex.movie-"));
     }

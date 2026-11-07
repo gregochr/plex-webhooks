@@ -1,20 +1,30 @@
 package gregochr.services.config;
 
+import gregochr.commands.PlexMediaType;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class ConfigurationViewService {
 
-    private static final Set<String> VALID_MEDIA_TYPES = Set.of("movie", "episode", "clip");
+    private static final Set<String> VALID_MEDIA_TYPES = Arrays.stream(PlexMediaType.values())
+            .map(PlexMediaType::getType)
+            .collect(Collectors.toUnmodifiableSet());
     private static final Set<String> VALID_SCENE_KEYS = Set.of("hue.start-scene", "hue.stop-scene");
     private static final Set<String> VALID_PROPERTY_KEYS =
             Set.of("sse.heartbeat-interval", "hue.status-interval", "dirigera.status-interval");
+
+    public static final long MIN_INTERVAL_MS = 1_000L;
+    public static final long MAX_INTERVAL_MS = 86_400_000L;
+    private static final Pattern INTERVAL_PATTERN = Pattern.compile("\\d{1,18}");
 
     private final PropertiesRepository repository;
     private final ConfigurationViewFormatter formatter;
@@ -43,6 +53,28 @@ public class ConfigurationViewService {
     public void saveProperties(Map<String, String> updates) throws IOException {
         repository.saveProperties(updates, repository.resolvePropertiesPath());
         eventPublisher.publishEvent(new PropertiesUpdatedEvent(this, updates));
+    }
+
+    /**
+     * Checks a value for a whitelisted property key. Interval keys must be a whole number of milliseconds
+     * in [{@value #MIN_INTERVAL_MS}, {@value #MAX_INTERVAL_MS}]; other keys have no value constraint.
+     */
+    public boolean isValidPropertyValue(String key, String value) {
+        if (!VALID_PROPERTY_KEYS.contains(key)) {
+            return true;
+        }
+        return parseIntervalMs(value) != null;
+    }
+
+    /**
+     * Parses an interval in milliseconds, returning null if it is not a whole number in the allowed range.
+     */
+    public static Long parseIntervalMs(String value) {
+        if (value == null || !INTERVAL_PATTERN.matcher(value).matches()) {
+            return null;
+        }
+        long ms = Long.parseLong(value);
+        return ms >= MIN_INTERVAL_MS && ms <= MAX_INTERVAL_MS ? ms : null;
     }
 
     public boolean isValidMediaType(String mediaType) {

@@ -12,6 +12,9 @@ public class PlexCommandFactory {
     }
 
     public PlexCommand getPlexCommand() {
+        if (this.plexPayload.metadata() == null) {
+            return new PlexCommand(this.plexPayload.event(), null);
+        }
         String title = this.plexPayload.metadata().title();
         int duration = this.plexPayload.metadata().duration();
         String type = this.plexPayload.metadata().type();

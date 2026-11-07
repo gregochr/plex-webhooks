@@ -5,6 +5,8 @@ import gregochr.support.TaskSchedulers;
 import org.apache.logging.log4j.LogManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.scheduling.TaskScheduler;
 
@@ -15,7 +17,6 @@ import java.util.concurrent.ScheduledFuture;
 
 import static gregochr.support.TestClocks.FIXED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -152,16 +153,34 @@ public class ScheduledTaskManagerTest {
         verifyNoMoreInteractions(scheduler);
     }
 
-    @DisplayName("A non-numeric interval is rejected and the existing schedule is kept")
-    @Test
-    public void nonNumericIntervalRejected() {
+    @DisplayName("An invalid interval is ignored: no exception, the schedule is kept and nothing is rescheduled")
+    @ParameterizedTest(name = "[{0}]")
+    @ValueSource(strings = {"soon", "", "0", "-1", "999", "86400001", "1000.5", "99999999999999999999"})
+    public void invalidIntervalIgnored(String value) {
         ScheduledFuture<Object> first = TaskSchedulers.future();
-        ScheduledTaskManager manager = manager(TaskSchedulers.returning(first), 30000);
+        TaskScheduler scheduler = TaskSchedulers.returning(first);
+        ScheduledTaskManager manager = manager(scheduler, 30000);
         manager.start();
 
-        assertThrows(NumberFormatException.class, () -> manager.onPropertiesUpdated(update(KEY, "soon")));
+        manager.onPropertiesUpdated(update(KEY, value));
 
         verify(first, never()).cancel(false);
+        verify(scheduler).scheduleAtFixedRate(eq(task), eq(FIRST_RUN_30S), eq(Duration.ofSeconds(30)));
+        verifyNoMoreInteractions(scheduler);
+    }
+
+    @DisplayName("The smallest and largest allowed intervals reschedule")
+    @ParameterizedTest(name = "[{0}]")
+    @ValueSource(longs = {1000, 86_400_000})
+    public void boundaryIntervalAccepted(long intervalMs) {
+        TaskScheduler scheduler = TaskSchedulers.returning(TaskSchedulers.future(), TaskSchedulers.future());
+        ScheduledTaskManager manager = manager(scheduler, 30000);
+        manager.start();
+
+        manager.onPropertiesUpdated(update(KEY, String.valueOf(intervalMs)));
+
+        verify(scheduler).scheduleAtFixedRate(eq(task), eq(FIXED.instant().plusMillis(intervalMs)),
+                eq(Duration.ofMillis(intervalMs)));
     }
 
     @DisplayName("After a hot reload, a later reload schedules from the interval it set")

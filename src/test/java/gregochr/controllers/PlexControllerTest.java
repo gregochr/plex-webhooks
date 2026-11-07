@@ -125,6 +125,17 @@ public class PlexControllerTest {
         verifyNoInteractions(hueSceneController);
     }
 
+    @DisplayName("A payload without Metadata is broadcast under its event name and does not touch the lights")
+    @Test
+    public void payloadWithoutMetadataBroadcastOnly() throws IOException {
+        controller.plexEvent("{\"event\":\"media.play\"}");
+
+        ArgumentCaptor<SseEventDto> event = ArgumentCaptor.forClass(SseEventDto.class);
+        verify(sseService).broadcast(event.capture());
+        assertEquals("media.play", event.getValue().command().event());
+        verifyNoInteractions(hueSceneController);
+    }
+
     @DisplayName("Every recognised event name is mapped to its PlexEvent")
     @Test
     public void everyEventNameMaps() throws IOException {

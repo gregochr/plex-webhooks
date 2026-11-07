@@ -39,10 +39,10 @@ public record SseClient(
         // Detect OS
         if (userAgent.contains("Windows")) {
             os = "Windows";
-        } else if (userAgent.contains("Mac OS X")) {
-            os = "macOS";
         } else if (userAgent.contains("iPhone") || userAgent.contains("iPad")) {
             os = "iOS";
+        } else if (userAgent.contains("Mac OS X")) {
+            os = "macOS";
         } else if (userAgent.contains("Android")) {
             os = "Android";
         } else if (userAgent.contains("Linux")) {

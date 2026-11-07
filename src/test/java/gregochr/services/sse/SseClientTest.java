@@ -21,24 +21,24 @@ public class SseClientTest {
         assertEquals("Chrome on macOS", client.getBrowserInfo());
     }
 
-    @DisplayName("A real iPhone Safari user agent is reported as macOS, because it contains 'like Mac OS X'")
+    @DisplayName("A real iPhone Safari user agent is reported as iOS")
     @Test
     public void testSafariIOS() {
         String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
                 + " (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
         SseClient client = new SseClient("test", null, ua, TEST_IP, INSTANT);
 
-        assertEquals("Safari on macOS", client.getBrowserInfo());
+        assertEquals("Safari on iOS", client.getBrowserInfo());
     }
 
-    @DisplayName("A real iPad Safari user agent is reported as macOS, because it contains 'like Mac OS X'")
+    @DisplayName("A real iPad Safari user agent is reported as iOS")
     @Test
     public void testSafariIPad() {
         String ua = "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
                 + " (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
         SseClient client = new SseClient("test", null, ua, TEST_IP, INSTANT);
 
-        assertEquals("Safari on macOS", client.getBrowserInfo());
+        assertEquals("Safari on iOS", client.getBrowserInfo());
     }
 
     @DisplayName("Detects Edge on Windows")

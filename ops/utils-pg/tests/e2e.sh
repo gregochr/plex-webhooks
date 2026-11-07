@@ -71,6 +71,8 @@ export VERIFY_POLL_SLEEP=1
 expect_ok "backup.sh succeeds" "${OPS_DIR}/backup.sh"
 [ -f "${BACKUP_ROOT}/marker" ] || bad "marker written"
 ok "marker written"
+grep -qE "^wainwrights$(printf '\t')[0-9]+$(printf '\t')400\$" "${BACKUP_ROOT}/marker" || bad "marker holds the exact live total (400 rows)"
+ok "marker holds the exact live total (400 rows)"
 first_of() { printf '%s' "$1"; }
 GOOD="$(first_of "${BACKUP_ROOT}"/daily/wainwrights/wainwrights_????-??-??.dump)"
 [ -s "$GOOD" ] || bad "wainwrights dump present"
@@ -93,7 +95,7 @@ ok "scratch container removed"
 # --- A restored total below the marker's live total must fail ---------------------------
 cp "${BACKUP_ROOT}/marker" "${ROOT}/marker.good"
 awk -F'\t' 'BEGIN{OFS="\t"} NR>1 && $1=="wainwrights"{$3=$3+1000} {print}' "${ROOT}/marker.good" > "${BACKUP_ROOT}/marker"
-expect_fail "verify.sh fails when the restore has fewer rows than the live total" "${OPS_DIR}/verify.sh"
+expect_fail "verify.sh fails when the restore has fewer rows than 90% of the live total" "${OPS_DIR}/verify.sh"
 cp "${ROOT}/marker.good" "${BACKUP_ROOT}/marker"
 
 # --- Truncated dump 1: backup.sh's own pg_restore check must catch it -------------------

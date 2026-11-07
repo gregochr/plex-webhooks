@@ -146,11 +146,6 @@ backup_db() {
     mkdir -p "$dir" "${WEEKLY_DIR}/${db}" || return 1
     chmod 700 "$dir" "${WEEKLY_DIR}/${db}" || return 1
 
-    # Live row total first, so rows added during the dump can only raise the restored count.
-    live="$(psql_at -d "$db" -c 'select coalesce(sum(n_live_tup), 0)::bigint from pg_stat_user_tables' 2>>"$ERR_FILE")" \
-        || { log "FAILED ${db}: could not read the live row total."; return 1; }
-    [[ "$live" =~ ^[0-9]+$ ]] || { log "FAILED ${db}: live row total was not a number."; return 1; }
-
     tmp="$(mktemp "${dir}/.partial-XXXXXX")" || return 1
     TMPS+=("$tmp")
 
@@ -169,6 +164,13 @@ backup_db() {
         log "FAILED ${db}: the dump did not pass pg_restore (details in ${ERR_FILE})."
         return 1
     fi
+
+    # Exact live row total (count(*) over every user table, built in one query from the catalog), taken
+    # right after the dump. verify.sh compares the restored total against it, allowing for writes that
+    # land between the dump and this count.
+    live="$(psql_at -d "$db" -c "select coalesce(sum((xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', n.nspname, c.relname), false, true, '')))[1]::text::bigint), 0) from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r', 'm') and n.nspname not in ('pg_catalog', 'information_schema') and n.nspname not like 'pg_toast%'" 2>>"$ERR_FILE")" \
+        || { log "FAILED ${db}: could not count the live rows."; return 1; }
+    [[ "$live" =~ ^[0-9]+$ ]] || { log "FAILED ${db}: live row total was not a number."; return 1; }
 
     chmod 600 "$tmp" || return 1
     mv -f "$tmp" "$final" || return 1

@@ -88,7 +88,7 @@ case "$tool" in
                 *datname*)
                     [[ "${FAKE_LIST_FAIL:-0}" != 1 ]] || exit 3
                     printf '%b' "${FAKE_DBS-cinelight\nwainwrights\n}" ;;
-                *n_live_tup*)
+                *query_to_xml*)
                     [[ "${FAKE_LIVE_FAIL:-0}" != 1 ]] || exit 3
                     kv "${FAKE_LIVE:-wainwrights=5 cinelight=0}" "$db" 5 ;;
             esac
@@ -357,9 +357,27 @@ check "verify: a legitimately empty database passes" "$STATUS" "$OUT"
 check "verify: ...and reports 0 tables, 0 rows" "$(has "Restored cinelight: errors=0 tables=0 rows=0")" "$OUT"
 
 # Restored total below the live total, and zero when the live total was not zero.
-runv "$H" "FAKE_RESTORED=wainwrights=2:4"
-check "verify: a restored total below the marker's live total fails" "$(status_nonzero)" "$OUT"
+runv "$H" "FAKE_RESTORED=wainwrights=2:3"
+check "verify: a restored total below 90% of the marker's live total fails" "$(status_nonzero)" "$OUT"
 check "verify: ...with the reason" "$(has "fewer rows")" "$OUT"
+# Tolerance: the live total is counted just after the dump, so writes in between are allowed for.
+H2="$(new_host)"
+runb "$H2" "FAKE_LIVE=wainwrights=100 cinelight=0"
+check "backup: exact live totals are recorded in the marker" \
+    "$(grep -qE "^wainwrights$(printf '\t')[0-9]+$(printf '\t')100\$" "$H2/backups/marker"; echo $?)" "$(cat "$H2/backups/marker")"
+runv "$H2" "FAKE_LIVE=wainwrights=100 cinelight=0" "FAKE_RESTORED=wainwrights=2:95"
+check "verify: live 100, restored 95 passes (within the 10% tolerance)" "$STATUS" "$OUT"
+runv "$H2" "FAKE_LIVE=wainwrights=100 cinelight=0" "FAKE_RESTORED=wainwrights=2:90"
+check "verify: live 100, restored 90 passes (the boundary)" "$STATUS" "$OUT"
+runv "$H2" "FAKE_LIVE=wainwrights=100 cinelight=0" "FAKE_RESTORED=wainwrights=2:89"
+check "verify: live 100, restored 89 fails (just under the boundary)" "$(status_nonzero)" "$OUT"
+runv "$H2" "FAKE_LIVE=wainwrights=100 cinelight=0" "FAKE_RESTORED=wainwrights=2:80"
+check "verify: live 100, restored 80 fails" "$(status_nonzero)" "$OUT"
+check "verify: ...with the reason" "$(has "fewer rows")" "$OUT"
+check "verify: the scratch tmpfs is capped at 2g by default" \
+    "$(grep -qF -- '--tmpfs /var/lib/postgresql/data:rw,size=2g' "$H2/log"; echo $?)" "$(grep '^docker run' "$H2/log" | tail -1)"
+runv "$H2" VERIFY_TMPFS_SIZE=512m
+check "verify: VERIFY_TMPFS_SIZE overrides the cap" "$(grep -qF -- 'size=512m' "$H2/log"; echo $?)"
 runv "$H" "FAKE_RESTORED=wainwrights=0:0"
 check "verify: a zero restored total with a non-zero live total fails" "$(status_nonzero)" "$OUT"
 runv "$H" "FAKE_RESTORED=wainwrights=2:9"

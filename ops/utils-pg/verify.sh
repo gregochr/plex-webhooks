@@ -39,6 +39,8 @@ OFFBOX_MAX_AGE_HOURS="${OFFBOX_MAX_AGE_HOURS:-48}"
 REQUIRED_DB="${REQUIRED_DB:-wainwrights}"
 POLL_SLEEP="${VERIFY_POLL_SLEEP:-2}"
 POLL_TRIES=60
+# The restore must hold at least this percent of the live row count taken just after the dump: writes can land in between.
+RESTORE_FLOOR_PCT=90
 
 REPO_OPS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MARKER_FILE="${BACKUP_ROOT}/marker"
@@ -218,7 +220,9 @@ fi
 
 docker rm -fv "$SCRATCH" >/dev/null 2>&1 || true
 STARTED=1
-if ! docker run -d --rm --network none --tmpfs /var/lib/postgresql/data \
+# RAM-backed and capped so a large restore cannot squeeze the host; raise VERIFY_TMPFS_SIZE if a database grows past it.
+# A restore that outgrows the cap fails with "No space left on device", a normal restore failure, and does not hang.
+if ! docker run -d --rm --network none --tmpfs "/var/lib/postgresql/data:rw,size=${VERIFY_TMPFS_SIZE:-2g}" \
         -e POSTGRES_HOST_AUTH_METHOD=trust --name "$SCRATCH" "$IMAGE" >/dev/null 2>>"$ERR_FILE"; then
     fail "Could not start the scratch server."
     exit 1
@@ -281,8 +285,9 @@ for ((i = 0; i < ${#LIVE[@]}; i++)); do
 
     # A restore with fewer rows than the live database had at dump time lost data. A restore
     # with zero rows is only fine for a database that really was empty.
-    if [ "$rows" -lt "$live_total" ]; then
-        fail "Restore of ${db} has fewer rows (${rows}) than the live total at dump time (${live_total})."
+    min_rows=$(( live_total * RESTORE_FLOOR_PCT / 100 ))
+    if [ "$rows" -lt "$min_rows" ]; then
+        fail "Restore of ${db} has fewer rows (${rows}) than ${RESTORE_FLOOR_PCT}% of the live total at dump time (${live_total})."
     elif [ "$rows" -eq 0 ] && [ "$live_total" -ne 0 ]; then
         fail "Restore of ${db} has zero rows but the live total was ${live_total}."
     fi

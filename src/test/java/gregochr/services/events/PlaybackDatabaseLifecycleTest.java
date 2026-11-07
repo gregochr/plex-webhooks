@@ -92,8 +92,8 @@ public class PlaybackDatabaseLifecycleTest {
         assertEquals(0, migrations.get());
     }
 
-    @DisplayName("A successful migration marks the database ready, raises the next id, seeds the history, schedules "
-            + "retention at once and stops the migration task")
+    @DisplayName("A successful migration raises the next id BEFORE marking the database ready, seeds the history, "
+            + "schedules retention at once and stops the migration task")
     @Test
     public void successfulMigration() {
         repository.maxId = 1_710_503_999_999_999L;
@@ -103,8 +103,8 @@ public class PlaybackDatabaseLifecycleTest {
         runMigrationTask();
 
         InOrder order = Mockito.inOrder(writer, service);
-        order.verify(writer).markReady();
         order.verify(service).raiseNextId(1_710_504_000_000_000L);
+        order.verify(writer).markReady();
         assertEquals(List.of(100), repository.newestLimits);
         assertEquals(List.of(1_710_503_999_999_999L, 1_710_503_999_999_998L),
                 history.newestFirst(10).stream().map(PlaybackEvent::id).toList());

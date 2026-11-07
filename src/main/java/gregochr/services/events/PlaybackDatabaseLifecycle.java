@@ -74,8 +74,10 @@ public class PlaybackDatabaseLifecycle {
     private void migrate(ScheduledTaskManager self) {
         try {
             migrator.run();
-            writer.markReady();
+            // The next id is raised BEFORE the writer is ready: once it is ready a webhook's event is queued, and an
+            // id at or below a stored one (the clock went back) would hit the primary key and be lost.
             playbackService.raiseNextId(repository.maxId() + 1);
+            writer.markReady();
             history.seed(repository.newest(PlaybackHistory.CAPACITY));
         } catch (RuntimeException e) {
             writer.markNotReady();

@@ -33,7 +33,7 @@ jobs:
 
       # surefire.excludedGroups is emptied so the real-api group is not filtered out again.
       - name: Run real-API tests
-        run: ./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api --batch-mode --no-transfer-progress
+        run: ./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api -Dfrontend.skip=true --batch-mode --no-transfer-progress
 
       # A mis-set group or exclusion makes Maven run zero tests and exit 0. Passing having run
       # nothing is the failure this step exists to catch.

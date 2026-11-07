@@ -11,9 +11,10 @@ COPY mvnw pom.xml ./
 COPY .mvn .mvn
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -B --no-transfer-progress
 
-# Layer 2: the source. Checkstyle, tests, JaCoCo and SpotBugs are the CI gate (ci.yml); the image build only
+# Layer 2: the source, including frontend/ (built by frontend-maven-plugin during package). Checkstyle, tests, JaCoCo and SpotBugs are the CI gate (ci.yml); the image build only
 # packages, and deploy.yml builds it only after that gate has passed on the same tag.
 # Not offline (-o): go-offline can miss a transitive, and the cache mount still makes the common case fast.
+COPY frontend frontend
 COPY src src
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw package -DskipTests -Dcheckstyle.skip=true -B --no-transfer-progress

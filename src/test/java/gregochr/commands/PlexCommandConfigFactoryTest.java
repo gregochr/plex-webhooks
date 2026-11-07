@@ -2,33 +2,30 @@ package gregochr.commands;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.env.Environment;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.mock.env.MockEnvironment;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @DisplayName("Plex Command Config Factory Tests")
 public class PlexCommandConfigFactoryTest {
 
-    private Environment mockEnvironment() {
-        Environment env = mock(Environment.class);
-        when(env.getProperty(anyString(), eq(Boolean.class), eq(false))).thenReturn(false);
-        return env;
+    private static String key(PlexMediaType mediaType, PlexEvent event) {
+        return "plex." + mediaType.getType() + "-" + event.name().toLowerCase() + "-enabled";
     }
 
     @DisplayName("Factory reads movie properties from environment")
     @Test
     public void testFactoryReadsMovieProperties() {
-        Environment env = mockEnvironment();
-        when(env.getProperty("plex.movie-play-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.movie-resume-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.movie-stop-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.movie-pause-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.movie-scrobble-enabled", Boolean.class, false)).thenReturn(false);
+        MockEnvironment env = new MockEnvironment()
+                .withProperty("plex.movie-play-enabled", "true")
+                .withProperty("plex.movie-resume-enabled", "true")
+                .withProperty("plex.movie-stop-enabled", "true")
+                .withProperty("plex.movie-pause-enabled", "true")
+                .withProperty("plex.movie-scrobble-enabled", "false");
 
         PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
 
@@ -42,12 +39,12 @@ public class PlexCommandConfigFactoryTest {
     @DisplayName("Factory reads episode properties from environment")
     @Test
     public void testFactoryReadsEpisodeProperties() {
-        Environment env = mockEnvironment();
-        when(env.getProperty("plex.episode-play-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.episode-resume-enabled", Boolean.class, false)).thenReturn(false);
-        when(env.getProperty("plex.episode-stop-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.episode-pause-enabled", Boolean.class, false)).thenReturn(false);
-        when(env.getProperty("plex.episode-scrobble-enabled", Boolean.class, false)).thenReturn(true);
+        MockEnvironment env = new MockEnvironment()
+                .withProperty("plex.episode-play-enabled", "true")
+                .withProperty("plex.episode-resume-enabled", "false")
+                .withProperty("plex.episode-stop-enabled", "true")
+                .withProperty("plex.episode-pause-enabled", "false")
+                .withProperty("plex.episode-scrobble-enabled", "true");
 
         PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
 
@@ -58,32 +55,54 @@ public class PlexCommandConfigFactoryTest {
         assertTrue(config.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.EPISODE));
     }
 
-    @DisplayName("Factory defaults to false when properties are not set")
+    @DisplayName("Factory defaults every event and media type to disabled when no property is set")
     @Test
     public void testFactoryDefaultsToFalse() {
-        Environment env = mockEnvironment();
-
-        PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
+        PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(new MockEnvironment());
 
         for (PlexMediaType mediaType : PlexMediaType.values()) {
             for (PlexEvent event : PlexEvent.values()) {
-                assertFalse(config.isCommandEnabled(event, mediaType));
+                assertFalse(config.isCommandEnabled(event, mediaType), key(mediaType, event));
             }
         }
     }
 
-    @DisplayName("Factory uses correct property key pattern for all media types")
+    @DisplayName("Factory reads TRUE in upper case as enabled")
     @Test
-    public void testFactoryPropertyKeyPattern() {
-        Environment env = mockEnvironment();
-        when(env.getProperty("plex.clip-play-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.track-pause-enabled", Boolean.class, false)).thenReturn(true);
-        when(env.getProperty("plex.photo-scrobble-enabled", Boolean.class, false)).thenReturn(true);
+    public void testFactoryUpperCaseTrue() {
+        MockEnvironment env = new MockEnvironment().withProperty("plex.movie-play-enabled", "TRUE");
 
         PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
 
-        assertTrue(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.CLIP));
-        assertTrue(config.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.TRACK));
-        assertTrue(config.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.PHOTO));
+        assertTrue(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("Factory reads FALSE in upper case as disabled")
+    @Test
+    public void testFactoryUpperCaseFalse() {
+        MockEnvironment env = new MockEnvironment().withProperty("plex.movie-play-enabled", "FALSE");
+
+        PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
+
+        assertFalse(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("Factory enabling one property enables exactly that event for exactly that media type")
+    @ParameterizedTest(name = "only {0} play")
+    @EnumSource(PlexMediaType.class)
+    public void testFactoryEnablesOnlyTheSetFlag(PlexMediaType enabledType) {
+        for (PlexEvent enabledEvent : PlexEvent.values()) {
+            MockEnvironment env = new MockEnvironment().withProperty(key(enabledType, enabledEvent), "true");
+
+            PlexCommandConfig config = new PlexCommandConfigFactory().plexCommandConfig(env);
+
+            for (PlexMediaType type : PlexMediaType.values()) {
+                for (PlexEvent event : PlexEvent.values()) {
+                    boolean expected = type == enabledType && event == enabledEvent;
+                    assertEquals(expected, config.isCommandEnabled(event, type),
+                            "flag " + key(enabledType, enabledEvent) + " checked at " + key(type, event));
+                }
+            }
+        }
     }
 }

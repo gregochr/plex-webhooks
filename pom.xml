@@ -28,14 +28,14 @@
         <spotbugs-plugin.version>4.9.8.3</spotbugs-plugin.version>
         <spotbugs.version>4.9.3</spotbugs.version>
         <findsecbugs.version>1.13.0</findsecbugs.version>
-        <pitest.version>1.17.3</pitest.version>
+        <pitest.version>1.22.1</pitest.version>
         <pitest-junit5.version>1.2.3</pitest-junit5.version>
         <owasp-dependency-check.version>12.2.2</owasp-dependency-check.version>
 
         <!-- Coverage threshold -->
         <jacoco.line.coverage.minimum>0.80</jacoco.line.coverage.minimum>
         <!-- Mutation threshold (raise over time) -->
-        <pitest.mutation.threshold>70</pitest.mutation.threshold>
+        <pitest.mutation.threshold>98</pitest.mutation.threshold>
         <!-- OWASP: fail on CVSS >= 7 -->
         <owasp.failBuildOnCVSS>7</owasp.failBuildOnCVSS>
         <!-- Tests tagged "real-api" call live third-party services (sunrise-sunset.org, postcodes.io).
@@ -67,7 +67,7 @@
                 </configuration>
             </plugin>
 
-            <!-- ── JaCoCo: per-class 95/90 coverage rule with measured overrides, 80% bundle backstop ──────────── -->
+            <!-- ── JaCoCo: per-class 95/90 coverage rule, 80% bundle backstop ──────────── -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -88,22 +88,12 @@
                         <goals><goal>check</goal></goals>
                         <configuration>
                             <rules>
-                                <!-- Default: every class holds 95% of lines and 90% of branches on its own.
-                                     Classes with an override below are excluded here and held to their own
-                                     measured figure instead. No class is excluded from checking altogether. -->
+                                <!-- Every class holds 95% of lines and 90% of branches on its own. There are no
+                                     per-class overrides: every class measured at 100% line coverage in Phase 2.
+                                     A class that cannot reach the bar must be excluded here and given its own rule
+                                     below, with a comment naming the line it cannot reach and why. -->
                                 <rule>
                                     <element>CLASS</element>
-                                    <excludes>
-                                        <exclude>gregochr.services.sse.SseClient</exclude>
-                                        <exclude>gregochr.services.sse.SseService</exclude>
-                                        <exclude>gregochr.controllers.hue.HueResourceController</exclude>
-                                        <exclude>gregochr.controllers.SseController</exclude>
-                                        <exclude>gregochr.commands.PlexCommand</exclude>
-                                        <exclude>gregochr.controllers.dirigera.DirigeraStatusController</exclude>
-                                        <exclude>gregochr.services.config.PropertiesRepository</exclude>
-                                        <exclude>gregochr.services.plex.dto.PlexMetadataDto</exclude>
-                                        <exclude>gregochr.services.plex.dto.PlexPayloadDto</exclude>
-                                    </excludes>
                                     <limits>
                                         <limit>
                                             <counter>LINE</counter>
@@ -114,167 +104,6 @@
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
                                             <minimum>0.90</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- SseClient: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.services.sse.SseClient</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.92</minimum>
-                                        </limit>
-                                        <limit>
-                                            <counter>BRANCH</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.76</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- SseService: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.services.sse.SseService</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.79</minimum>
-                                        </limit>
-                                        <limit>
-                                            <counter>BRANCH</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- HueResourceController: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.controllers.hue.HueResourceController</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum>
-                                        </limit>
-                                        <limit>
-                                            <counter>BRANCH</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.50</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- SseController: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.controllers.SseController</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
-                                        </limit>
-                                        <limit>
-                                            <counter>BRANCH</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.75</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- PlexCommand: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.commands.PlexCommand</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
-                                        </limit>
-                                        <limit>
-                                            <counter>BRANCH</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.87</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- DirigeraStatusController: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.controllers.dirigera.DirigeraStatusController</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.75</minimum>
-                                        </limit>
-                                        <limit>
-                                            <counter>BRANCH</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>1.00</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- PropertiesRepository: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.services.config.PropertiesRepository</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.92</minimum>
-                                        </limit>
-                                        <limit>
-                                            <counter>BRANCH</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.85</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- PlexMetadataDto: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.services.plex.dto.PlexMetadataDto</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.50</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                                <!-- PlexPayloadDto: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
-                                <rule>
-                                    <element>CLASS</element>
-                                    <includes>
-                                        <include>gregochr.services.plex.dto.PlexPayloadDto</include>
-                                    </includes>
-                                    <limits>
-                                        <limit>
-                                            <counter>LINE</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.50</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

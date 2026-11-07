@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.time.Clock;
 
 @RestController
 public class PlexController {
@@ -26,15 +27,18 @@ public class PlexController {
     private final SseService sseService;
     private final ConfigService configService;
     private final PlexCommandConfig plexCommandConfig;
+    private final Clock clock;
 
     public PlexController(HueSceneController hueSceneController,
                           SseService sseService,
                           ConfigService configService,
-                          PlexCommandConfig plexCommandConfig) {
+                          PlexCommandConfig plexCommandConfig,
+                          Clock clock) {
         this.hueSceneController = hueSceneController;
         this.sseService = sseService;
         this.configService = configService;
         this.plexCommandConfig = plexCommandConfig;
+        this.clock = clock;
     }
 
     @RequestMapping(value = "/plex", method = RequestMethod.POST, consumes = { "multipart/form-data" } )
@@ -46,7 +50,7 @@ public class PlexController {
         LOGGER.info("[ Plex command: {} ]", command);
 
         // Broadcast to SSE clients
-        sseService.broadcast(new SseEventDto(command, payload));
+        sseService.broadcast(new SseEventDto(command, payload, clock));
 
         command.execute(hueSceneController, configService, plexCommandConfig);
     }

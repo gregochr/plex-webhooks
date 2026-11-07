@@ -4,9 +4,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
@@ -14,9 +16,13 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @DisplayName("ConfigurationViewService Tests")
@@ -109,12 +115,72 @@ public class ConfigurationViewServiceTest {
     @Test
     public void testSavePropertiesPublishesEvent() throws IOException {
         Map<String, String> updates = Map.of("sse.heartbeat-interval", "60000");
-        when(repository.resolvePropertiesPath()).thenReturn(java.nio.file.Path.of("test.properties"));
+        when(repository.resolvePropertiesPath()).thenReturn(Path.of("test.properties"));
 
         service.saveProperties(updates);
 
         ArgumentCaptor<PropertiesUpdatedEvent> captor = ArgumentCaptor.forClass(PropertiesUpdatedEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertEquals(updates, captor.getValue().getUpdatedProperties());
+    }
+
+    @DisplayName("saveProperties writes the updates to the resolved file before publishing the event")
+    @Test
+    public void testSavePropertiesWritesBeforePublishing() throws IOException {
+        Map<String, String> updates = Map.of("sse.heartbeat-interval", "60000");
+        Path file = Path.of("test.properties");
+        when(repository.resolvePropertiesPath()).thenReturn(file);
+
+        service.saveProperties(updates);
+
+        InOrder order = inOrder(repository, eventPublisher);
+        order.verify(repository).saveProperties(updates, file);
+        order.verify(eventPublisher).publishEvent(ArgumentCaptor.forClass(PropertiesUpdatedEvent.class).capture());
+    }
+
+    @DisplayName("saveProperties publishes no event when the file cannot be written")
+    @Test
+    public void testSavePropertiesFailureDoesNotPublish() throws IOException {
+        Path file = Path.of("test.properties");
+        Map<String, String> updates = Map.of("sse.heartbeat-interval", "60000");
+        when(repository.resolvePropertiesPath()).thenReturn(file);
+        doThrow(new IOException("disk full")).when(repository).saveProperties(updates, file);
+
+        assertThrows(IOException.class, () -> service.saveProperties(updates));
+
+        verifyNoInteractions(eventPublisher);
+    }
+
+    @DisplayName("isValidMediaType rejects track and photo, which have config but no editable commands")
+    @Test
+    public void testInvalidMediaTypes() {
+        assertFalse(service.isValidMediaType("track"));
+        assertFalse(service.isValidMediaType("photo"));
+    }
+
+    @DisplayName("isValidMediaType is case sensitive and does not trim")
+    @Test
+    public void testMediaTypeMatchIsExact() {
+        assertFalse(service.isValidMediaType("Movie"));
+        assertFalse(service.isValidMediaType("movie "));
+        assertFalse(service.isValidMediaType(""));
+    }
+
+    @DisplayName("isValidSceneKey is case sensitive and rejects a bare suffix")
+    @Test
+    public void testSceneKeyMatchIsExact() {
+        assertFalse(service.isValidSceneKey("HUE.START-SCENE"));
+        assertFalse(service.isValidSceneKey("start-scene"));
+        assertFalse(service.isValidSceneKey(""));
+    }
+
+    @DisplayName("getValidPropertyKeys does not allow the credential keys")
+    @Test
+    public void testPropertyKeysExcludeCredentials() {
+        Set<String> keys = service.getValidPropertyKeys();
+
+        assertFalse(keys.contains("hue.application-key"));
+        assertFalse(keys.contains("app.admin.password"));
+        assertFalse(keys.contains("hue.hub-address"));
     }
 }

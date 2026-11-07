@@ -2,14 +2,16 @@ package gregochr.services;
 
 import gregochr.services.config.PropertiesUpdatedEvent;
 import org.apache.logging.log4j.Logger;
+import org.springframework.scheduling.TaskScheduler;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 public class ScheduledTaskManager {
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final TaskScheduler taskScheduler;
+    private final Clock clock;
     private final String propertyKey;
     private final String taskName;
     private final Runnable task;
@@ -17,7 +19,10 @@ public class ScheduledTaskManager {
     private ScheduledFuture<?> scheduledTask;
     private long intervalMs;
 
-    public ScheduledTaskManager(long intervalMs, String propertyKey, String taskName, Runnable task, Logger logger) {
+    public ScheduledTaskManager(TaskScheduler taskScheduler, Clock clock, long intervalMs, String propertyKey,
+            String taskName, Runnable task, Logger logger) {
+        this.taskScheduler = taskScheduler;
+        this.clock = clock;
         this.intervalMs = intervalMs;
         this.propertyKey = propertyKey;
         this.taskName = taskName;
@@ -25,23 +30,29 @@ public class ScheduledTaskManager {
         this.logger = logger;
     }
 
-    public void start() {
+    public synchronized void start() {
         scheduleTask();
     }
 
-    public void shutdown() {
-        scheduler.shutdown();
+    public synchronized void shutdown() {
+        cancelScheduledTask();
     }
 
     private void scheduleTask() {
-        if (scheduledTask != null) {
-            scheduledTask.cancel(false);
-        }
-        scheduledTask = scheduler.scheduleAtFixedRate(task, intervalMs, intervalMs, TimeUnit.MILLISECONDS);
+        cancelScheduledTask();
+        Instant firstRun = clock.instant().plusMillis(intervalMs);
+        scheduledTask = taskScheduler.scheduleAtFixedRate(task, firstRun, Duration.ofMillis(intervalMs));
         logger.info("Scheduled {} at interval: {} ms", taskName, intervalMs);
     }
 
-    public void onPropertiesUpdated(PropertiesUpdatedEvent event) {
+    private void cancelScheduledTask() {
+        if (scheduledTask != null) {
+            scheduledTask.cancel(false);
+            scheduledTask = null;
+        }
+    }
+
+    public synchronized void onPropertiesUpdated(PropertiesUpdatedEvent event) {
         String value = event.getUpdatedProperties().get(propertyKey);
         if (value != null) {
             this.intervalMs = Long.parseLong(value);

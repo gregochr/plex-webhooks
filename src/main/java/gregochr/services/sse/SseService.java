@@ -6,18 +6,21 @@ import gregochr.services.ScheduledTaskManager;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongFunction;
 
 @Service
 public class SseService {
@@ -27,9 +30,21 @@ public class SseService {
 
     private final Map<String, SseClient> clients = new ConcurrentHashMap<>();
     private final ScheduledTaskManager scheduledTaskManager;
+    private final Clock clock;
+    private final LongFunction<SseEmitter> emitterFactory;
 
-    public SseService(@Value("${sse.heartbeat-interval}") long intervalMs) {
-        this.scheduledTaskManager = new ScheduledTaskManager(
+    @Autowired
+    public SseService(@Value("${sse.heartbeat-interval}") long intervalMs, TaskScheduler taskScheduler,
+            Clock clock) {
+        this(intervalMs, taskScheduler, clock, SseEmitter::new);
+    }
+
+    /** Lets tests supply the emitters, so they can record what is sent and simulate a failing client. */
+    SseService(long intervalMs, TaskScheduler taskScheduler, Clock clock,
+            LongFunction<SseEmitter> emitterFactory) {
+        this.clock = clock;
+        this.emitterFactory = emitterFactory;
+        this.scheduledTaskManager = new ScheduledTaskManager(taskScheduler, clock,
                 intervalMs, "sse.heartbeat-interval", "heartbeat", this::heartbeat, LOGGER);
     }
 
@@ -57,7 +72,7 @@ public class SseService {
             existingClient.emitter().complete();
         }
 
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
+        SseEmitter emitter = emitterFactory.apply(SSE_TIMEOUT);
 
         emitter.onCompletion(() -> removeIfSameEmitter(clientId, emitter, "completion"));
 
@@ -65,7 +80,7 @@ public class SseService {
 
         emitter.onError(e -> removeIfSameEmitter(clientId, emitter, "error: " + e.getMessage()));
 
-        SseClient client = new SseClient(clientId, emitter, userAgent, ipAddress, Instant.now());
+        SseClient client = new SseClient(clientId, emitter, userAgent, ipAddress, clock.instant());
         clients.put(clientId, client);
         LOGGER.info("SSE client connected: {} ({}) from {}. Total clients: {}",
                 clientId, client.getBrowserInfo(), ipAddress, clients.size());
@@ -123,6 +138,10 @@ public class SseService {
 
     public int getClientCount() {
         return this.clients.size();
+    }
+
+    SseClient getClient(String clientId) {
+        return clients.get(clientId);
     }
 
     void removeIfSameEmitter(String clientId, SseEmitter emitter, String reason) {

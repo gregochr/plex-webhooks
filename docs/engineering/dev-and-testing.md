@@ -36,10 +36,10 @@ Gate on the exit code. In order:
 2. **Tests**: every test except those tagged `real-api` (`surefire.excludedGroups`). Tags: none = unit,
    `integration` = Spring context or several real components (no network), `real-api` = live third-party calls.
 3. **JaCoCo** (`check` in `verify`, report at `test`; `target/site/jacoco/`):
-   - default rule: every class **95% line, 90% branch**;
-   - classes below that today are excluded from the default rule and held to **their own measured figure** by
-     their own rule (comment: "measured 2026-11-07, Phase 2 raises to 0.95/0.90"); a figure can only go up;
-   - a bundle rule (80% line) is the backstop. No class is excluded from checking altogether.
+   - every class **95% line, 90% branch**, with **no exceptions** (the last overrides were removed in Phase 2,
+     2026-11-07). If a class genuinely cannot reach the bar, an override at its measured figure needs an XML
+     comment naming the exact unreachable line and why, as goldenhour does; never exclude a class from checking;
+   - a bundle rule (80% line) is the backstop.
    - A class with no branches has no branch ratio, and JaCoCo skips that counter.
 4. **SpotBugs + FindSecBugs**, threshold High, `effort` Max, `spotbugs-exclude.xml`.
 
@@ -57,7 +57,7 @@ The report must show real percentages. "No lines with coverage information" on a
 
 | What | Command | Where it runs |
 |---|---|---|
-| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage` | Weekly (`pitest.yml`), never on PRs. Threshold 70 (`pitest.mutation.threshold`), measured 80% on 2026-11-07. Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes ~3 minutes locally. |
+| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage` | Weekly (`pitest.yml`), never on PRs. PIT 1.22.1 (1.17.3's ASM could not read JDK 25 classes and silently skipped some). Threshold 98 (`pitest.mutation.threshold`), measured 98.77% (241/244) on 2026-11-07; the 3 survivors are 2 equivalent mutants and `SecurityConfig.securityFilterChain` returning null, which PIT cannot kill through a cached Spring context. With ~4 survivors of headroom, a new equivalent mutant can turn the weekly run red: decide then whether it is a test gap or equivalent. Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes a few minutes locally. |
 | Live third-party APIs | `./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api` | Weekly (`real-api-smoke.yml`), which fails if 0 tests ran. |
 | OWASP Dependency-Check | `./mvnw dependency-check:check` (needs `NVD_API_KEY`) | **Not in CI** until a valid `NVD_API_KEY` secret is set (the current one is rejected by NVD). Fails on CVSS ≥ 7; suppressions in `owasp-suppressions.xml`. |
 

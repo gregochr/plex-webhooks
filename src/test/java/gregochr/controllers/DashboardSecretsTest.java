@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * the formatter and the Thymeleaf template, none of which a sliced test would wire together.
  */
 @DisplayName("Dashboard Secrets Tests")
+// Kept as @SpringBootTest: the property source, SecurityConfig, formatter and template must be wired together.
 @SpringBootTest(properties = {
         "hue.application-key=SECRET-CANARY-1234",
         "app.admin.password=ADMIN-CANARY-5678",

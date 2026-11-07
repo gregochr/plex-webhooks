@@ -54,7 +54,7 @@ Never done by a session: creating or deleting tags, pushing to `master`, force-p
 ```
 
 `clean verify` is exactly CI's `Build, Test & Coverage` job: Checkstyle (at `validate`), all unit and integration
-tests, JaCoCo (**95% line and 90% branch per class**, listed overrides at their measured figure, 80% bundle), and
+tests, JaCoCo (**95% line and 90% branch for every class**, no exceptions; 80% bundle), and
 SpotBugs + FindSecBugs (High). PRs also need **90% of changed `src/main/java` lines** covered (`diff-cover`). Run
 Maven in the foreground. Detail, plus PIT, the live-API tests and OWASP: `docs/engineering/dev-and-testing.md`.
 

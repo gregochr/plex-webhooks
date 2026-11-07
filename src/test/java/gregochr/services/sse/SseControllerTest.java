@@ -35,6 +35,31 @@ public class SseControllerTest {
         verify(mockService).subscribe(clientId, userAgent, ipAddress);
     }
 
+    @DisplayName("Subscribe falls back to the remote address when X-Forwarded-For is empty")
+    @Test
+    public void testSubscribeIgnoresEmptyForwardedHeader() {
+        SseService mockService = mock(SseService.class);
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        when(mockRequest.getHeader("X-Forwarded-For")).thenReturn("");
+        when(mockRequest.getRemoteAddr()).thenReturn("192.168.1.100");
+
+        new SseController(mockService).subscribe("test-client-1", "Mozilla/5.0 Test Browser", mockRequest);
+
+        verify(mockService).subscribe("test-client-1", "Mozilla/5.0 Test Browser", "192.168.1.100");
+    }
+
+    @DisplayName("Subscribe uses the first address when X-Forwarded-For lists several")
+    @Test
+    public void testSubscribeUsesFirstForwardedAddress() {
+        SseService mockService = mock(SseService.class);
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        when(mockRequest.getHeader("X-Forwarded-For")).thenReturn("10.0.0.50 , 192.168.1.1, 172.16.0.1");
+
+        new SseController(mockService).subscribe("test-client-1", "Mozilla/5.0 Test Browser", mockRequest);
+
+        verify(mockService).subscribe("test-client-1", "Mozilla/5.0 Test Browser", "10.0.0.50");
+    }
+
     @DisplayName("Subscribe uses X-Forwarded-For header when present")
     @Test
     public void testSubscribeUsesForwardedIp() {

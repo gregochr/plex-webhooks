@@ -14,9 +14,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -118,7 +117,6 @@ public class ConfigControllerTest {
     @Test
     public void testSavePlexCommands() throws Exception {
         when(configurationViewService.isValidMediaType("movie")).thenReturn(true);
-        doNothing().when(configurationViewService).saveProperties(any());
 
         Map<String, Boolean> body = new LinkedHashMap<>();
         body.put("plex.movie-play-enabled", true);
@@ -128,7 +126,23 @@ public class ConfigControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(body, response.getBody());
-        verify(configurationViewService).saveProperties(any());
+        verify(configurationViewService).saveProperties(
+                Map.of("plex.movie-play-enabled", "true", "plex.movie-stop-enabled", "false"));
+    }
+
+    @DisplayName("PUT plex-commands saves only keys that start with the media type's prefix")
+    @Test
+    public void testSavePlexCommandsFiltersByPrefix() throws Exception {
+        when(configurationViewService.isValidMediaType("movie")).thenReturn(true);
+        Map<String, Boolean> body = new LinkedHashMap<>();
+        body.put("plex.movie-play-enabled", true);
+        body.put("plex.episode-play-enabled", true);
+        body.put("plex.movie", true);
+        body.put("hue.application-key", true);
+
+        controller.savePlexCommands("movie", body);
+
+        verify(configurationViewService).saveProperties(Map.of("plex.movie-play-enabled", "true"));
     }
 
     @DisplayName("PUT plex-commands returns 404 for unknown media type")
@@ -161,7 +175,6 @@ public class ConfigControllerTest {
     @Test
     public void testSaveHueSceneStart() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.start-scene")).thenReturn(true);
-        doNothing().when(configurationViewService).saveProperties(any());
 
         Map<String, String> body = Map.of("key", "hue.start-scene", "sceneId", "abc-123");
 
@@ -170,13 +183,13 @@ public class ConfigControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertEquals("hue.start-scene", response.getBody().get("key"));
         assertEquals("abc-123", response.getBody().get("sceneId"));
+        verify(configurationViewService).saveProperties(Map.of("hue.start-scene", "abc-123"));
     }
 
     @DisplayName("PUT hue-scene saves stop scene to disk")
     @Test
     public void testSaveHueSceneStop() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.stop-scene")).thenReturn(true);
-        doNothing().when(configurationViewService).saveProperties(any());
 
         Map<String, String> body = Map.of("key", "hue.stop-scene", "sceneId", "xyz-456");
 
@@ -184,6 +197,7 @@ public class ConfigControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("hue.stop-scene", response.getBody().get("key"));
+        verify(configurationViewService).saveProperties(Map.of("hue.stop-scene", "xyz-456"));
     }
 
     @DisplayName("PUT hue-scene returns 400 for invalid key")
@@ -211,7 +225,6 @@ public class ConfigControllerTest {
     @Test
     public void testSaveProperties() throws Exception {
         when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
-        doNothing().when(configurationViewService).saveProperties(any());
 
         Map<String, String> body = Map.of("sse.heartbeat-interval", "5000");
 
@@ -219,7 +232,7 @@ public class ConfigControllerTest {
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("5000", response.getBody().get("sse.heartbeat-interval"));
-        verify(configurationViewService).saveProperties(any());
+        verify(configurationViewService).saveProperties(Map.of("sse.heartbeat-interval", "5000"));
     }
 
     @DisplayName("PUT properties returns 400 for invalid key")
@@ -237,7 +250,6 @@ public class ConfigControllerTest {
     @Test
     public void testSavePropertiesFiltersKeys() throws Exception {
         when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
-        doNothing().when(configurationViewService).saveProperties(any());
 
         Map<String, String> body = new LinkedHashMap<>();
         body.put("sse.heartbeat-interval", "8000");
@@ -248,5 +260,28 @@ public class ConfigControllerTest {
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().size());
         assertEquals("8000", response.getBody().get("sse.heartbeat-interval"));
+        verify(configurationViewService).saveProperties(Map.of("sse.heartbeat-interval", "8000"));
+    }
+
+    @DisplayName("PUT properties with no keys returns 400 and saves nothing")
+    @Test
+    public void testSavePropertiesEmptyBody() throws Exception {
+        when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
+
+        ResponseEntity<Map<String, String>> response = controller.saveProperties(Map.of());
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(configurationViewService, never()).saveProperties(Map.of());
+    }
+
+    @DisplayName("PUT hue-scene returns 400 when the scene id is missing")
+    @Test
+    public void testSaveHueSceneMissingSceneId() throws Exception {
+        Map<String, String> body = Map.of("key", "hue.start-scene");
+
+        ResponseEntity<Map<String, String>> response = controller.saveHueScene(body);
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(configurationViewService, never()).saveProperties(Map.of());
     }
 }

@@ -9,13 +9,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Map;
 
 @RestController
@@ -27,6 +28,7 @@ public class HueStatusController {
     private final ConfigService configService;
     private final SseService sseService;
     private final ScheduledTaskManager scheduledTaskManager;
+    private final Clock clock;
 
     @Value("${hue.hub-address}")
     private String hubAddress;
@@ -35,11 +37,14 @@ public class HueStatusController {
             HueBridgeClient hueBridgeClient,
             ConfigService configService,
             SseService sseService,
-            @Value("${hue.status-interval}") long intervalMs) {
+            @Value("${hue.status-interval}") long intervalMs,
+            TaskScheduler taskScheduler,
+            Clock clock) {
         this.hueBridgeClient = hueBridgeClient;
         this.configService = configService;
         this.sseService = sseService;
-        this.scheduledTaskManager = new ScheduledTaskManager(
+        this.clock = clock;
+        this.scheduledTaskManager = new ScheduledTaskManager(taskScheduler, clock,
                 intervalMs, "hue.status-interval", "hue status broadcast", this::broadcastStatus, LOGGER);
     }
 
@@ -92,7 +97,7 @@ public class HueStatusController {
                 "applicationKeySet", isApplicationKeySet(),
                 "integrationEnabled", configService.isHueIntegrationEnabled(),
                 "connected", connected,
-                "timestamp", Instant.now().toString()
+                "timestamp", clock.instant().toString()
         );
     }
 }

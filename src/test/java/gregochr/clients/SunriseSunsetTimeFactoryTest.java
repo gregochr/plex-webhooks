@@ -5,73 +5,87 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SunriseSunsetTimeFactoryTest {
 
-    @DisplayName("Test getSunsetTime parses PM time correctly")
+    private final SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
+
+    @DisplayName("getSunsetTime parses a PM time")
     @Test
     public void testGetSunsetTimePM() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto(null, "4:37:54 PM");
-
-        SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
-        LocalTime sunsetTime = factory.getSunsetTime(result);
-
-        assertEquals(16, sunsetTime.getHour());
-        assertEquals(37, sunsetTime.getMinute());
-        assertEquals(54, sunsetTime.getSecond());
+        assertEquals(Optional.of(LocalTime.of(16, 37, 54)),
+                factory.getSunsetTime(new SunriseSunsetResultDto(null, "4:37:54 PM")));
     }
 
-    @DisplayName("Test getSunriseTime parses AM time correctly")
+    @DisplayName("getSunriseTime parses an AM time")
     @Test
     public void testGetSunriseTimeAM() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto("7:15:30 AM", null);
-
-        SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
-        LocalTime sunriseTime = factory.getSunriseTime(result);
-
-        assertEquals(7, sunriseTime.getHour());
-        assertEquals(15, sunriseTime.getMinute());
-        assertEquals(30, sunriseTime.getSecond());
+        assertEquals(Optional.of(LocalTime.of(7, 15, 30)),
+                factory.getSunriseTime(new SunriseSunsetResultDto("7:15:30 AM", null)));
     }
 
-    @DisplayName("Test getSunsetTime parses 12 PM (noon) correctly")
+    @DisplayName("getSunsetTime parses 12 PM as noon")
     @Test
     public void testGetSunsetTimeNoon() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto(null, "12:00:00 PM");
-
-        SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
-        LocalTime sunsetTime = factory.getSunsetTime(result);
-
-        assertEquals(12, sunsetTime.getHour());
-        assertEquals(0, sunsetTime.getMinute());
-        assertEquals(0, sunsetTime.getSecond());
+        assertEquals(Optional.of(LocalTime.NOON),
+                factory.getSunsetTime(new SunriseSunsetResultDto(null, "12:00:00 PM")));
     }
 
-    @DisplayName("Test getSunriseTime parses 12 AM (midnight) correctly")
+    @DisplayName("getSunriseTime parses 12 AM as midnight")
     @Test
     public void testGetSunriseTimeMidnight() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto("12:00:00 AM", null);
-
-        SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
-        LocalTime sunriseTime = factory.getSunriseTime(result);
-
-        assertEquals(0, sunriseTime.getHour());
-        assertEquals(0, sunriseTime.getMinute());
-        assertEquals(0, sunriseTime.getSecond());
+        assertEquals(Optional.of(LocalTime.MIDNIGHT),
+                factory.getSunriseTime(new SunriseSunsetResultDto("12:00:00 AM", null)));
     }
 
-    @DisplayName("Test getSunsetTime parses double-digit PM time correctly")
+    @DisplayName("getSunsetTime parses a double-digit PM hour")
     @Test
     public void testGetSunsetTimeDoubleDigitPM() {
-        SunriseSunsetResultDto result = new SunriseSunsetResultDto(null, "10:37:54 PM");
+        assertEquals(Optional.of(LocalTime.of(22, 37, 54)),
+                factory.getSunsetTime(new SunriseSunsetResultDto(null, "10:37:54 PM")));
+    }
 
-        SunriseSunsetTimeFactory factory = new SunriseSunsetTimeFactory();
-        LocalTime sunsetTime = factory.getSunsetTime(result);
+    @DisplayName("getSunsetTime parses 11:59:59 PM, the last second of the day")
+    @Test
+    public void testGetSunsetTimeLastSecond() {
+        assertEquals(Optional.of(LocalTime.of(23, 59, 59)),
+                factory.getSunsetTime(new SunriseSunsetResultDto(null, "11:59:59 PM")));
+    }
 
-        assertEquals(22, sunsetTime.getHour());
-        assertEquals(37, sunsetTime.getMinute());
-        assertEquals(54, sunsetTime.getSecond());
+    @DisplayName("getSunsetTime is empty when the provider sent no result")
+    @Test
+    public void testGetSunsetTimeNullResult() {
+        assertEquals(Optional.empty(), factory.getSunsetTime(null));
+    }
+
+    @DisplayName("getSunriseTime is empty when the provider sent no result")
+    @Test
+    public void testGetSunriseTimeNullResult() {
+        assertEquals(Optional.empty(), factory.getSunriseTime(null));
+    }
+
+    @DisplayName("getSunsetTime is empty when the result has no sunset")
+    @Test
+    public void testGetSunsetTimeNullSunset() {
+        assertEquals(Optional.empty(), factory.getSunsetTime(new SunriseSunsetResultDto("7:15:30 AM", null)));
+    }
+
+    @DisplayName("getSunriseTime is empty when the result has no sunrise")
+    @Test
+    public void testGetSunriseTimeNullSunrise() {
+        assertEquals(Optional.empty(), factory.getSunriseTime(new SunriseSunsetResultDto(null, "4:37:54 PM")));
+    }
+
+    @DisplayName("getSunsetTime rejects a time that is not in the provider's format")
+    @Test
+    public void testGetSunsetTimeMalformed() {
+        SunriseSunsetResultDto result = new SunriseSunsetResultDto(null, "16:37:54");
+
+        assertThrows(DateTimeParseException.class, () -> factory.getSunsetTime(result));
     }
 }

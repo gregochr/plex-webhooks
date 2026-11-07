@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.EnumMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -123,6 +124,58 @@ public class PlexCommandConfigTest {
         assertFalse(config.isCommandEnabled(PlexEvent.STOP, PlexMediaType.MOVIE));
         assertFalse(config.isCommandEnabled(PlexEvent.PAUSE, PlexMediaType.MOVIE));
         assertFalse(config.isCommandEnabled(PlexEvent.SCROBBLE, PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("onPropertiesUpdated leaves other media types' entries untouched and adds none")
+    @Test
+    public void testOnPropertiesUpdatedOnlyTouchesUpdatedMediaType() {
+        Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_ENABLED));
+        PlexCommandConfig config = new PlexCommandConfig(configs);
+
+        config.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of("plex.episode-play-enabled", "true")));
+
+        assertEquals(Map.of(
+                PlexMediaType.MOVIE, ALL_ENABLED,
+                PlexMediaType.EPISODE, new PlexMediaTypeConfig(true, false, false, false, false)), configs);
+    }
+
+    @DisplayName("onPropertiesUpdated ignores a key that only shares the start of a media type's prefix")
+    @Test
+    public void testOnPropertiesUpdatedPrefixBoundary() {
+        Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_ENABLED));
+        PlexCommandConfig config = new PlexCommandConfig(configs);
+
+        config.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of(
+                "plex.movie", "false", "plex.movies-play-enabled", "false", "movie-play-enabled", "false")));
+
+        assertEquals(Map.of(PlexMediaType.MOVIE, ALL_ENABLED), configs);
+    }
+
+    @DisplayName("onPropertiesUpdated reads any value other than 'true' as false, in any case")
+    @Test
+    public void testOnPropertiesUpdatedParsesBooleans() {
+        Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_DISABLED));
+        PlexCommandConfig config = new PlexCommandConfig(configs);
+
+        config.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of(
+                "plex.movie-play-enabled", "TRUE",
+                "plex.movie-resume-enabled", "yes",
+                "plex.movie-stop-enabled", "",
+                "plex.movie-pause-enabled", "true",
+                "plex.movie-scrobble-enabled", "1")));
+
+        assertEquals(new PlexMediaTypeConfig(true, false, false, true, false), configs.get(PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("onPropertiesUpdated starts an unconfigured media type from all disabled")
+    @Test
+    public void testOnPropertiesUpdatedUnconfiguredMediaType() {
+        PlexCommandConfig config = new PlexCommandConfig(new EnumMap<>(PlexMediaType.class));
+
+        config.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of("plex.photo-stop-enabled", "true")));
+
+        assertTrue(config.isCommandEnabled(PlexEvent.STOP, PlexMediaType.PHOTO));
+        assertFalse(config.isCommandEnabled(PlexEvent.PLAY, PlexMediaType.PHOTO));
     }
 
     @DisplayName("onPropertiesUpdated preserves unchanged fields")

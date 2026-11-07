@@ -4,7 +4,6 @@ import gregochr.clients.dto.SunriseSunsetResponseDto;
 import jakarta.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -18,11 +17,6 @@ public class SunriseSunsetClient {
 
     private final RestClient restClient;
     private final Clock clock;
-
-    @Autowired
-    public SunriseSunsetClient(RestClient restClient) {
-        this(restClient, Clock.systemDefaultZone());
-    }
 
     public SunriseSunsetClient(RestClient restClient, Clock clock) {
         this.restClient = restClient;
@@ -50,6 +44,10 @@ public class SunriseSunsetClient {
                 .body(SunriseSunsetResponseDto.class);
 
         LOGGER.info("[ Sunrise / sunset: {} ]", sunriseSunsetResponse);
+        if (sunriseSunsetResponse != null && sunriseSunsetResponse.sunriseSunsetResultDto() == null) {
+            LOGGER.warn("[ Sunrise / sunset lookup returned status {} with no results ]",
+                    sunriseSunsetResponse.status());
+        }
         return sunriseSunsetResponse;
     }
 }

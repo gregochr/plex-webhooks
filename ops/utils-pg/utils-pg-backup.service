@@ -1,0 +1,32 @@
+[Unit]
+# Nightly backup of every database in the shared utils-pg Postgres server.
+#
+# Ported from goldenhour's goldenhour-backup.service. Installed by hand, once, because units
+# need sudo (the install workflow only checks that /etc/systemd/system matches this file):
+#   sudo cp ops/utils-pg/utils-pg-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now utils-pg-backup.timer
+Description=utils-pg PostgreSQL backup (all databases)
+# Do not start before Docker is up, or the precondition check fails on a reboot.
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=gregochr
+ExecStart=/home/gregochr/services/utils-pg/backup/backup.sh
+
+# Explicit rather than leaning on an implicit HOME: an environment that resolves differently
+# under a scheduler than in a shell is the shape of the bug that hid for 132 days.
+Environment=BACKUP_ROOT=/home/gregochr/backups/utils-pg
+Environment=TZ=Europe/London
+
+# Host-only settings, for example OFFBOX_DEST=... (the off-box address never goes in this
+# public repository). Absolute path on purpose: %h in a system unit is /root, not User='s home.
+EnvironmentFile=-/home/gregochr/.config/utils-pg-backup.env
+
+# A dump of a live database should never take this long; hanging forever would look like success.
+TimeoutStartSec=30min
+
+[Install]
+WantedBy=multi-user.target

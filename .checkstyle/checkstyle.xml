@@ -35,7 +35,12 @@
         <module name="AvoidStarImport"/>
         <module name="UnusedImports"/>
         <module name="RedundantImport"/>
-        <module name="IllegalImport"/>
+        <module name="IllegalImport">
+            <!-- Jackson 3 (tools.jackson) is the app's JSON library. hue-java-client still brings Jackson 2
+                 databind onto the classpath, so a half-migrated file would compile; ban it here. The shared
+                 com.fasterxml.jackson.annotation package stays allowed. -->
+            <property name="illegalPkgs" value="sun, com.fasterxml.jackson.databind, com.fasterxml.jackson.core"/>
+        </module>
 
         <!-- Naming conventions -->
         <module name="TypeName"/>

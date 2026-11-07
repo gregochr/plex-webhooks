@@ -1,7 +1,5 @@
 package gregochr.services.sse;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gregochr.services.ScheduledTaskManager;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import org.apache.logging.log4j.LogManager;
@@ -13,6 +11,10 @@ import org.springframework.http.MediaType;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -25,7 +27,12 @@ import java.util.function.LongFunction;
 @Service
 public class SseService {
     private static final Logger LOGGER = LogManager.getLogger(SseService.class);
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper OBJECT_MAPPER = JsonMapper.builder()
+            .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+            // Jackson 3 serialises a bean with no properties as {}; keep Jackson 2's refusal, so a payload that
+            // cannot be represented is dropped rather than broadcast as an empty object.
+            .enable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .build();
     private static final long SSE_TIMEOUT = 24 * 60 * 60 * 1000L; // 24 hours
 
     private final Map<String, SseClient> clients = new ConcurrentHashMap<>();
@@ -119,7 +126,7 @@ public class SseService {
         String json;
         try {
             json = OBJECT_MAPPER.writeValueAsString(data);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             LOGGER.info("Failed to serialize event: {}", e.getMessage());
             return;
         }

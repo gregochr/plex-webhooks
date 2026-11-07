@@ -30,7 +30,7 @@
         <findsecbugs.version>1.13.0</findsecbugs.version>
         <pitest.version>1.17.3</pitest.version>
         <pitest-junit5.version>1.2.1</pitest-junit5.version>
-        <owasp-dependency-check.version>12.1.0</owasp-dependency-check.version>
+        <owasp-dependency-check.version>12.2.2</owasp-dependency-check.version>
 
         <!-- Coverage threshold -->
         <jacoco.line.coverage.minimum>0.80</jacoco.line.coverage.minimum>
@@ -38,6 +38,10 @@
         <pitest.mutation.threshold>70</pitest.mutation.threshold>
         <!-- OWASP: fail on CVSS >= 7 -->
         <owasp.failBuildOnCVSS>7</owasp.failBuildOnCVSS>
+        <!-- Tests tagged "real-api" call live third-party services (sunrise-sunset.org, postcodes.io).
+             They are excluded from the build gate so provider data changes cannot break every PR.
+             Run them on purpose with: ./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api -->
+        <surefire.excludedGroups>real-api</surefire.excludedGroups>
     </properties>
 
     <build>
@@ -57,6 +61,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <excludedGroups>${surefire.excludedGroups}</excludedGroups>
                     <excludes>
                         <exclude>IntegrationTestSuite.java</exclude>
                         <exclude>UnitTestSuite.java</exclude>
@@ -254,9 +259,9 @@
 
     <repositories>
         <repository>
-            <id>github-gregochr</id>
-            <name>GitHub Packages — gregochr</name>
-            <url>https://maven.pkg.github.com/gregochr/hue-java-client</url>
+            <id>jitpack</id>
+            <name>JitPack</name>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
 
@@ -284,9 +289,9 @@
             <version>3.5.7</version>
         </dependency>
         <dependency>
-            <groupId>org.gregochr</groupId>
+            <groupId>com.github.gregochr</groupId>
             <artifactId>hue-java-client</artifactId>
-            <version>1.0.0</version>
+            <version>v1.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

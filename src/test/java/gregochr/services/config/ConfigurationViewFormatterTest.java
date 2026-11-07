@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.AbstractMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -195,5 +196,58 @@ public class ConfigurationViewFormatterTest {
     @Test
     public void testEmptySectionNotEditable() {
         assertFalse(formatter.isEditable(List.of()));
+    }
+
+    @DisplayName("buildSections hides scene keys, drops empty sections and flags editable ones")
+    @Test
+    public void testBuildSections() {
+        List<PropertySection> raw = List.of(
+                new PropertySection("Plex", List.of(
+                        new AbstractMap.SimpleEntry<>("plex.movie-play-enabled", "true"),
+                        new AbstractMap.SimpleEntry<>("hue.status-interval", "10000"))),
+                new PropertySection("Hue", List.of(
+                        new AbstractMap.SimpleEntry<>("hue.hub-address", "192.168.4.38"),
+                        new AbstractMap.SimpleEntry<>("hue.start-scene", "abc"))),
+                new PropertySection("Scenes", List.of(
+                        new AbstractMap.SimpleEntry<>("hue.start-scene", "abc"),
+                        new AbstractMap.SimpleEntry<>("hue.stop-scene", "def"))));
+
+        List<ConfigurationViewSection> sections = formatter.buildSections(raw);
+
+        assertEquals(2, sections.size());
+        assertEquals("Plex", sections.get(0).title());
+        assertTrue(sections.get(0).editable());
+        assertEquals(2, sections.get(0).items().size());
+        assertEquals("Movie Play Enabled", sections.get(0).items().get(0).label());
+        assertEquals("Hue", sections.get(1).title());
+        assertFalse(sections.get(1).editable());
+        assertEquals(1, sections.get(1).items().size());
+        assertEquals("hue.hub-address", sections.get(1).items().get(0).key());
+    }
+
+    @DisplayName("buildSections returns an empty list for no input")
+    @Test
+    public void testBuildSectionsEmpty() {
+        assertTrue(formatter.buildSections(List.of()).isEmpty());
+    }
+
+    @DisplayName("formatDisplayValue formats integers with grouping separators")
+    @Test
+    public void testFormatDisplayValueIntegerGrouping() {
+        assertEquals(java.text.NumberFormat.getNumberInstance().format(1234567L),
+                formatter.formatDisplayValue("1234567", "number"));
+    }
+
+    @DisplayName("formatDisplayValue formats decimals via the double path")
+    @Test
+    public void testFormatDisplayValueDecimal() {
+        assertEquals(java.text.NumberFormat.getNumberInstance().format(1234.5),
+                formatter.formatDisplayValue("1234.5", "number"));
+    }
+
+    @DisplayName("formatDisplayValue returns the raw value when a number-typed value cannot be parsed")
+    @Test
+    public void testFormatDisplayValueUnparseableNumber() {
+        assertEquals("abc", formatter.formatDisplayValue("abc", "number"));
     }
 }

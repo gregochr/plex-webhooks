@@ -60,7 +60,7 @@ SpotBugs + FindSecBugs (High). PRs also need **90% of changed `src/main/java` li
 Maven in the foreground. Detail, plus PIT, the live-API tests and OWASP: `docs/engineering/dev-and-testing.md`.
 
 - `application.properties` is git-ignored: copy `src/main/resources/application.properties.example`. The admin
-  password comes from `CINELIGHT_ADMIN_PASSWORD` (dev fallback `changeme`).
+  password comes from `CINELIGHT_ADMIN_PASSWORD`, which must be set (there is no fallback; the app will not start without it).
 - `hue-java-client` resolves from JitPack (`com.github.gregochr:hue-java-client:v1.0.0`); no token needed.
 
 ---

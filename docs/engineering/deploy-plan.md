@@ -30,80 +30,156 @@ Status: **planned 2026-11-07**. Source: `~/IdeaProjects/goldenhour` (`release.sh
 | Phase | Scope | Depends on |
 |---|---|---|
 | D1 | Container, external config file, health, `release.sh`, deploy workflow, health check, image rollback | nothing: start now |
-| D2 | Postgres + Flyway, event history in the database, backups, restore check, rollback with DB restore | React PR 1 merged (it introduces the history store D2 moves into Postgres) |
+| B | **Nightly backups of all of `utils-pg`** (CineLight and wainwrights), off-box copy, a daily restore check | D1's self-hosted runner |
+| D2 | Postgres in `utils-pg`, event history, pre-release dump, rollback with restore | B, and React PR 1 merged (it introduces the history store D2 moves into Postgres) |
 | D3 | Settings in Postgres (one-time import from the file), hot-reload kept | D2 |
 
 D1 and the React PRs both touch `pom.xml`; whichever merges second rebases. Nothing else overlaps.
 
-## D1: container and release pipeline
+## D1: container and release pipeline (revised after review, 2026-11-07)
+
+**Why it differs from goldenhour:** this repo is **private**. goldenhour's deploy SSHes to the host and runs
+`git fetch` in a clone there, which works only because goldenhour is public; a clone of a private repo with
+no credentials cannot fetch. The self-hosted runner already sits on the host, so the SSH hop adds nothing.
+**No `appleboy/ssh-action`, no `DEPLOY_SSH_KEY`, no clone on the host.**
 
 **App changes (Java):**
-- `spring-boot-maven-plugin` with `repackage`, so `./mvnw package` produces `target/cinelight.jar`
-  (`<finalName>cinelight</finalName>`).
-- **External settings file.** New property `cinelight.config-file`. When set, `PropertiesRepository` reads and
-  writes that file (`FileSystemResource`), and Spring loads it with
-  `spring.config.import=optional:file:${cinelight.config-file}`. When unset, today's classpath behaviour remains
-  for development. The container sets `CINELIGHT_CONFIG_FILE=/config/application.properties`. Writes go to a
-  temp file in the same directory, then an atomic move, so a crash mid-write cannot truncate the settings.
-  Tests: read, write, hot-reload and the atomic move against a `@TempDir` file; startup with the file absent
-  fails with a clear message naming the path.
-- **Health.** Add `spring-boot-starter-actuator`. Expose only `health`, `permitAll` on `/actuator/health/**`,
-  `show-details: never`. Add a `container` health group with only `ping` (D2 adds `db`), so a Hue or DIRIGERA
-  outage never marks the container unhealthy (the graceful-degradation invariant). Tests: anonymous
-  `GET /actuator/health/container` is 200 with `UP`; `/actuator/env` and `/actuator/beans` are 404.
-- **Version.** `APP_VERSION`, `GIT_COMMIT_SHA` build args become env vars and are logged at startup. No UI.
+- `spring-boot-maven-plugin` with `repackage` and `<finalName>cinelight</finalName>`, so `./mvnw package`
+  produces `target/cinelight.jar`. Update `react-ui-plan.md`'s "no boot jar is packaged" line (planner).
+- **External settings file, set only in the container.** Compose sets
+  `SPRING_CONFIG_IMPORT=file:/config/application.properties` (**not** `optional:`, so a missing file fails startup
+  with `ConfigDataLocationNotFoundException` naming the path) and `CINELIGHT_CONFIG_FILE` to the same path.
+  When `cinelight.config-file` is set, `PropertiesRepository` reads and writes that file (`FileSystemResource`).
+  When it is unset, today's classpath behaviour remains for development, and dev startup is unchanged.
+- **Atomic, permission-preserving write.** Write a temp file in the **same directory**, copy the original's
+  POSIX permissions onto it, `fsync`, then `ATOMIC_MOVE`. Compose bind-mounts the **directory**, never the file:
+  a rename onto a bind-mounted file fails with `EBUSY`. Tests against `@TempDir`: the content round-trips,
+  hot-reload fires, permissions are preserved, and a failed write leaves the original intact.
+- **Framework config lives in a committed, secret-free `src/main/resources/application.yml`**, because
+  `application.properties` is git-ignored and never reaches the image: the `management.*` keys and the app
+  name. `PropertiesRepository` reads only the `.properties` file, so these keys never reach the dashboard.
+  Note that `src/test/resources/application.properties` is force-tracked and shadows the main one in tests.
+- **Health.** Add `spring-boot-starter-actuator`. Expose only `health`, `show-details: never`, and a `container`
+  group with `ping` only, so a Hue, DIRIGERA or database outage never marks the container unhealthy.
+  `SecurityConfig` gets `permitAll` on `/actuator/health/**`, then **`denyAll` on `/actuator/**`**, before the
+  catch-all `anyRequest().permitAll()`, so an endpoint exposed later is not public by accident. Tests: an
+  anonymous `GET /actuator/health/container` is 200 `UP`; `/actuator/env` is not 200.
+- **Version:** the `APP_VERSION` and `GIT_COMMIT_SHA` build args become env vars and are logged at startup.
 
-**Files (ported from goldenhour, adapted):**
-- `Dockerfile`: goldenhour's `backend/Dockerfile`. Builder `eclipse-temurin:25-jdk-alpine` using `./mvnw` (not
-  apk maven) with a BuildKit cache for `~/.m2`, `package -DskipTests`. Runtime `eclipse-temurin:25-jre-alpine`
-  plus `curl`, non-root uid 1001, `EXPOSE 8080`, `HEALTHCHECK` on `/actuator/health/container`, `VOLUME /config`.
-  `.dockerignore` excludes `target/`, `.git`, `.claude/`, `frontend/node_modules/` and
-  `src/main/resources/application.properties`, **so the developer's own credentials can never be baked into
-  an image**. A CI test builds the image and asserts the file is absent from it.
+**Container and compose:**
+- `Dockerfile`: builder **`eclipse-temurin:25-jdk`** (Ubuntu, not alpine: the React build's
+  `frontend-maven-plugin` downloads a glibc Node that cannot run on musl), using `./mvnw package -DskipTests`.
+  Runtime `eclipse-temurin:25-jre-alpine` plus `curl`, `EXPOSE 8080`, `HEALTHCHECK` on
+  `/actuator/health/container`, and the label
+  `org.opencontainers.image.source=https://github.com/gregochr/plex-webhooks`, which ties the package to this
+  repo because the image name differs from the repo name.
+- `.dockerignore`: `target/`, `.git`, `.claude/`, `frontend/node_modules/`, `.env`, and
+  `src/main/resources/application.properties`. **CI test:** write a dummy `application.properties` containing a
+  marker, build the image, and assert the marker is absent. A clean checkout never has the file, so testing
+  without writing it first would prove nothing.
 - `docker-compose.yml`: service `cinelight`, image `ghcr.io/gregochr/cinelight:latest`, `8080:8080`,
-  `env_file: ./.env` (owner-held: `CINELIGHT_ADMIN_PASSWORD`), `CINELIGHT_CONFIG_FILE`, bind mount
-  `/home/gregochr/cinelight-data/config:/config`, `restart: always`, log rotation (10m by 3),
-  `stop_grace_period: 20s`, the healthcheck as above.
-- `.github/workflows/deploy.yml`: goldenhour's shape. On a `v*` tag: (1) `test` reuses `ci.yml` (add a
-  `workflow_call` trigger); (2) `build-and-push` to `ghcr.io/gregochr/cinelight:{latest,<version>}` with
-  `APP_VERSION`/`GIT_COMMIT_SHA`; (3) `deploy` on the self-hosted runner over SSH (`appleboy/ssh-action`, host
-  `100.76.73.16`, user `gregochr`, `DEPLOY_SSH_KEY`). The deploy step: refuse to run over a rollback pin
-  (`docker-compose.override.yml`); `git fetch --tags`; write `docker-compose.yml` **from the tag** with
-  `git show`; refuse to start if `/home/gregochr/cinelight-data/config/application.properties` is missing (the
-  silent-empty-state guard, the equivalent of goldenhour's PGDATA check); record the outgoing digest; pull; `up -d`;
-  run `prod-health.sh --deploy`; record the new digest. Plus (4) `notify-failure` via `ci-failure-issue.yml`.
-- `release.sh` and `scripts/promote-changelog.sh`: goldenhour's, with `main` → `master`. The first release
-  offers `1.0.0` when no tag exists. The changelog promotion folds `changelog.d/*.md` into a new `CHANGELOG.md`
-  through a docs-only PR. It merges with `gh pr merge --squash --match-head-commit` once CI is green: there is no
-  branch protection here, so the script waits for the check itself. Then the script tags, pushes, watches
-  the Deploy run and reports with a bell and a macOS notification. **Only the owner runs it.** Sessions never
-  create tags (CLAUDE.md).
-- `scripts/prod-health.sh` (`--deploy` / `--daily`): compose health, `GET /actuator/health/container`, `GET /`
-  is 200, **`/api/hue/status` reports the bridge reachable** (a warning, not a failure: Hue being down is not a
-  bad release), and Tailscale up. No cloudflared: CineLight is LAN-only.
-- `.github/workflows/prod-health.yml`: daily on the self-hosted runner, opening an issue on failure.
-- `scripts/record-deployed-images.sh` and `scripts/rollback.sh`: images only in D1 (pin the previous digest in
-  `docker-compose.override.yml`, copy the settings file aside first). D2 adds the database restore.
-- Shell tests: goldenhour tests its scripts against fixtures (`promote-changelog.sh` is separate for exactly
-  this). Port those tests, and run `shellcheck` on `scripts/` and `release.sh` in CI.
+  **`user: "${CINELIGHT_UID}:${CINELIGHT_GID}"`** (gregochr's ids, from `.env`), so files the app writes in
+  `/config` stay readable by the host user and by `rollback.sh` (the host has no non-interactive sudo),
+  `env_file: ./.env`, the two config env vars, a bind mount of `/home/gregochr/cinelight-data/config:/config`,
+  `restart: always`, log rotation (10m by 3), `stop_grace_period: 20s`, and the healthcheck.
 
-**Docs (planner):** `dev-and-testing.md` gains a "Release and deploy" section; `CLAUDE.md` gains one line
-("Releases: owner runs `./release.sh`; sessions never tag"); `AGENTS.md` gains the deploy invariants (config file
-outside the image, health group excludes third parties).
+**`.github/workflows/deploy.yml`** (on a `v*` tag; concurrency group literally `cinelight-deploy`, never
+cancelled):
+1. `test`: reuses `ci.yml` (add `workflow_call`). On a tag `event_name` is `push`, so the full build runs and
+   diff-cover is skipped (verified).
+2. `build-and-push` (ubuntu-latest, `packages: write`): `ghcr.io/gregochr/cinelight:{latest,<version>}` with
+   the build args. Use the GitHub Actions layer cache (`cache-from/to: type=gha`).
+3. `deploy` (self-hosted on the host, `packages: read`, job name **"Deploy to Production"**, which
+   `release.sh` greps for): `actions/checkout` the tag, then log in to GHCR with `GITHUB_TOKEN` under a
+   job-temporary `DOCKER_CONFIG`, so the host never stores a token. Then:
+   - refuse to run over a rollback pin (`~/cinelight/docker-compose.override.yml`);
+   - refuse to run if `~/cinelight-data/config/application.properties` is missing;
+   - run `scripts/pre-release.sh <version>`: it writes `~/cinelight-data/releases/<version>/manifest` with the
+     outgoing image digest (or `none` on the first deploy, when nothing is running yet) and a 0600 copy of the
+     settings file;
+   - copy `docker-compose.yml` from the checkout into `~/cinelight`;
+   - `docker compose pull` and `up -d`;
+   - run `scripts/prod-health.sh --deploy`, then `scripts/record-deployed-images.sh`.
+
+   Every temporary file uses `mktemp`, never a fixed `/tmp` name: goldenhour's deploy uses fixed names on the
+   same host, so a fixed name could be overwritten by the other deploy.
+4. `notify-failure`, through `ci-failure-issue.yml`.
+
+**Scripts** (ported from goldenhour, shellchecked in CI, with fixture tests where goldenhour has them):
+- `release.sh` and `scripts/promote-changelog.sh`: `main` becomes `master`; the first release offers `1.0.0`.
+  D1 **commits a `CHANGELOG.md` seed** with `## [Unreleased]`, because both scripts abort without one. The
+  promotion PR does **not** use `gh pr merge --auto`: with no required checks that merges at once. The script
+  waits until `Build, Test & Coverage` exists and has succeeded on the head SHA **and** Codex has given 👍,
+  then merges with `--match-head-commit`. That keeps CLAUDE.md's merge rule for this PR too. Then it tags,
+  pushes, watches the Deploy run, and notifies with a bell and macOS. **Only the owner runs it.**
+- `scripts/prod-health.sh` (`--deploy` / `--daily`):
+  - fails if compose health is not healthy, if `GET /actuator/health/container` is not `UP`, or if `GET /`
+    is not 200;
+  - **warns** if `/api/hue/status` shows the bridge unreachable (a public GET).
+  - It has **no host checks** (reboot-required, apt, Tailscale): goldenhour's prod-health already runs them on
+    this host, and running them twice would open duplicate issues.
+- `.github/workflows/prod-health.yml`: daily on the self-hosted runner, plus goldenhour's off-box watchdog that
+  catches a runner that never picks the job up.
+- `scripts/record-deployed-images.sh`, and `scripts/rollback.sh` for images and the settings file: pin the
+  previous digest in `docker-compose.override.yml` and restore the settings copy, after saving the current one
+  aside.
+
+**Docs (planner):**
+- `dev-and-testing.md`: a "Release and deploy" section.
+- `CLAUDE.md`: one line saying that releases are run by the owner with `./release.sh` and that sessions never
+  tag.
+- `AGENTS.md`: the deploy invariants. The settings file lives outside the image, the `container` health group
+  excludes third parties, `/actuator/**` is denied except health, and the repo is private, so nothing on the
+  host clones it.
 
 ### Owner actions for D1 (before the first release)
 
-1. On `dockermacmini`, register a **self-hosted runner for `gregochr/plex-webhooks`**. A personal account's
-   runner serves one repo, so goldenhour's cannot be reused. Use a second runner instance in its own directory.
-2. Add the repo secret `DEPLOY_SSH_KEY` (it can be the same key goldenhour uses).
-3. On the host: `docker login ghcr.io` with a token that has `read:packages`. This repo is private, so its
-   image is private, unlike goldenhour's.
-4. On the host: `mkdir -p ~/cinelight ~/cinelight-data/config`, `git clone` this repo into `~/cinelight`,
-   copy your current `application.properties` to `~/cinelight-data/config/`, and write `~/cinelight/.env` with
-   `CINELIGHT_ADMIN_PASSWORD=...` (mode 600).
-5. Check that port 8080 is free on the host (goldenhour uses 80 and 8082, and Postgres 5432).
-6. After the first deploy, point Plex's webhook at `http://<dockermacmini LAN IP>:8080/plex` and stop the old
+1. On `dockermacmini`, register a **self-hosted runner for `gregochr/plex-webhooks`**, running as `gregochr`
+   (in the `docker` group). A personal account's runner serves one repo, so goldenhour's cannot be reused. Use a
+   second runner instance in its own directory, installed as a service.
+2. On the host: `mkdir -p ~/cinelight ~/cinelight-data/config`, copy your current `application.properties` to
+   `~/cinelight-data/config/`, and write `~/cinelight/.env` (mode 600) with `CINELIGHT_ADMIN_PASSWORD`, and
+   `CINELIGHT_UID` and `CINELIGHT_GID` from `id -u` and `id -g`.
+3. Port 8080 is free (checked 2026-11-07).
+4. After the first deploy, point Plex's webhook at `http://<dockermacmini LAN IP>:8080/plex` and stop the old
    instance.
+
+## B: back up all of `utils-pg` (protects CineLight and wainwrights)
+
+The scripts live in this repo under `ops/utils-pg/` (the `utils-pg` compose project on the host has no repo).
+The deploy job copies them to `~/services/utils-pg/backup/` on every release, so the host always runs the
+reviewed version. Ported from goldenhour's `backup-postgres.sh`, `goldenhour-backup.{service,timer}` and
+`backup-verify.yml`, which exist because goldenhour's first backup failed silently for 132 nights.
+
+- **`ops/utils-pg/backup.sh`**, run as `gregochr`:
+  - Enumerate the databases (`datallowconn` and not a template, excluding `postgres`), so a new app's
+    database is backed up with no edit.
+  - For each, `docker exec utils-pg pg_dump -U postgres -Fc -d <db>` to `~/backups/utils-pg/daily/<db>/`.
+  - Also dump `pg_dumpall --globals-only` (roles, without passwords), so a restore onto a new server can
+    recreate the owners.
+  - Rotation: 7 daily and 4 weekly per database, as goldenhour.
+  - Each dump goes to a temp name and is renamed only after `pg_restore --list` reads it, so a truncated dump is
+    never kept as the newest.
+  - **Off-box copy**, as goldenhour's `OFFBOX_DEST` (rsync over SSH to the Mac). It is optional, and the
+    script warns loudly when it is unset.
+  - A success marker with a timestamp and per-database sizes. Every failure exits non-zero, and the marker is
+    then not updated.
+- **`utils-pg-backup.service` and `utils-pg-backup.timer`**: daily at 02:30 (clear of goldenhour's 02:00 and its
+  03:00 cron), `Persistent=true`, `Requires=docker.service`, `TimeoutStartSec=30min`.
+- **`.github/workflows/utils-pg-backup-verify.yml`**, daily on the self-hosted runner:
+  - fail if the marker is older than 26 hours;
+  - for **each** database, restore the newest dump into a throwaway `postgres:16` container
+    (`--no-owner --role` the app's role, after creating the role from the globals dump);
+  - fail if the restore errors, has zero user tables, or has zero rows in total. A dump of an empty database
+    restores cleanly, so only counting rows proves anything;
+  - always remove the container, and open an issue on failure through `ci-failure-issue.yml`, with
+    goldenhour's off-box watchdog.
+- Tests: `shellcheck`, and a fixture test of the rotation and database enumeration, with `docker` stubbed by a
+  fake on `PATH`.
+- **Owner actions:** install the units once
+  (`sudo cp ~/services/utils-pg/backup/utils-pg-backup.{service,timer} /etc/systemd/system/`, `daemon-reload`,
+  `enable --now`), then run it once by hand and check the marker. Set `OFFBOX_DEST` for redundancy.
+  Wainwrights is protected from the first run.
 
 ## D2: Postgres in `utils-pg` (after React PR 1)
 
@@ -145,15 +221,9 @@ outside the image, health group excludes third parties).
   prerequisite for `clean verify`, as in goldenhour: document it.
 - Health: a separate `db` group, which `prod-health.sh` warns on. It is **not** in `container`, so a database
   outage never makes Docker restart CineLight.
-- **Backups:** the deploy dumps `cinelight` before pulling (`docker exec utils-pg pg_dump -U postgres -d cinelight
-  -Fc`), so `rollback.sh` can restore it.
-
-### Prerequisite owner decision: back up `utils-pg` itself (a gap for every app, not just CineLight)
-
-`utils-pg` has no backup, so `wainwrights` is unprotected now. Fix it once in `/home/gregochr/services/utils-pg`, not
-per app: a nightly `pg_dumpall` (or one `pg_dump -Fc` per database) with rotation, and a restore check modelled on
-goldenhour's `backup-verify.yml`. That work belongs to the `utils-pg` setup, which is not in this repo. It should
-land before CineLight's history matters, but it does not block D1.
+- **Backups:** nightly backups come from phase B. The deploy also dumps `cinelight` before pulling
+  (`docker exec utils-pg pg_dump -U postgres -d cinelight -Fc`), so `rollback.sh` can restore it, with
+  `--no-owner --role cinelight`.
 
 ## D3: settings in Postgres
 
@@ -163,8 +233,10 @@ land before CineLight's history matters, but it does not block D1.
 - Keep every invariant: the write whitelist (`ConfigurationViewService`), `PropertiesUpdatedEvent` hot-reload,
   validation before write, and credentials never sent to the browser. The admin password stays an env var.
   The Hue application key moves into the database with the rest.
-- If the database is unreachable at startup, the settings fall back to the last file copy (kept read-only as
-  a snapshot after the import), so the lights still work.
+- **The hard part (from review):** `@Value` startup reads need settings in the `Environment` before beans exist,
+  so a database-backed source means JDBC before the context starts, which conflicts with "start when the
+  database is down". So D3 **writes through**: every save goes to the database *and* the file, and the file
+  stays the startup source. The database is the queryable copy. Re-plan D3 in detail before building it.
 - Rollback note: D3 is forward-only. Rolling back past it means restoring the pre-release dump, which
   `rollback.sh` does.
 

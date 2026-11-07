@@ -914,23 +914,16 @@
                                 <label th:for="${item.key}" th:text="${item.label}"
                                        th:style="${section.editable} ? '' : 'cursor: default;'">Label</label>
                             </th:block>
-                            <!-- Password items -->
-                            <th:block th:if="${item.type != 'boolean' and #strings.contains(item.key, 'password')}">
+                            <!-- Credential items: value never rendered, never editable -->
+                            <th:block th:if="${item.secret}">
                                 <span class="config-item-label">
                                     <span th:text="${item.label}">Label</span>
                                 </span>
-                                <span style="position:relative;display:inline-block;margin-left:auto;">
-                                    <input type="password" class="config-text-input config-password"
-                                           th:value="${item.value}" readonly
-                                           style="width:260px;padding-right:34px;">
-                                    <button class="password-toggle" type="button" title="Show/hide"
-                                            style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#808080;padding:0;line-height:1;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    </button>
-                                </span>
+                                <span class="config-secret-status"
+                                      th:text="${item.displayValue == 'Set'} ? '•••• (set)' : 'not set'">not set</span>
                             </th:block>
                             <!-- Number and text items -->
-                            <th:block th:if="${item.type != 'boolean' and !#strings.contains(item.key, 'password')}">
+                            <th:block th:if="${item.type != 'boolean' and !item.secret}">
                                 <span class="config-item-label">
                                     <span th:text="${item.label}">Label</span>
                                     <span th:if="${item.duration}" class="duration-suffix">(ms)</span>
@@ -1455,7 +1448,7 @@
             eventSource.onerror = function(e) {
                 console.log('SSE: Error, will reconnect in 3s', e);
                 setConnected(false);
-                renderHueStatus({ connected: false, integrationEnabled: false, hubAddress: null, hubId: null, applicationKey: null, timestamp: Date.now() });
+                renderHueStatus({ connected: false, integrationEnabled: false, hubAddress: null, hubId: null, applicationKeySet: false, timestamp: Date.now() });
                 renderDirigeraStatus({ reachable: false, hubAddress: null, timestamp: Date.now() });
                 eventSource.close();
                 // Reconnect after 3 seconds
@@ -1576,18 +1569,19 @@
         let hueBridgeConnected = false;
         let hueResourceData = null;
         let showAllHueTypes = localStorage.getItem('showAllHueTypes') === 'true';
-        let lastHueStatic = { hubAddress: null, hubId: null, applicationKey: null };
+        let lastHueStatic = { hubAddress: null, hubId: null, applicationKeySet: false };
         let lastDirigeraStatic = { hubAddress: null };
 
         function renderHueStatus(status) {
             // Cache static properties when available
             if (status.hubAddress) lastHueStatic.hubAddress = status.hubAddress;
             if (status.hubId) lastHueStatic.hubId = status.hubId;
-            if (status.applicationKey) lastHueStatic.applicationKey = status.applicationKey;
+            if (status.applicationKeySet !== undefined) lastHueStatic.applicationKeySet = status.applicationKeySet;
             // Use cached values as fallback
             const hubAddress = status.hubAddress || lastHueStatic.hubAddress;
             const hubId = status.hubId || lastHueStatic.hubId;
-            const applicationKey = status.applicationKey || lastHueStatic.applicationKey;
+            const applicationKeySet = status.applicationKeySet !== undefined
+                ? status.applicationKeySet : lastHueStatic.applicationKeySet;
 
             const wasConnected = hueBridgeConnected;
             hueBridgeConnected = status.connected;
@@ -1640,39 +1634,12 @@
                     <div class="status-item full-width">
                         <div class="status-label">Application Key</div>
                         <div class="status-value" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                            <span id="app-key-value" data-secret="${applicationKey || ''}">${applicationKey ? '••••••••' : 'Not configured'}</span>
-                            ${applicationKey ? '<button id="app-key-toggle" onclick="toggleAppKey()" style="background:none;border:none;cursor:pointer;color:#808080;padding:0;line-height:1;" title="Show/hide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#808080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : ''}
+                            <span id="app-key-value">${applicationKeySet ? '•••• (set)' : 'Not configured'}</span>
                         </div>
                     </div>
                 </div>
             `;
         }
-
-        function toggleSecret(elementId) {
-            const el = document.getElementById(elementId);
-            const secret = el.dataset.secret;
-            if (el.textContent === secret) {
-                el.textContent = '••••••••';
-            } else {
-                el.textContent = secret;
-            }
-        }
-
-        function toggleAppKey() {
-            toggleSecret('app-key-value');
-        }
-
-        function toggleKey() {
-            toggleSecret('key-value');
-        }
-
-        // Password field toggles in config sections
-        document.querySelectorAll('.password-toggle').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const input = btn.parentElement.querySelector('.config-password');
-                input.type = input.type === 'password' ? 'text' : 'password';
-            });
-        });
 
         function updateHueCommandsStatus(enabled) {
             console.log('updateHueCommandsStatus called with:', enabled, 'bridgeConnected:', hueBridgeConnected);
@@ -1812,7 +1779,7 @@
                 })
                 .catch(err => {
                     console.error('Failed to fetch Hue status:', err);
-                    renderHueStatus({ connected: false, integrationEnabled: false, hubAddress: null, hubId: null, applicationKey: null, timestamp: Date.now() });
+                    renderHueStatus({ connected: false, integrationEnabled: false, hubAddress: null, hubId: null, applicationKeySet: false, timestamp: Date.now() });
                 });
         }
 

@@ -86,6 +86,26 @@ public class SecurityConfigTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @DisplayName("PUT /api/config/properties rejects hue.application-key even with valid credentials")
+    @Test
+    public void testPutPropertiesRejectsApplicationKey() throws Exception {
+        mockMvc.perform(put("/api/config/properties")
+                        .with(httpBasic("admin", "cinelight"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"hue.application-key\":\"overwritten\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @DisplayName("PUT /api/config/properties rejects app.admin.password even with valid credentials")
+    @Test
+    public void testPutPropertiesRejectsAdminPassword() throws Exception {
+        mockMvc.perform(put("/api/config/properties")
+                        .with(httpBasic("admin", "cinelight"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"app.admin.password\":\"overwritten\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
     @DisplayName("GET /api/hue/status is accessible without authentication")
     @Test
     public void testGetHueStatusNoAuth() throws Exception {

@@ -30,11 +30,16 @@ public class ConfigurationViewFormatter {
     }
 
     ConfigurationViewItem buildItem(String key, String value) {
+        if (SensitiveKeys.isSensitive(key)) {
+            boolean isSet = value != null && !value.isBlank();
+            return new ConfigurationViewItem(key, formatLabel(key), "", isSet ? "Set" : "Not set", "secret",
+                    false, true);
+        }
         String label = formatLabel(key);
         String type = detectType(value);
         boolean duration = isDuration(key);
         String displayValue = formatDisplayValue(value, type);
-        return new ConfigurationViewItem(key, label, value, displayValue, type, duration);
+        return new ConfigurationViewItem(key, label, value, displayValue, type, duration, false);
     }
 
     String detectType(String value) {

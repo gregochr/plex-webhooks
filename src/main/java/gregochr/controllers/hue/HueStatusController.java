@@ -79,12 +79,17 @@ public class HueStatusController {
         sseService.broadcastHueStatus(buildStatus());
     }
 
+    private boolean isApplicationKeySet() {
+        String key = hueBridgeClient.getAppKey();
+        return key != null && !key.isBlank();
+    }
+
     private Map<String, Object> buildStatus() {
         boolean connected = hueBridgeClient.testConnection();
         return Map.of(
                 "hubAddress", hubAddress,
                 "hubId", hueBridgeClient.getHubId(),
-                "applicationKey", hueBridgeClient.getAppKey(),
+                "applicationKeySet", isApplicationKeySet(),
                 "integrationEnabled", configService.isHueIntegrationEnabled(),
                 "connected", connected,
                 "timestamp", Instant.now().toString()

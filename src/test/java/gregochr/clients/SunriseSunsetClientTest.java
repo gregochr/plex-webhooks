@@ -1,6 +1,7 @@
 package gregochr.clients;
 
 import gregochr.clients.dto.SunriseSunsetResponseDto;
+import gregochr.clients.dto.SunriseSunsetResultDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.Optional;
 
+import static gregochr.support.TestClocks.FIXED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -52,7 +55,7 @@ public class SunriseSunsetClientTest {
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(WINTER_JSON, MediaType.APPLICATION_JSON));
 
-        new SunriseSunsetClient(restClient).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
+        new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
 
         server.verify();
     }
@@ -63,7 +66,7 @@ public class SunriseSunsetClientTest {
         server.expect(requestTo("https://api.sunrise-sunset.org/json?lat=51.5&lng=-0.12&date=today"))
                 .andRespond(withSuccess(WINTER_JSON, MediaType.APPLICATION_JSON));
 
-        new SunriseSunsetClient(restClient).getSunsetTimeForToday(51.5, -0.12);
+        new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForToday(51.5, -0.12);
 
         server.verify();
     }
@@ -75,7 +78,7 @@ public class SunriseSunsetClientTest {
                 .andRespond(withSuccess(WINTER_JSON, MediaType.APPLICATION_JSON));
 
         SunriseSunsetResponseDto result =
-                new SunriseSunsetClient(restClient).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
+                new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
 
         assertEquals("OK", result.status());
         assertEquals("UTC", result.tzid());
@@ -88,7 +91,7 @@ public class SunriseSunsetClientTest {
                 .andRespond(withSuccess(WINTER_JSON, MediaType.APPLICATION_JSON));
 
         SunriseSunsetResponseDto result =
-                new SunriseSunsetClient(restClient).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
+                new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
 
         assertEquals("8:00:44 AM", result.sunriseSunsetResultDto().sunrise());
         assertEquals("4:37:54 PM", result.sunriseSunsetResultDto().sunset());
@@ -101,10 +104,10 @@ public class SunriseSunsetClientTest {
                 .andRespond(withSuccess(WINTER_JSON, MediaType.APPLICATION_JSON));
 
         SunriseSunsetResponseDto result =
-                new SunriseSunsetClient(restClient).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
+                new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(54.777797, -1.600031, "2026-01-28");
 
         assertEquals(LocalTime.of(16, 37, 54),
-                new SunriseSunsetTimeFactory().getSunsetTime(result.sunriseSunsetResultDto()));
+                new SunriseSunsetTimeFactory().getSunsetTime(result.sunriseSunsetResultDto()).orElseThrow());
     }
 
     @DisplayName("Non-OK provider status is passed through")
@@ -114,20 +117,96 @@ public class SunriseSunsetClientTest {
                 .andRespond(withSuccess("{\"results\":{},\"status\":\"INVALID_DATE\",\"tzid\":\"UTC\"}",
                         MediaType.APPLICATION_JSON));
 
-        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient).getSunsetTimeForDate(0, 0, "bad");
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
 
         assertEquals("INVALID_DATE", result.status());
     }
 
-    @DisplayName("Provider error body with results as an empty string is raised as RestClientException")
+    @DisplayName("Provider error body with results as an empty string keeps the provider status")
     @Test
-    public void emptyStringResultsThrows() {
-        server.expect(requestTo("https://api.sunrise-sunset.org/json?lat=0.0&lng=0.0&date=bad"))
-                .andRespond(withSuccess("{\"results\":\"\",\"status\":\"INVALID_DATE\",\"tzid\":\"UTC\"}",
-                        MediaType.APPLICATION_JSON));
-        SunriseSunsetClient client = new SunriseSunsetClient(restClient);
+    public void emptyStringResultsKeepsStatus() {
+        expectErrorBody("\"results\":\"\"");
+
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
+
+        assertEquals("INVALID_DATE", result.status());
+        assertEquals("UTC", result.tzid());
+    }
+
+    @DisplayName("Provider error body with results as an empty string has a null result")
+    @Test
+    public void emptyStringResultsHasNullResult() {
+        expectErrorBody("\"results\":\"\"");
+
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
+
+        assertNull(result.sunriseSunsetResultDto());
+    }
+
+    @DisplayName("Provider error body with results as a blank string has a null result")
+    @Test
+    public void blankStringResultsHasNullResult() {
+        expectErrorBody("\"results\":\"  \"");
+
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
+
+        assertEquals("INVALID_DATE", result.status());
+        assertNull(result.sunriseSunsetResultDto());
+    }
+
+    @DisplayName("Provider body with results as JSON null has a null result")
+    @Test
+    public void nullResultsHasNullResult() {
+        expectErrorBody("\"results\":null");
+
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
+
+        assertNull(result.sunriseSunsetResultDto());
+    }
+
+    @DisplayName("Provider body with results as a non-empty string is still raised as RestClientException")
+    @Test
+    public void nonEmptyStringResultsThrows() {
+        expectErrorBody("\"results\":\"oops\"");
+        SunriseSunsetClient client = new SunriseSunsetClient(restClient, FIXED);
 
         assertThrows(RestClientException.class, () -> client.getSunsetTimeForDate(0, 0, "bad"));
+    }
+
+    @DisplayName("Provider body with an empty results object has a result with no times")
+    @Test
+    public void emptyObjectResultsHasEmptyResult() {
+        expectErrorBody("\"results\":{}");
+
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
+
+        assertEquals(new SunriseSunsetResultDto(null, null), result.sunriseSunsetResultDto());
+    }
+
+    @DisplayName("A caller reading the sunset from an error response gets an empty time, not an exception")
+    @Test
+    public void callerHandlesErrorResponse() {
+        expectErrorBody("\"results\":\"\"");
+
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
+
+        assertEquals(Optional.empty(), new SunriseSunsetTimeFactory().getSunsetTime(result.sunriseSunsetResultDto()));
+    }
+
+    @DisplayName("A caller reading the sunrise from an error response gets an empty time, not an exception")
+    @Test
+    public void callerHandlesErrorResponseSunrise() {
+        expectErrorBody("\"results\":\"\"");
+
+        SunriseSunsetResponseDto result = new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForDate(0, 0, "bad");
+
+        assertEquals(Optional.empty(), new SunriseSunsetTimeFactory().getSunriseTime(result.sunriseSunsetResultDto()));
+    }
+
+    private void expectErrorBody(String resultsField) {
+        server.expect(requestTo("https://api.sunrise-sunset.org/json?lat=0.0&lng=0.0&date=bad"))
+                .andRespond(withSuccess("{" + resultsField + ",\"status\":\"INVALID_DATE\",\"tzid\":\"UTC\"}",
+                        MediaType.APPLICATION_JSON));
     }
 
     @DisplayName("Empty response body yields null")
@@ -136,7 +215,7 @@ public class SunriseSunsetClientTest {
         server.expect(requestTo("https://api.sunrise-sunset.org/json?lat=1.0&lng=2.0&date=today"))
                 .andRespond(withSuccess());
 
-        assertNull(new SunriseSunsetClient(restClient).getSunsetTimeForToday(1.0, 2.0));
+        assertNull(new SunriseSunsetClient(restClient, FIXED).getSunsetTimeForToday(1.0, 2.0));
     }
 
     @DisplayName("HTTP 500 from the service is raised as RestClientResponseException")
@@ -144,7 +223,7 @@ public class SunriseSunsetClientTest {
     public void serverErrorThrows() {
         server.expect(requestTo("https://api.sunrise-sunset.org/json?lat=1.0&lng=2.0&date=today"))
                 .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
-        SunriseSunsetClient client = new SunriseSunsetClient(restClient);
+        SunriseSunsetClient client = new SunriseSunsetClient(restClient, FIXED);
 
         RestClientResponseException ex = assertThrows(RestClientResponseException.class,
                 () -> client.getSunsetTimeForToday(1.0, 2.0));
@@ -166,6 +245,31 @@ public class SunriseSunsetClientTest {
         Clock clock = Clock.fixed(Instant.parse("2024-01-28T14:00:00Z"), ZoneId.of("UTC"));
 
         assertFalse(new SunriseSunsetClient(restClient, clock).isAfterSunset(LocalTime.of(16, 37, 54)));
+    }
+
+    @DisplayName("isAfterSunset returns false one second before sunset")
+    @Test
+    public void isAfterSunsetFalseOneSecondBefore() {
+        Clock clock = Clock.fixed(Instant.parse("2024-01-28T16:37:53Z"), ZoneId.of("UTC"));
+
+        assertFalse(new SunriseSunsetClient(restClient, clock).isAfterSunset(LocalTime.of(16, 37, 54)));
+    }
+
+    @DisplayName("isAfterSunset returns true one second after sunset")
+    @Test
+    public void isAfterSunsetTrueOneSecondAfter() {
+        Clock clock = Clock.fixed(Instant.parse("2024-01-28T16:37:55Z"), ZoneId.of("UTC"));
+
+        assertTrue(new SunriseSunsetClient(restClient, clock).isAfterSunset(LocalTime.of(16, 37, 54)));
+    }
+
+    @DisplayName("isAfterSunset compares in the clock's zone, not UTC")
+    @Test
+    public void isAfterSunsetUsesClockZone() {
+        Clock clock = Clock.fixed(Instant.parse("2024-06-21T20:00:00Z"), ZoneId.of("Europe/London"));
+
+        assertTrue(new SunriseSunsetClient(restClient, clock).isAfterSunset(LocalTime.of(20, 59, 59)));
+        assertFalse(new SunriseSunsetClient(restClient, clock).isAfterSunset(LocalTime.of(21, 0, 1)));
     }
 
     @DisplayName("isAfterSunset returns false at exactly sunset")

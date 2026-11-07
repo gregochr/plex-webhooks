@@ -18,12 +18,15 @@ same PR.
 src/main/java/gregochr/
 ├── Main.java, RestClientConfig.java
 ├── clients/          LocationClient (postcodes.io), SunriseSunsetClient (sunrise-sunset.org), dto/
-├── commands/         PlexCommand, PlexEvent, PlexMediaType, PlexCommandFactory, *Config
+├── commands/         PlexCommand, PlexEvent, PlexOutcome, PlexMediaType, PlexCommandFactory, *Config
 ├── controllers/      PlexController (POST /plex), DashboardController (GET /), ConfigController (/api/config/**),
 │                     SseController (GET /api/events), DebugController (POST /api/debug/{command}),
-│                     GlobalExceptionHandler, hue/ (/api/hue/**, HueConfig), dirigera/ (/api/dirigera/status)
-└── services/         ScheduledTaskManager, config/ (ConfigService, PropertiesRepository, ConfigurationView*,
-                      SensitiveKeys, SecurityConfig, events), plex/dto/, sse/ (SseService, SseClient, SseEventDto)
+│                     PlaybackController (GET /api/playback/history, /now), GlobalExceptionHandler,
+│                     hue/ (/api/hue/**, HueConfig, HueSceneCatalog + /api/hue/scenes), dirigera/ (/api/dirigera/status)
+└── services/         ScheduledTaskManager, config/ (ConfigService, ClientConfigService, PropertiesRepository,
+                      ConfigurationView*, SensitiveKeys, SecurityConfig, events), events/ (PlaybackService, the one
+                      execute → record → broadcast pipeline; PlaybackHistory, NowPlaying, PlexPayloadSanitizer),
+                      plex/dto/, sse/ (SseService, SseClient)
 ```
 
 Tests mirror this layout under `src/test/java`.

@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -58,6 +59,30 @@ public class DashboardSecretsTest {
     @Test
     public void testDashboardShowsCredentialAsSet() throws Exception {
         assertTrue(getDashboardBody().contains("•••• (set)"));
+    }
+
+    @DisplayName("Unauthenticated GET /api/config, the scene catalog and the playback views carry no credential")
+    @Test
+    public void testNewPublicApisOmitCredentials() throws Exception {
+        for (String path : new String[] {"/api/config", "/api/hue/scenes", "/api/playback/now",
+                "/api/playback/history"}) {
+            String body = mockMvc.perform(get(path)).andExpect(status().isOk()).andReturn().getResponse()
+                    .getContentAsString();
+
+            assertFalse(body.contains("SECRET-CANARY-1234"), path);
+            assertFalse(body.contains("ADMIN-CANARY-5678"), path);
+        }
+    }
+
+    @DisplayName("Unauthenticated GET /api/config returns the shared config shape from the real context")
+    @Test
+    public void testConfigShapeInFullContext() throws Exception {
+        mockMvc.perform(get("/api/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hueIntegrationEnabled").value(true))
+                .andExpect(jsonPath("$.scenes.start").value("04a673ca-d640-4bbb-bd94-7368434a0f94"))
+                .andExpect(jsonPath("$.plexCommands.movie['plex.movie-play-enabled']").value(true))
+                .andExpect(jsonPath("$.plexCommands.track['plex.track-play-enabled']").value(false));
     }
 
     @DisplayName("Unauthenticated Hue status does not contain the Hue application key")

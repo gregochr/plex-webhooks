@@ -14,6 +14,7 @@ hue.application-key=YOUR_HUE_APPLICATION_KEY
 hue.start-scene=YOUR_START_SCENE_ID
 hue.stop-scene=YOUR_STOP_SCENE_ID
 hue.status-interval=10000
+hue.scene-catalog-interval=300000
 
 # IKEA DIRIGERA Hub Configuration
 dirigera.hub-address=YOUR_DIRIGERA_HUB_IP

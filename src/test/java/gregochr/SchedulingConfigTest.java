@@ -29,10 +29,10 @@ public class SchedulingConfigTest {
         return scheduler;
     }
 
-    @DisplayName("The task scheduler has one thread for each of the three periodic tasks")
+    @DisplayName("The task scheduler has one thread for each of the four periodic tasks")
     @Test
-    public void schedulerHasThreeThreads() {
-        assertEquals(3, scheduler().getScheduledThreadPoolExecutor().getCorePoolSize());
+    public void schedulerHasFourThreads() {
+        assertEquals(4, scheduler().getScheduledThreadPoolExecutor().getCorePoolSize());
     }
 
     @DisplayName("The task scheduler names its threads cinelight-scheduler-")

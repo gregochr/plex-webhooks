@@ -2,6 +2,8 @@ package gregochr.services.sse;
 
 import gregochr.services.ScheduledTaskManager;
 import gregochr.services.config.PropertiesUpdatedEvent;
+import gregochr.services.events.NowPlaying;
+import gregochr.services.events.PlaybackEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,8 +106,13 @@ public class SseService {
         return emitter;
     }
 
-    public void broadcast(SseEventDto event) {
+    /** Broadcasts a recorded Plex or Debug event as the default {@code message} event. */
+    public void broadcast(PlaybackEvent event) {
         broadcastEvent("message", event);
+    }
+
+    public void broadcastNowPlaying(NowPlaying nowPlaying) {
+        broadcastEvent("now-playing", nowPlaying);
     }
 
     public void broadcastConfig(Object config) {

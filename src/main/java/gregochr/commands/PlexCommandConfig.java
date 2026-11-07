@@ -21,6 +21,11 @@ public class PlexCommandConfig {
         return config != null && config.isEventEnabled(event);
     }
 
+    /** The current rules for a media type; all off if none are configured. */
+    public PlexMediaTypeConfig getConfig(PlexMediaType mediaType) {
+        return configs.getOrDefault(mediaType, new PlexMediaTypeConfig(false, false, false, false, false));
+    }
+
     public void updateMediaType(PlexMediaType mediaType, PlexMediaTypeConfig config) {
         configs.put(mediaType, config);
     }

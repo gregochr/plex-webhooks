@@ -5,6 +5,7 @@ import gregochr.services.sse.SseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.http.ResponseEntity;
 
 import java.util.LinkedHashMap;
@@ -12,9 +13,10 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -26,67 +28,117 @@ public class ConfigControllerTest {
     private ConfigService configService;
     private SseService sseService;
     private ConfigurationViewService configurationViewService;
+    private ClientConfigService clientConfigService;
     private ConfigController controller;
+
+    private static final ClientConfig SNAPSHOT = new ClientConfig(true,
+            new ClientConfig.Scenes("start-id", "stop-id"),
+            Map.of("movie", Map.of("plex.movie-play-enabled", true)));
 
     @BeforeEach
     public void setUp() {
         configService = mock(ConfigService.class);
         sseService = mock(SseService.class);
         configurationViewService = mock(ConfigurationViewService.class);
-        controller = new ConfigController(configService, sseService, configurationViewService);
+        clientConfigService = mock(ClientConfigService.class);
+        when(clientConfigService.snapshot()).thenReturn(SNAPSHOT);
+        controller = new ConfigController(configService, sseService, configurationViewService,
+                clientConfigService);
     }
 
-    @DisplayName("Get config returns hue integration status")
+    @DisplayName("Get config returns the shared client configuration snapshot")
     @Test
-    public void testGetConfigReturnsHueStatus() {
-        when(configService.isHueIntegrationEnabled()).thenReturn(true);
-
-        Map<String, Object> result = controller.getConfig();
-
-        assertTrue((Boolean) result.get("hueIntegrationEnabled"));
-        verify(configService).isHueIntegrationEnabled();
+    public void testGetConfigReturnsSnapshot() {
+        assertSame(SNAPSHOT, controller.getConfig());
     }
 
-    @DisplayName("Set hue enabled to true updates service")
+    @DisplayName("Set hue enabled to true updates the service and returns the snapshot")
     @Test
     public void testSetHueEnabledTrue() {
-        when(configService.isHueIntegrationEnabled()).thenReturn(true);
-
-        Map<String, Object> result = controller.setHueEnabled(Map.of("enabled", true));
+        ClientConfig result = controller.setHueEnabled(Map.of("enabled", true));
 
         verify(configService).setHueIntegrationEnabled(true);
-        assertTrue((Boolean) result.get("hueIntegrationEnabled"));
+        assertSame(SNAPSHOT, result);
     }
 
-    @DisplayName("Set hue enabled to false updates service")
+    @DisplayName("Set hue enabled to false updates the service")
     @Test
     public void testSetHueEnabledFalse() {
-        when(configService.isHueIntegrationEnabled()).thenReturn(false);
-
-        Map<String, Object> result = controller.setHueEnabled(Map.of("enabled", false));
+        controller.setHueEnabled(Map.of("enabled", false));
 
         verify(configService).setHueIntegrationEnabled(false);
-        assertFalse((Boolean) result.get("hueIntegrationEnabled"));
     }
 
     @DisplayName("Set hue enabled defaults to true when key missing")
     @Test
     public void testSetHueEnabledDefaultsToTrue() {
-        when(configService.isHueIntegrationEnabled()).thenReturn(true);
-
         controller.setHueEnabled(Map.of());
 
         verify(configService).setHueIntegrationEnabled(true);
     }
 
-    @DisplayName("Set hue enabled broadcasts config via SSE")
+    @DisplayName("Set hue enabled broadcasts the full snapshot via SSE, after the change is made")
     @Test
     public void testSetHueEnabledBroadcastsConfig() {
-        when(configService.isHueIntegrationEnabled()).thenReturn(true);
-
         controller.setHueEnabled(Map.of("enabled", true));
 
-        verify(sseService).broadcastConfig(Map.of("hueIntegrationEnabled", true));
+        InOrder order = inOrder(configService, clientConfigService, sseService);
+        order.verify(configService).setHueIntegrationEnabled(true);
+        order.verify(clientConfigService).snapshot();
+        order.verify(sseService).broadcastConfig(SNAPSHOT);
+    }
+
+    @DisplayName("Saving plex commands broadcasts the config snapshot after saving")
+    @Test
+    public void testSavePlexCommandsBroadcastsConfig() throws Exception {
+        when(configurationViewService.isValidMediaType("movie")).thenReturn(true);
+
+        controller.savePlexCommands("movie", Map.of("plex.movie-play-enabled", true));
+
+        InOrder order = inOrder(configurationViewService, sseService);
+        order.verify(configurationViewService).saveProperties(Map.of("plex.movie-play-enabled", "true"));
+        order.verify(sseService).broadcastConfig(SNAPSHOT);
+    }
+
+    @DisplayName("An unknown media type broadcasts nothing")
+    @Test
+    public void testUnknownMediaTypeBroadcastsNothing() throws Exception {
+        when(configurationViewService.isValidMediaType("unknown")).thenReturn(false);
+
+        controller.savePlexCommands("unknown", Map.of());
+
+        verify(sseService, never()).broadcastConfig(any());
+    }
+
+    @DisplayName("Saving a hue scene broadcasts the config snapshot after saving")
+    @Test
+    public void testSaveHueSceneBroadcastsConfig() throws Exception {
+        when(configurationViewService.isValidSceneKey("hue.start-scene")).thenReturn(true);
+
+        controller.saveHueScene(Map.of("key", "hue.start-scene", "sceneId", "abc"));
+
+        InOrder order = inOrder(configurationViewService, sseService);
+        order.verify(configurationViewService).saveProperties(Map.of("hue.start-scene", "abc"));
+        order.verify(sseService).broadcastConfig(SNAPSHOT);
+    }
+
+    @DisplayName("A rejected hue scene save broadcasts nothing")
+    @Test
+    public void testRejectedHueSceneBroadcastsNothing() throws Exception {
+        controller.saveHueScene(Map.of("sceneId", "abc"));
+
+        verify(sseService, never()).broadcastConfig(any());
+    }
+
+    @DisplayName("Saving properties (intervals) does not broadcast the config")
+    @Test
+    public void testSavePropertiesDoesNotBroadcast() throws Exception {
+        when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
+        when(configurationViewService.isValidPropertyValue("sse.heartbeat-interval", "5000")).thenReturn(true);
+
+        controller.saveProperties(Map.of("sse.heartbeat-interval", "5000"));
+
+        verify(sseService, never()).broadcastConfig(any());
     }
 
     @DisplayName("GET plex-commands returns movie config values")

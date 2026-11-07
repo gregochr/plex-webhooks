@@ -1,0 +1,43 @@
+{
+  "errors": [],
+  "data": [
+    {
+      "type": "light",
+      "id": "light-1",
+      "metadata": {"name": "Ceiling"}
+    },
+    {
+      "type": "room",
+      "id": "room-living",
+      "metadata": {"name": "Living Room", "archetype": "living_room"}
+    },
+    {
+      "type": "scene",
+      "id": "scene-movie",
+      "metadata": {"name": "Movie Night"},
+      "group": {"rid": "room-living", "rtype": "room"},
+      "actions": [
+        {
+          "target": {"rid": "light-1", "rtype": "light"},
+          "action": {"on": {"on": true}, "dimming": {"brightness": 20.0}}
+        },
+        {
+          "target": {"rid": "light-2", "rtype": "light"},
+          "action": {"on": {"on": true}, "dimming": {"brightness": 25.0}}
+        }
+      ]
+    },
+    {
+      "type": "scene",
+      "id": "scene-bright",
+      "metadata": {"name": "Bright"},
+      "group": {"rid": "room-living", "rtype": "room"},
+      "actions": [
+        {
+          "target": {"rid": "light-1", "rtype": "light"},
+          "action": {"on": {"on": true}, "dimming": {"brightness": 100.0}}
+        }
+      ]
+    }
+  ]
+}

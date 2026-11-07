@@ -9,6 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class HueSceneController {
@@ -40,23 +41,30 @@ public class HueSceneController {
         }
     }
 
-    private boolean setScene(final String sceneId) {
-        return hueBridgeClient.activateScene(sceneId);
+    private Optional<String> setScene(final String sceneId) {
+        return hueBridgeClient.activateScene(sceneId) ? Optional.of(sceneId) : Optional.empty();
     }
 
-    public boolean startMovieLightScene() {
+    /**
+     * Activates the start scene. The volatile field is read once, so the id returned is the id activated even if a
+     * hot reload lands mid-call.
+     *
+     * @return the id of the scene activated, or empty if the bridge did not activate it
+     */
+    public Optional<String> startMovieLightScene() {
         return setScene(startScene);
     }
 
-    public boolean stopMovieLightScene() {
+    /** As {@link #startMovieLightScene()}, for the stop scene. */
+    public Optional<String> stopMovieLightScene() {
         return setScene(stopScene);
     }
 
-    String getStartScene() {
+    public String getStartScene() {
         return startScene;
     }
 
-    String getStopScene() {
+    public String getStopScene() {
         return stopScene;
     }
 }

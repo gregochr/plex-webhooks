@@ -41,7 +41,34 @@ public class PlexDtoTest {
         PlexPayloadDto payload = new JsonMapper().readValue(json, PlexPayloadDto.class);
 
         assertEquals("media.pause", payload.event());
-        assertEquals(new PlexMetadataDto("Pilot", 2700000, "episode"), payload.metadata());
+        assertEquals(new PlexMetadataDto("Pilot", 2700000, "episode", null, null, null, 2008), payload.metadata());
+        assertNull(payload.player());
+    }
+
+    @DisplayName("PlexPayloadDto reads the season, episode, show, year and the player's device name only")
+    @Test
+    public void payloadReadsEpisodeDetailsAndPlayerTitle() throws Exception {
+        String json = "{\"event\":\"media.play\",\"Player\":{\"title\":\"Den TV\","
+                + "\"publicAddress\":\"203.0.113.9\",\"uuid\":\"u\"},\"Metadata\":{\"type\":\"episode\","
+                + "\"title\":\"Cold Open\",\"grandparentTitle\":\"Slow Horses\",\"parentIndex\":4,\"index\":2,"
+                + "\"year\":2025,\"duration\":2700000}}";
+
+        PlexPayloadDto payload = new JsonMapper().readValue(json, PlexPayloadDto.class);
+
+        assertEquals(new PlexMetadataDto("Cold Open", 2700000, "episode", "Slow Horses", 4, 2, 2025),
+                payload.metadata());
+        assertEquals(new PlexPlayerDto("Den TV"), payload.player());
+    }
+
+    @DisplayName("The three-argument metadata constructor leaves the extra fields empty")
+    @Test
+    public void metadataConvenienceConstructor() {
+        PlexMetadataDto metadata = new PlexMetadataDto("Heat", 1, "movie");
+
+        assertNull(metadata.grandparentTitle());
+        assertNull(metadata.parentIndex());
+        assertNull(metadata.index());
+        assertNull(metadata.year());
     }
 
     @DisplayName("PlexPayloadDto has no metadata when the payload omits it")

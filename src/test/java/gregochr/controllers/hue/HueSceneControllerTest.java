@@ -7,10 +7,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -49,36 +48,45 @@ public class HueSceneControllerTest {
         verifyNoMoreInteractions(hueBridgeClient);
     }
 
-    @DisplayName("startMovieLightScene returns true when the bridge activates the scene")
+    @DisplayName("startMovieLightScene returns the id of the scene the bridge activated")
     @Test
-    public void testStartMovieLightSceneReturnsTrue() {
+    public void testStartMovieLightSceneReturnsSceneId() {
         when(hueBridgeClient.activateScene("test-start-scene-id")).thenReturn(true);
 
-        assertTrue(controller.startMovieLightScene());
+        assertEquals(Optional.of("test-start-scene-id"), controller.startMovieLightScene());
     }
 
-    @DisplayName("startMovieLightScene returns false when the bridge is unreachable")
+    @DisplayName("startMovieLightScene returns empty when the bridge is unreachable")
     @Test
-    public void testStartMovieLightSceneReturnsFalseWhenUnreachable() {
+    public void testStartMovieLightSceneReturnsEmptyWhenUnreachable() {
         when(hueBridgeClient.activateScene("test-start-scene-id")).thenReturn(false);
 
-        assertFalse(controller.startMovieLightScene());
+        assertEquals(Optional.empty(), controller.startMovieLightScene());
     }
 
-    @DisplayName("stopMovieLightScene returns true when the bridge activates the scene")
+    @DisplayName("stopMovieLightScene returns the id of the scene the bridge activated")
     @Test
-    public void testStopMovieLightSceneReturnsTrue() {
+    public void testStopMovieLightSceneReturnsSceneId() {
         when(hueBridgeClient.activateScene("test-stop-scene-id")).thenReturn(true);
 
-        assertTrue(controller.stopMovieLightScene());
+        assertEquals(Optional.of("test-stop-scene-id"), controller.stopMovieLightScene());
     }
 
-    @DisplayName("stopMovieLightScene returns false when the bridge is unreachable")
+    @DisplayName("stopMovieLightScene returns empty when the bridge is unreachable")
     @Test
-    public void testStopMovieLightSceneReturnsFalseWhenUnreachable() {
+    public void testStopMovieLightSceneReturnsEmptyWhenUnreachable() {
         when(hueBridgeClient.activateScene("test-stop-scene-id")).thenReturn(false);
 
-        assertFalse(controller.stopMovieLightScene());
+        assertEquals(Optional.empty(), controller.stopMovieLightScene());
+    }
+
+    @DisplayName("After a hot reload the id returned is the new scene's id")
+    @Test
+    public void testHotReloadedSceneIdIsReturned() {
+        controller.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of("hue.start-scene", "new-start")));
+        when(hueBridgeClient.activateScene("new-start")).thenReturn(true);
+
+        assertEquals(Optional.of("new-start"), controller.startMovieLightScene());
     }
 
     @DisplayName("onPropertiesUpdated updates the start scene")

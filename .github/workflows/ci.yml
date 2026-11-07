@@ -2,134 +2,175 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
+  # No `branches:` filter, deliberately: a filter means "PRs whose BASE is master", so a PR
+  # stacked on another branch would get no CI at all and read as silently green.
   pull_request:
-    branches: [main, master]
+  # A merge made with GITHUB_TOKEN (the Dependabot auto-merge) fires no `push` workflows,
+  # so dependabot-auto-merge.yml starts a master run through this trigger.
+  workflow_dispatch:
 
-# Cancel in-flight runs for the same branch/PR when a new push arrives
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Only PR runs are superseded by a newer push. A master run must finish: cancelling one
+  # would leave a merged commit unverified.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
 
-  # ── Build, Unit Tests, Coverage, Code Style, Bug Detection ─────────────────
-  build:
-    name: Build & Verify
+  # ── Docs-only detection ──────────────────────────────────────────────────────
+  # A docs or changelog change cannot break a test, so running the build to prove nothing
+  # wastes minutes. `paths-ignore` on the trigger is a trap: a workflow filtered out by path
+  # never reports its checks, and a required check that never reports blocks the PR forever.
+  # So the jobs always run and always report; only the expensive STEPS are skipped.
+  #
+  # Fail-safe: every ambiguous case (not a PR, empty diff, any non-doc path, any error) yields
+  # docs_only=false and the full build runs.
+  changes:
+    name: Detect docs-only change
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.detect.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect
+        name: Classify the diff
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "Event is $EVENT_NAME, not pull_request: running the full build."
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # --no-renames lists a rename as a delete plus an add. With rename detection a file
+          # moved from src/ into docs/ shows only its new docs/ path and hides the deleted code.
+          CHANGED=$(git diff --no-renames --name-only "$BASE_SHA" "$HEAD_SHA" || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "Empty diff: running the full build rather than guessing."
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Changed files:"
+          printf '%s\n' "$CHANGED" | sed 's/^/  /'
+
+          # Documentation is *.md anywhere or anything under docs/. Everything else is code,
+          # including .github/workflows/** and changelog.d/ entries other than *.md.
+          NON_DOC=$(echo "$CHANGED" | grep -vE '(^docs/|\.md$)' || true)
+
+          if [ -z "$NON_DOC" ]; then
+            echo "Documentation only: skipping the build."
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Non-documentation paths present:"
+            printf '%s\n' "$NON_DOC" | sed 's/^/  /'
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Build, Test & Coverage ───────────────────────────────────────────────────
+  # `clean verify` runs checkstyle (validate), unit and integration tests, the JaCoCo per-class
+  # and bundle rules, and SpotBugs + Find Security Bugs. There is no separate integration job:
+  # verify already runs those tests.
+  # This job name is a stable check name: dependabot-auto-merge.yml matches it.
+  build:
+    needs: changes
+    name: Build, Test & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.docs_only != 'true'
+        with:
+          # diff-cover needs the base branch's history to compute the PR diff.
+          fetch-depth: 0
 
-      - name: Set up Java 17
+      - name: Set up JDK 17
+        if: needs.changes.outputs.docs_only != 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: maven
 
-      - name: Build, test & verify (JaCoCo + Checkstyle + SpotBugs)
-        run: ./mvnw verify --batch-mode --no-transfer-progress
+      - name: Build, test and verify
+        if: needs.changes.outputs.docs_only != 'true'
+        run: ./mvnw clean verify --batch-mode --no-transfer-progress
 
-      - name: Upload JaCoCo HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
+      # Changed-lines coverage: at least 90% of the lines a PR adds or changes under
+      # src/main/java must be covered. The per-class floors cannot see a PR that adds untested
+      # code to an already-high class. diff-cover reads the JaCoCo XML, whose sourcefile paths
+      # are package-relative (gregochr/.../Foo.java), so --src-roots maps them onto
+      # src/main/java. Pull requests only: a push to master has no PR diff.
+      - name: Set up Python (diff-cover)
+        if: needs.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
+        uses: actions/setup-python@v5
         with:
-          name: jacoco-report
-          path: target/site/jacoco/
-          if-no-files-found: warn
+          python-version: '3.12'
 
-      - name: Upload SpotBugs XML report
-        if: always()
+      - name: Changed-lines coverage (diff-cover, 90%)
+        if: needs.changes.outputs.docs_only != 'true' && github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          pip install diff-cover==10.0.0
+          git fetch --no-tags origin "$BASE_REF"
+          set +e
+          diff-cover target/site/jacoco/jacoco.xml \
+            --src-roots src/main/java \
+            --compare-branch="origin/$BASE_REF" \
+            --fail-under=90 \
+            --format "markdown:$RUNNER_TEMP/diff-cover.md" 2>&1 | tee "$RUNNER_TEMP/diff-cover.txt"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "### Changed-lines coverage (minimum 90%)"
+            cat "$RUNNER_TEMP/diff-cover.md" 2>/dev/null || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # A wrong path mapping reports "No lines with coverage information" and passes
+          # silently. If the diff touches production code that report is a failure, not a pass.
+          TOUCHED_MAIN=$(git diff --no-renames --name-only "origin/$BASE_REF"...HEAD -- src/main/java || true)
+          if [ -n "$TOUCHED_MAIN" ] \
+              && grep -qs "No lines with coverage information" "$RUNNER_TEMP/diff-cover.txt" "$RUNNER_TEMP/diff-cover.md"; then
+            echo "::error::diff-cover found no coverage information although src/main/java changed. Check --src-roots against the JaCoCo report paths."
+            exit 1
+          fi
+          exit "$STATUS"
+
+      # Produced by the forked spotbugs:spotbugs run inside the verify-phase check goal. There
+      # is deliberately no separate FindSecBugs step: the plugin sits in the plugin-level
+      # configuration, so `verify` already runs it.
+      - name: Upload SpotBugs report
+        if: always() && needs.changes.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: spotbugs-report
           path: target/spotbugsXml.xml
           if-no-files-found: warn
 
-  # ── Integration Tests ───────────────────────────────────────────────────────
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Run integration tests
-        run: ./mvnw test -Dgroups=integration --batch-mode --no-transfer-progress
-
-  # ── Mutation Testing (PIT) ──────────────────────────────────────────────────
-  mutation-testing:
-    name: Mutation Testing (PIT)
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Run mutation tests
-        run: ./mvnw verify -P mutation-testing --batch-mode --no-transfer-progress
-
-      - name: Upload PIT HTML report
-        if: always()
+      - name: Upload JaCoCo coverage report
+        if: always() && needs.changes.outputs.docs_only != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: pitest-report
-          path: target/pit-reports/
+          name: jacoco-report
+          path: target/site/jacoco/
           if-no-files-found: warn
 
-  # ── OWASP / CVE Dependency Scan ─────────────────────────────────────────────
-  security-scan:
-    name: OWASP Dependency-Check
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      # Cache the NVD database between runs — the download is ~200 MB and slow
-      - name: Cache NVD database
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: nvd-${{ github.run_id }}
-          restore-keys: nvd-
-
-      - name: Run OWASP Dependency-Check
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: >
-          ./mvnw verify -P security-scan -DskipTests
-          --batch-mode --no-transfer-progress
-
-      - name: Upload OWASP report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-report
-          path: |
-            target/dependency-check-report.html
-            target/dependency-check-report.json
-          if-no-files-found: warn
+      - name: Documentation-only change, build skipped
+        if: needs.changes.outputs.docs_only == 'true'
+        run: echo "Every changed path is documentation (*.md or docs/**)."

@@ -1,0 +1,73 @@
+name: Real API Smoke
+
+# Runs the tests tagged `real-api` (they call sunrise-sunset.org and postcodes.io for real). They
+# are excluded from the build gate so provider data changes cannot break every PR, and run here
+# weekly and on demand to catch provider drift.
+
+on:
+  schedule:
+    - cron: '0 7 * * MON'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-api-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Real API smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # surefire.excludedGroups is emptied so the real-api group is not filtered out again.
+      - name: Run real-API tests
+        run: ./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api --batch-mode --no-transfer-progress
+
+      # A mis-set group or exclusion makes Maven run zero tests and exit 0. Passing having run
+      # nothing is the failure this step exists to catch.
+      - name: Assert that tests actually ran
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          reports=(target/surefire-reports/TEST-*.xml)
+          if [ "${#reports[@]}" -eq 0 ]; then
+            echo "::error::No surefire reports found: the real-api tests did not run."
+            exit 1
+          fi
+          TOTAL=$(cat "${reports[@]}" | grep -oE '<testsuite [^>]*' | grep -oE ' tests="[0-9]+"' | grep -oE '[0-9]+' | paste -sd+ - | bc)
+          echo "real-api tests run: ${TOTAL:-0}"
+          echo "### Real API smoke: ${TOTAL:-0} tests run" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${TOTAL:-0}" -le 0 ]; then
+            echo "::error::The real-api run executed 0 tests."
+            exit 1
+          fi
+
+      - name: Upload surefire reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-api-smoke-surefire-reports
+          path: target/surefire-reports/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  notify-failure:
+    needs: smoke
+    if: ${{ always() && (needs.smoke.result == 'failure' || needs.smoke.result == 'cancelled') }}
+    permissions:
+      issues: write
+    uses: ./.github/workflows/ci-failure-issue.yml
+    with:
+      workflow-name: Real API Smoke

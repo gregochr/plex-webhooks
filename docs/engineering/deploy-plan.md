@@ -11,6 +11,21 @@ Status: **planned 2026-11-07**. Source: `~/IdeaProjects/goldenhour` (`release.sh
 | Database | **PostgreSQL in the existing shared `utils-pg` container** on the host (the misc database for one-off, low-volume apps). CineLight gets its own database and role there, not a container of its own. Flyway, Testcontainers. It holds event history and, later, settings. |
 | Release flow | goldenhour's: `./release.sh` tags `master`, a tag push builds images to GHCR and deploys over SSH from a self-hosted runner. |
 
+## Repository visibility (owner decision, 2026-11-07)
+
+**`gregochr/plex-webhooks` is public**, made public in place. The owner judged the old values in history defunct
+(the Hue key is dead, and the location no longer matters), so the planned rewrite into a new repo was dropped.
+What follows from that:
+
+- **Self-hosted runner safety (an invariant):** a workflow with `runs-on: self-hosted` must **never** trigger on
+  `pull_request`, `pull_request_target` or `issue_comment`. Allowed triggers are only `push` of a tag,
+  `schedule` and `workflow_dispatch`. Otherwise a fork's PR could run code on the host. goldenhour runs the
+  same model. Also set Settings → Actions → "Require approval for all outside collaborators".
+- D1's design still holds: checkout on the runner, no clone on the host. GHCR pulls could become anonymous if
+  the package is made public, but the job-scoped `GITHUB_TOKEN` login works either way, so keep it.
+- Now free: branch protection (require `Build, Test & Coverage`), CodeQL, and secret scanning with push
+  protection. Each is a separate owner decision.
+
 ## What CineLight has today, and what that means for a container
 
 - **No packaged app.** There is no `spring-boot-maven-plugin` execution, so no boot jar exists; it runs only through

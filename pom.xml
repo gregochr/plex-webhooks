@@ -54,7 +54,20 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <finalName>cinelight</finalName>
         <plugins>
+
+            <!-- ── Spring Boot: repackage into an executable jar (target/cinelight.jar) ─ -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>repackage</id>
+                        <goals><goal>repackage</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
 
             <!-- ── Surefire: excludes the live-API group by default ────────── -->
             <plugin>
@@ -258,6 +271,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

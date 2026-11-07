@@ -9,6 +9,9 @@ on:
   # A merge made with GITHUB_TOKEN (the Dependabot auto-merge) fires no `push` workflows,
   # so dependabot-auto-merge.yml starts a master run through this trigger.
   workflow_dispatch:
+  # deploy.yml runs this same gate on a release tag before it builds and pushes the image. On a tag the
+  # event is `push`, so the full build runs and the PR-only diff-cover step is skipped.
+  workflow_call:
 
 permissions:
   contents: read
@@ -98,6 +101,23 @@ jobs:
           # diff-cover needs the base branch's history to compute the PR diff.
           fetch-depth: 0
 
+      # The release and deploy scripts run as root-adjacent automation on the production host, so they
+      # are linted and their fixture tests run on every change, in seconds, before the slow build.
+      # -o check-unassigned-uppercase catches a variable that is used but was deleted or never set, which a
+      # script ending in `|| echo unknown` would otherwise swallow silently.
+      - name: ShellCheck release.sh and scripts/
+        if: needs.changes.outputs.docs_only != 'true'
+        run: shellcheck -o check-unassigned-uppercase release.sh scripts/*.sh scripts/tests/*.sh
+
+      - name: Script fixture tests
+        if: needs.changes.outputs.docs_only != 'true'
+        run: |
+          set -euo pipefail
+          for t in scripts/tests/*-test.sh; do
+            echo "==> $t"
+            "$t"
+          done
+
       - name: Set up JDK 25
         if: needs.changes.outputs.docs_only != 'true'
         uses: actions/setup-java@v4
@@ -109,6 +129,14 @@ jobs:
       - name: Build, test and verify
         if: needs.changes.outputs.docs_only != 'true'
         run: ./mvnw clean verify --batch-mode --no-transfer-progress
+
+      # The image must not carry application.properties (the Hue key and admin password) or .env. A clean
+      # checkout never has them, so the script writes a dummy file with a marker first, builds the image,
+      # and fails if the marker is anywhere in it. Proving nothing leaks from a tree that has nothing to
+      # leak would prove nothing.
+      - name: Docker build test (no secrets in the image)
+        if: needs.changes.outputs.docs_only != 'true'
+        run: scripts/docker-build-test.sh
 
       # Changed-lines coverage: at least 90% of the lines a PR adds or changes under
       # src/main/java must be covered. The per-class floors cannot see a PR that adds untested

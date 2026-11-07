@@ -1,0 +1,107 @@
+name: Production Health
+
+# Runs scripts/prod-health.sh --daily every morning on the self-hosted runner, so a CineLight that has
+# died or stopped serving is a GitHub issue before the owner notices by hand. The same script runs at
+# the end of every deploy (--deploy, in deploy.yml); that run is not this workflow.
+#
+# There is no host-level check here (reboot, apt, Tailscale): goldenhour's prod-health already runs
+# them on this same box, and running them twice would open two issues for one reboot.
+#
+# Two notifier jobs, each needing only its own probe, and see `watchdog` below for why the second
+# exists. The on-host job carries a timeout, for a job that starts but then hangs against a wedged
+# Docker daemon.
+
+on:
+  schedule:
+    # 07:15 UTC: after goldenhour's 07:00 run, on a runner of its own.
+    - cron: '15 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  on-host:
+    name: On-host checks (compose, container health, dashboard)
+    runs-on: self-hosted
+    # Bound derived from the script's own worst case: HEALTH_TIMEOUT (180s) plus a few short curls is
+    # about four minutes. Fifteen is long enough that a slow honest run is never caught by it, and short
+    # enough that anything past it is a hang. Without it a hung `docker compose ps` leaves the job
+    # `in_progress` forever: the watchdog accepts `in_progress` as alive, and notify-on-host-failure can
+    # never fire because its dependency never reaches a terminal state.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run scripts/prod-health.sh --daily
+        env:
+          COMPOSE_DIR: /home/gregochr/cinelight
+        run: scripts/prod-health.sh --daily
+
+  # Deliberately NOT self-hosted, and deliberately no checkout. If the runner service on the host is down
+  # (it does not always restart itself after a reboot), the on-host job above QUEUES rather than fails:
+  # a self-hosted job targeting an unreachable runner never reports, it just waits. Nothing would ever
+  # fire again and the daily checks would silently stop. This job runs off the box and watches the RUN's
+  # own job list instead of asking the runner anything.
+  watchdog:
+    name: Watchdog (the runner picked up the on-host job)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for the self-hosted runner to pick up the on-host job
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Matched by NAME PREFIX, not the exact string, so renaming the parenthetical in the on-host
+          # job's `name:` does not silently disable this watchdog.
+          attempts=20
+          interval=30
+          status=""
+          for ((i = 1; i <= attempts; i++)); do
+            # `|| true`: a failed `gh api` call must not kill this step under `set -e`. It means
+            # "unknown this iteration", not "the runner is fine", so it falls through and loops.
+            status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" \
+              --jq '.jobs[] | select(.name | startswith("On-host checks")) | .status' 2>/dev/null || true)"
+            # Only the two real "the runner picked it up" statuses count as alive. "queued", an empty
+            # string from a failed call, or anything else is NOT evidence the runner is up.
+            case "$status" in
+              in_progress | completed)
+                echo "on-host job status: ${status}"
+                exit 0
+                ;;
+            esac
+            if [ "$i" -lt "$attempts" ]; then
+              sleep "$interval"
+            fi
+          done
+          echo "::error::The self-hosted runner for plex-webhooks has not picked up the on-host job in 10 minutes. The runner service on the host is probably down (check \`systemctl status actions.runner.*\`), so the CineLight health checks are NOT running."
+          exit 1
+
+  # Two independent notifier jobs, not one `needs: [on-host, watchdog]`. `needs` waits for EVERY listed
+  # job to reach a terminal state, so if the runner is down the watchdog fails in minutes but on-host
+  # sits queued, and a single notifier would not open its issue until GitHub cancelled the queued job
+  # hours later. Each carries a DISTINCT workflow-name: ci-failure-issue.yml keys its one-open-issue
+  # rule on that name, and two notifiers racing on one name could file two issues for one incident.
+  notify-on-host-failure:
+    needs: on-host
+    # Not `if: failure()`: a job killed by its own timeout-minutes is not reliably reported as `failure`
+    # (it can come through as `cancelled`), so failure() would miss a genuine hang. A manual cancel of
+    # this scheduled workflow also opening an issue is an accepted, rare cost.
+    if: ${{ always() && needs.on-host.result != 'success' }}
+    permissions:
+      issues: write
+    uses: ./.github/workflows/ci-failure-issue.yml
+    with:
+      workflow-name: CineLight Production Health — on-host checks
+
+  notify-watchdog-failure:
+    needs: watchdog
+    if: failure()
+    permissions:
+      issues: write
+    uses: ./.github/workflows/ci-failure-issue.yml
+    with:
+      workflow-name: CineLight Production Health — runner watchdog

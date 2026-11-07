@@ -133,8 +133,10 @@ the new endpoints' JSON, and the 401 rules. Every class at 95% line and 90% bran
   A pom property `<frontend.skip>false</frontend.skip>` feeds every goal's `<skip>`. Vite's `outDir` is
   `target/classes/static` with `emptyOutDir: false` (it sits outside Vite's root, and `favicon.svg` and the logos
   are copied there by `process-resources`). `pitest.yml` and `real-api-smoke.yml` pass `-Dfrontend.skip=true`.
-- Shipping: the app runs via `./mvnw spring-boot:run` (no boot jar is packaged; there is no
-  `spring-boot-maven-plugin` in the pom). That serves `target/classes/static`, so a full build includes the SPA.
+- Shipping: since deploy phase D1 the app ships as a boot jar (`target/cinelight.jar`) in a Docker image
+  (`deploy-plan.md`). Vite's output under `target/classes/static` is packaged into that jar, so a full build
+  includes the SPA. The image's builder is Ubuntu-based (`eclipse-temurin:25-jdk`), so the glibc Node that
+  `frontend-maven-plugin` downloads runs there.
   Document in `dev-and-testing.md`.
 - Java tests must not depend on the frontend build: a fixture `src/test/resources/static/index.html` serves for
   the "SPA at `/`" test, so `-Dfrontend.skip` and single-test IDE runs still pass.

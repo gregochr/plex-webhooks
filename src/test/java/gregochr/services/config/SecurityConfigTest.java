@@ -9,10 +9,7 @@ import gregochr.controllers.hue.HueStatusController;
 import gregochr.hue.client.HueBridgeClient;
 import gregochr.services.sse.SseService;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -51,7 +48,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "hue.hub-address=192.168.1.100",
                 "hue.status-interval=30000"})
 @Import({SecurityConfig.class, ConfigService.class, ConfigurationViewService.class})
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class SecurityConfigTest {
 
     @TestConfiguration
@@ -96,10 +92,7 @@ public class SecurityConfigTest {
                 .andExpect(content().json("{\"hueIntegrationEnabled\":true}"));
     }
 
-    // Runs first: PIT credits the filter chain's lines to whichever test first builds the cached context, so that
-    // test must be one that fails if the chain is missing.
     @DisplayName("PUT /api/config/hue-enabled returns 401 without authentication")
-    @Order(1)
     @Test
     public void testPutConfigNoAuth() throws Exception {
         mockMvc.perform(put("/api/config/hue-enabled")

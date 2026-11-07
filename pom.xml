@@ -22,14 +22,14 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Plugin versions -->
-        <jacoco.version>0.8.12</jacoco.version>
+        <jacoco.version>0.8.14</jacoco.version>
         <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
         <checkstyle.version>10.21.4</checkstyle.version>
-        <spotbugs-plugin.version>4.9.3.0</spotbugs-plugin.version>
+        <spotbugs-plugin.version>4.9.8.3</spotbugs-plugin.version>
         <spotbugs.version>4.9.3</spotbugs.version>
         <findsecbugs.version>1.13.0</findsecbugs.version>
         <pitest.version>1.17.3</pitest.version>
-        <pitest-junit5.version>1.2.1</pitest-junit5.version>
+        <pitest-junit5.version>1.2.3</pitest-junit5.version>
         <owasp-dependency-check.version>12.2.2</owasp-dependency-check.version>
 
         <!-- Coverage threshold -->
@@ -42,6 +42,8 @@
              They are excluded from the build gate so provider data changes cannot break every PR.
              Run them on purpose with: ./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api -->
         <surefire.excludedGroups>real-api</surefire.excludedGroups>
+        <!-- PIT targets. Narrow a run with: -Dpit.targetClasses='gregochr.services.config.*' -->
+        <pit.targetClasses>gregochr.commands.*,gregochr.services.*,gregochr.controllers.*</pit.targetClasses>
     </properties>
 
     <build>
@@ -50,26 +52,22 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.11.0</version>
+                    <version>3.15.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
 
-            <!-- ── Surefire: exclude test suite aggregators ────────────────── -->
+            <!-- ── Surefire: excludes the live-API group by default ────────── -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <excludedGroups>${surefire.excludedGroups}</excludedGroups>
-                    <excludes>
-                        <exclude>IntegrationTestSuite.java</exclude>
-                        <exclude>UnitTestSuite.java</exclude>
-                    </excludes>
                 </configuration>
             </plugin>
 
-            <!-- ── JaCoCo: instrument + enforce 80% line coverage ──────────── -->
+            <!-- ── JaCoCo: per-class 95/90 coverage rule with measured overrides, 80% bundle backstop ──────────── -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -81,7 +79,7 @@
                     </execution>
                     <execution>
                         <id>jacoco-report</id>
-                        <phase>verify</phase>
+                        <phase>test</phase>
                         <goals><goal>report</goal></goals>
                     </execution>
                     <execution>
@@ -90,6 +88,197 @@
                         <goals><goal>check</goal></goals>
                         <configuration>
                             <rules>
+                                <!-- Default: every class holds 95% of lines and 90% of branches on its own.
+                                     Classes with an override below are excluded here and held to their own
+                                     measured figure instead. No class is excluded from checking altogether. -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <excludes>
+                                        <exclude>gregochr.services.sse.SseClient</exclude>
+                                        <exclude>gregochr.services.sse.SseService</exclude>
+                                        <exclude>gregochr.controllers.hue.HueResourceController</exclude>
+                                        <exclude>gregochr.controllers.SseController</exclude>
+                                        <exclude>gregochr.commands.PlexCommand</exclude>
+                                        <exclude>gregochr.controllers.dirigera.DirigeraStatusController</exclude>
+                                        <exclude>gregochr.services.config.PropertiesRepository</exclude>
+                                        <exclude>gregochr.services.plex.dto.PlexMetadataDto</exclude>
+                                        <exclude>gregochr.services.plex.dto.PlexPayloadDto</exclude>
+                                    </excludes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.95</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- SseClient: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.services.sse.SseClient</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.92</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.76</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- SseService: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.services.sse.SseService</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.79</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>1.00</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- HueResourceController: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.controllers.hue.HueResourceController</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.50</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- SseController: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.controllers.SseController</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>1.00</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.75</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- PlexCommand: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.commands.PlexCommand</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>1.00</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.87</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- DirigeraStatusController: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.controllers.dirigera.DirigeraStatusController</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.75</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>1.00</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- PropertiesRepository: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.services.config.PropertiesRepository</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.92</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.85</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- PlexMetadataDto: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.services.plex.dto.PlexMetadataDto</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.50</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- PlexPayloadDto: measured 2026-11-07, Phase 2 raises to 0.95/0.90 -->
+                                <rule>
+                                    <element>CLASS</element>
+                                    <includes>
+                                        <include>gregochr.services.plex.dto.PlexPayloadDto</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.50</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <!-- Backstop: whole-project line coverage -->
                                 <rule>
                                     <element>BUNDLE</element>
                                     <limits>
@@ -128,7 +317,7 @@
                 <executions>
                     <execution>
                         <id>checkstyle-check</id>
-                        <phase>verify</phase>
+                        <phase>validate</phase>
                         <goals><goal>check</goal></goals>
                     </execution>
                 </executions>
@@ -173,89 +362,57 @@
                 </executions>
             </plugin>
 
+            <!-- ── OWASP Dependency-Check: NOT bound to any phase ─────────────
+                 Run on demand: ./mvnw dependency-check:check  (needs NVD_API_KEY; slow first run) -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${owasp-dependency-check.version}</version>
+                <configuration>
+                    <failBuildOnCVSS>${owasp.failBuildOnCVSS}</failBuildOnCVSS>
+                    <suppressionFile>owasp-suppressions.xml</suppressionFile>
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                </configuration>
+            </plugin>
+
+            <!-- PIT mutation testing: NOT bound to any phase.
+                 Run: ./mvnw test-compile pitest:mutationCoverage
+                 Narrow with -Dpit.targetClasses='gregochr.services.config.*' (comma-separated globs) -->
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>${pitest.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>${pitest-junit5.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <targetClasses>${pit.targetClasses}</targetClasses>
+                    <targetTests>
+                        <param>gregochr.*</param>
+                    </targetTests>
+                    <mutationThreshold>${pitest.mutation.threshold}</mutationThreshold>
+                    <outputFormats>
+                        <outputFormat>HTML</outputFormat>
+                        <outputFormat>XML</outputFormat>
+                    </outputFormats>
+                    <timestampedReports>false</timestampedReports>
+                    <excludedClasses>
+                        <param>gregochr.Main</param>
+                        <param>gregochr.RestClientConfig</param>
+                    </excludedClasses>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
-
-    <!-- ── Profiles ──────────────────────────────────────────────────────── -->
-    <profiles>
-
-        <!-- Activate with: ./mvnw verify -P mutation-testing -->
-        <profile>
-            <id>mutation-testing</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.pitest</groupId>
-                        <artifactId>pitest-maven</artifactId>
-                        <version>${pitest.version}</version>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.pitest</groupId>
-                                <artifactId>pitest-junit5-plugin</artifactId>
-                                <version>${pitest-junit5.version}</version>
-                            </dependency>
-                        </dependencies>
-                        <configuration>
-                            <targetClasses>
-                                <param>gregochr.commands.*</param>
-                                <param>gregochr.services.*</param>
-                                <param>gregochr.controllers.*</param>
-                            </targetClasses>
-                            <targetTests>
-                                <param>gregochr.*</param>
-                            </targetTests>
-                            <mutationThreshold>${pitest.mutation.threshold}</mutationThreshold>
-                            <outputFormats>
-                                <outputFormat>HTML</outputFormat>
-                                <outputFormat>XML</outputFormat>
-                            </outputFormats>
-                            <timestampedReports>false</timestampedReports>
-                            <excludedClasses>
-                                <param>gregochr.Main</param>
-                                <param>gregochr.RestClientConfig</param>
-                            </excludedClasses>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>pitest</id>
-                                <phase>verify</phase>
-                                <goals><goal>mutationCoverage</goal></goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <!-- Activate with: ./mvnw verify -P security-scan (slow — downloads NVD data) -->
-        <profile>
-            <id>security-scan</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>${owasp-dependency-check.version}</version>
-                        <configuration>
-                            <failBuildOnCVSS>${owasp.failBuildOnCVSS}</failBuildOnCVSS>
-                            <suppressionFile>owasp-suppressions.xml</suppressionFile>
-                            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-                            <formats>
-                                <format>HTML</format>
-                                <format>JSON</format>
-                            </formats>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals><goal>check</goal></goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-    </profiles>
 
     <repositories>
         <repository>
@@ -308,12 +465,6 @@
             <version>2.24.3</version>
         </dependency>
         <dependency>
-            <groupId>org.immutables</groupId>
-            <artifactId>value</artifactId>
-            <version>2.12.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-annotations</artifactId>
             <version>${spotbugs.version}</version>
@@ -329,16 +480,10 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>2.7.7</version>
-            <scope>test</scope>
-        </dependency>
+        <!-- Needed by pitest-junit5-plugin; managed by Spring Boot's JUnit BOM -->
         <dependency>
             <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-suite</artifactId>
-            <version>1.11.0-M1</version>
+            <artifactId>junit-platform-launcher</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

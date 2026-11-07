@@ -3,6 +3,7 @@
 .app {
   min-height: 100vh;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   background: var(--color-bg);
   color: var(--color-text);
@@ -24,6 +25,7 @@
 }
 
 .app-header[data-mode='theater'] {
+  padding: 20px 36px;
   border-bottom-color: color-mix(in srgb, var(--color-neutral-200) 14%, transparent);
 }
 
@@ -89,14 +91,25 @@
 }
 
 .app-main {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
-  padding: var(--space-6) 32px;
 }
 
-.placeholder {
-  font-family: var(--font-heading);
-  font-size: 32px;
-  font-weight: 400;
+.save-failed {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-4);
+  z-index: 20;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: var(--color-accent-700);
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
 }
 
 .login-dialog {
@@ -122,7 +135,8 @@
 }
 
 @media (max-width: 768px) {
-  .app-header {
+  .app-header,
+  .app-header[data-mode='theater'] {
     padding: 12px 24px;
     gap: var(--space-2);
   }
@@ -147,13 +161,5 @@
   .btn,
   .input {
     min-height: 44px;
-  }
-
-  .app-main {
-    padding: var(--space-4) 24px;
-  }
-
-  .placeholder {
-    font-size: 24px;
   }
 }

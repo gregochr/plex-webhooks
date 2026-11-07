@@ -6,6 +6,7 @@ import '@fontsource/lora/400.css';
 import '@fontsource/lora/600.css';
 import './styles/classical.css';
 import './styles/app.css';
+import './styles/views.css';
 import App from './App';
 
 createRoot(document.getElementById('root')).render(

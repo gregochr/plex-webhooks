@@ -1,0 +1,620 @@
+/* Theater and House rules. Sizes come from the design's 3a (desktop) and 3b (mobile) frames. Classical tokens only:
+   colour on strokes and text, never fills; weights at most 600. One breakpoint: 768px. */
+
+.tnum {
+  font-feature-settings: 'tnum';
+}
+
+.tone-applied {
+  color: var(--color-accent-700);
+}
+
+.tone-ignored,
+.tone-unknown {
+  color: var(--color-neutral-600);
+}
+
+.tone-failed {
+  color: var(--color-text);
+  text-decoration: underline wavy var(--color-accent-700);
+  text-underline-offset: 3px;
+}
+
+/* ───────────────────────── Theater ───────────────────────── */
+
+.theater {
+  --hairline: color-mix(in srgb, var(--color-neutral-200) 14%, transparent);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  color: var(--color-neutral-200);
+}
+
+.theater-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px minmax(0, 1fr);
+  align-items: center;
+  padding: 0 36px;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent-400);
+}
+
+.theater-title {
+  margin: 0 0 14px;
+  overflow-wrap: anywhere;
+  font-size: 64px;
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: normal;
+  color: var(--color-neutral-100);
+}
+
+.theater-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-neutral-400);
+}
+
+.ring-wrap {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  justify-self: center;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring circle {
+  fill: none;
+}
+
+.ring-track {
+  stroke: color-mix(in srgb, var(--color-neutral-200) 12%, transparent);
+  stroke-width: 1;
+}
+
+.ring-level {
+  stroke: var(--color-accent-400);
+  stroke-width: 2;
+  transition: stroke-dasharray 0.8s;
+}
+
+.ring-centre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.ring-level-text {
+  font-family: var(--font-heading);
+  font-size: 72px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--color-neutral-100);
+}
+
+.ring-caption {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-neutral-400);
+}
+
+.ring-scene {
+  margin-top: 10px;
+  max-width: 220px;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  color: var(--color-accent-300);
+}
+
+.ring-scene-muted {
+  font-size: 18px;
+  color: var(--color-neutral-400);
+}
+
+.scene-rows {
+  justify-self: end;
+  width: 280px;
+}
+
+.scene-row {
+  display: block;
+  width: 100%;
+  padding: 14px 0;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+}
+
+.scene-row[aria-disabled='true'] {
+  cursor: default;
+}
+
+.scene-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.scene-row-eyebrow {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-neutral-400);
+}
+
+.scene-row-name {
+  display: block;
+  overflow-wrap: anywhere;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  color: var(--color-neutral-100);
+}
+
+.scene-row:not([aria-disabled='true']):hover .scene-row-name {
+  color: var(--color-accent-300);
+}
+
+.strip {
+  border-top: 1px solid var(--hairline);
+}
+
+.strip-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.strip-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 16px 36px 20px;
+  border-right: 1px solid var(--hairline);
+}
+
+.strip-when {
+  font-size: 11px;
+  color: var(--color-neutral-500);
+}
+
+.strip-title {
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  color: var(--color-neutral-100);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.strip-outcome {
+  font-size: 12px;
+}
+
+.theater .tone-applied {
+  color: var(--color-accent-300);
+}
+
+.theater .tone-ignored,
+.theater .tone-unknown {
+  color: var(--color-neutral-400);
+}
+
+.theater .tone-failed {
+  color: var(--color-neutral-100);
+  text-decoration-color: var(--color-accent-400);
+}
+
+.strip-empty {
+  margin: 0;
+  padding: 16px 36px 20px;
+  font-size: 13px;
+  color: var(--color-neutral-400);
+}
+
+.theater-note {
+  margin: 0;
+  padding: 0 24px 34px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--color-neutral-500);
+}
+
+/* ───────────────────────── House rules ───────────────────────── */
+
+.rules {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  min-height: 0;
+}
+
+.rules-main {
+  min-width: 0;
+  padding: 36px 56px;
+  border-right: 1px solid var(--color-divider);
+}
+
+.rules-head {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.rules-kicker {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+}
+
+.rules-rule {
+  width: 48px;
+  height: 1px;
+  margin: 12px auto;
+  border: 0;
+  background: var(--color-accent);
+}
+
+.rules-title {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 400;
+}
+
+.rules-summary {
+  margin: 0 0 24px;
+  font-family: var(--font-heading);
+  font-size: 25px;
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.scene-word {
+  padding: 0;
+  overflow-wrap: anywhere;
+  font: inherit;
+  color: var(--color-accent-700);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--color-accent);
+  cursor: pointer;
+}
+
+.scene-word[aria-disabled='true'] {
+  cursor: default;
+}
+
+.rule-list {
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  border-top: 1px solid var(--color-text);
+  border-bottom: 1px solid var(--color-text);
+}
+
+.rule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.rule:last-child {
+  border-bottom: 0;
+}
+
+.rule-sentence {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.phrase {
+  padding: 0 2px;
+  font: inherit;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--color-accent);
+  cursor: pointer;
+}
+
+.phrase-off {
+  color: var(--color-neutral-500);
+  text-decoration: line-through;
+}
+
+.phrase-mixed {
+  border-bottom: 1px dashed var(--color-accent-700);
+}
+
+.partly {
+  font-size: 0.72em;
+  letter-spacing: 0.04em;
+  color: var(--color-accent-700);
+}
+
+/* ─ right rail ─ */
+
+.rules-rail {
+  min-width: 0;
+  padding: 32px 28px;
+  overflow: hidden auto;
+}
+
+.rail-heading {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+}
+
+.rail-now {
+  margin-bottom: 22px;
+}
+
+.rail-now-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.rail-now-detail {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+
+.rail-sub {
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: var(--color-neutral-700);
+}
+
+.rail-empty,
+.recent-empty {
+  margin: var(--space-3) 0;
+  font-size: 13px;
+  color: var(--color-neutral-700);
+}
+
+.programme {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.programme-item {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.programme-time {
+  font-size: 12px;
+  color: var(--color-neutral-600);
+}
+
+.programme-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.programme-outcome {
+  display: block;
+  font-size: 12px;
+}
+
+/* Last events under the rules (phone) */
+
+.recent {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.recent-time {
+  color: var(--color-neutral-600);
+}
+
+/* ───────────────────────── Phone ───────────────────────── */
+
+@media (max-width: 768px) {
+  .theater {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .theater-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 22px 24px 0;
+  }
+
+  .kicker {
+    margin-bottom: 6px;
+    font-size: 10px;
+  }
+
+  .theater-title {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1;
+  }
+
+  .theater-meta {
+    margin-top: 8px;
+    font-size: 12px;
+  }
+
+  .ring-wrap {
+    width: 220px;
+    height: 220px;
+    margin: 26px auto 10px;
+  }
+
+  .ring-track {
+    stroke-width: 1.5;
+  }
+
+  .ring-level {
+    stroke-width: 3;
+  }
+
+  .ring-level-text {
+    font-size: 56px;
+  }
+
+  .ring-scene {
+    margin-top: 6px;
+    font-size: 19px;
+  }
+
+  .scene-rows {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: auto;
+    margin-top: 8px;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .scene-row {
+    min-height: 44px;
+    padding: 12px 0;
+    border-bottom: 0;
+  }
+
+  .scene-row + .scene-row {
+    padding-left: 16px;
+    border-left: 1px solid var(--hairline);
+  }
+
+  .scene-row-eyebrow {
+    letter-spacing: 0.12em;
+  }
+
+  .scene-row-name {
+    font-size: 21px;
+  }
+
+  .strip {
+    margin: 18px 24px 0;
+  }
+
+  .strip-list {
+    display: block;
+  }
+
+  .strip-item {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 10px;
+    padding: 8px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .strip-title {
+    flex-basis: 100%;
+    order: 3;
+    font-size: 15px;
+  }
+
+  .strip-empty {
+    padding: 8px 0;
+  }
+
+  .theater-note {
+    margin-top: auto;
+  }
+
+  .rules {
+    display: block;
+  }
+
+  .rules-main {
+    padding: 20px 24px 24px;
+    border-right: 0;
+  }
+
+  .rules-head {
+    margin-bottom: 10px;
+  }
+
+  .rules-summary {
+    margin: 10px 0 16px;
+    font-size: 22px;
+    line-height: 1.4;
+  }
+
+  .rule-list {
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .rule {
+    gap: 12px;
+    padding: 10px 0;
+  }
+
+  .rule:last-child {
+    border-bottom: 1px solid var(--color-divider);
+  }
+
+  .rule-sentence {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  /* The phrases and scene names sit inline in a sentence, so they keep the line height (WCAG's inline-target
+     exception); every standalone control is 44px. */
+  .phrase {
+    padding: 0 1px;
+  }
+}

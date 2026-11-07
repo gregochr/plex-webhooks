@@ -142,5 +142,5 @@ export function useCineLight() {
 
   const setView = useCallback((view) => dispatch({ type: 'set-view', view }), []);
 
-  return { ...state, setView };
+  return { ...state, dispatch, setView };
 }

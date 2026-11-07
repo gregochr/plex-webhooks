@@ -31,7 +31,7 @@ jobs:
     # never fire because its dependency never reaches a terminal state.
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run scripts/prod-health.sh --daily
         env:

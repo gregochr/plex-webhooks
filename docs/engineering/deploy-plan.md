@@ -45,7 +45,7 @@ What follows from that:
 | Phase | Scope | Depends on |
 |---|---|---|
 | D1 | Container, external config file, health, `release.sh`, deploy workflow, health check, image rollback | nothing: start now |
-| B | **Nightly backups of all of `utils-pg`** (CineLight and wainwrights), off-box copy, a daily restore check | D1's self-hosted runner |
+| B | **Nightly backups of all of `utils-pg`** (CineLight and wainwrights), off-box copy, a daily restore check, its own install workflow | D1's self-hosted runner (for install and verify only) |
 | D2 | Postgres in `utils-pg`, event history, pre-release dump, rollback with restore | B, and React PR 1 merged (it introduces the history store D2 moves into Postgres) |
 | D3 | Settings in Postgres (one-time import from the file), hot-reload kept | D2 |
 
@@ -53,8 +53,9 @@ D1 and the React PRs both touch `pom.xml`; whichever merges second rebases. Noth
 
 ## D1: container and release pipeline (revised after review, 2026-11-07)
 
-**Why it differs from goldenhour:** this repo is **private**. goldenhour's deploy SSHes to the host and runs
-`git fetch` in a clone there, which works only because goldenhour is public; a clone of a private repo with
+**Why it differs from goldenhour:** this repo was **private** when D1 was designed (it went public the same day,
+and the design stands). goldenhour's deploy SSHes to the host and runs `git fetch` in a clone there; a clone of a
+private repo with
 no credentials cannot fetch. The self-hosted runner already sits on the host, so the SSH hop adds nothing.
 **No `appleboy/ssh-action`, no `DEPLOY_SSH_KEY`, no clone on the host.**
 
@@ -144,7 +145,7 @@ cancelled):
 - `CLAUDE.md`: one line saying that releases are run by the owner with `./release.sh` and that sessions never
   tag.
 - `AGENTS.md`: the deploy invariants. The settings file lives outside the image, the `container` health group
-  excludes third parties, `/actuator/**` is denied except health, and the repo is private, so nothing on the
+  excludes third parties, `/actuator/**` is denied except health, and nothing on the host clones the repo (the runner checks out the tag), so nothing on the
   host clones it.
 
 ### Owner actions for D1 (before the first release)
@@ -159,45 +160,100 @@ cancelled):
 4. After the first deploy, point Plex's webhook at `http://<dockermacmini LAN IP>:8080/plex` and stop the old
    instance.
 
-## B: back up all of `utils-pg` (protects CineLight and wainwrights)
+## B: back up all of `utils-pg` (protects CineLight and wainwrights; revised after review, 2026-11-07)
 
-The scripts live in this repo under `ops/utils-pg/` (the `utils-pg` compose project on the host has no repo).
-The deploy job copies them to `~/services/utils-pg/backup/` on every release, so the host always runs the
-reviewed version. Ported from goldenhour's `backup-postgres.sh`, `goldenhour-backup.{service,timer}` and
-`backup-verify.yml`, which exist because goldenhour's first backup failed silently for 132 nights.
+Ported from goldenhour's `backup-postgres.sh`, `goldenhour-backup.{service,timer}` and `backup-verify.yml`, which
+exist because goldenhour's first backup failed silently for 132 nights. **This repo is public**, so no dump, row
+or table name ever reaches a workflow log or artifact.
 
-- **`ops/utils-pg/backup.sh`**, run as `gregochr`:
-  - Enumerate the databases (`datallowconn` and not a template, excluding `postgres`), so a new app's
-    database is backed up with no edit.
-  - For each, `docker exec utils-pg pg_dump -U postgres -Fc -d <db>` to `~/backups/utils-pg/daily/<db>/`.
-  - Also dump `pg_dumpall --globals-only --no-role-passwords`, so a rebuild can recreate the owners (their
-    passwords live in each app's `.env`).
-  - It never touches goldenhour's own `goldenhour-db` container, which has its own backups.
-  - Rotation: 7 daily and 4 weekly per database, as goldenhour.
-  - Each dump goes to a temp name and is renamed only after `pg_restore --list` reads it, so a truncated dump is
-    never kept as the newest.
-  - **Off-box copy**, as goldenhour's `OFFBOX_DEST` (rsync over SSH to the Mac). It is optional, and the
-    script warns loudly when it is unset.
-  - A success marker with a timestamp and per-database sizes. Every failure exits non-zero, and the marker is
-    then not updated.
-- **`utils-pg-backup.service` and `utils-pg-backup.timer`**: daily at 02:30 (clear of goldenhour's 02:00 and its
-  03:00 cron), `Persistent=true`, `Requires=docker.service`, `TimeoutStartSec=30min`.
-- **`.github/workflows/utils-pg-backup-verify.yml`**, daily (`schedule` + `workflow_dispatch` only, per the
-  self-hosted runner rule) on the self-hosted runner, after the 02:30 backup:
-  - fail if the marker is older than 26 hours;
-  - for **each** database, restore the newest dump into a throwaway `postgres:16` container as its superuser,
-    with `pg_restore --no-owner --no-acl --exit-on-error` (no app roles needed). Also check the globals dump
-    parses (`psql -f` into the same scratch server);
-  - fail if the restore errors, has zero user tables, or has zero rows in total. A dump of an empty database
-    restores cleanly, so only counting rows proves anything;
-  - always remove the container, and open an issue on failure through `ci-failure-issue.yml`, with
-    goldenhour's off-box watchdog.
-- Tests: `shellcheck`, and a fixture test of the rotation and database enumeration, with `docker` stubbed by a
-  fake on `PATH`.
-- **Owner actions:** install the units once
-  (`sudo cp ~/services/utils-pg/backup/utils-pg-backup.{service,timer} /etc/systemd/system/`, `daemon-reload`,
-  `enable --now`), then run it once by hand and check the marker. Set `OFFBOX_DEST` for redundancy.
-  Wainwrights is protected from the first run.
+**Facts already established:** `docker exec utils-pg psql -U postgres` works with no password (the owner ran it,
+2026-11-07: local socket trust in the official image). `postgres` is the only superuser, and a superuser is
+required, because per-app `CONNECT` is revoked.
+
+### Delivery: not through CineLight's deploy
+
+The scripts live in `ops/utils-pg/` and are installed by **their own workflow**, `install-utils-pg-backup.yml`
+(`workflow_dispatch` only, self-hosted). Tying them to CineLight's deploy would stop wainwrights' backups from
+updating whenever CineLight is pinned or broken. The job:
+- writes each script to a temp file **in** `~/services/utils-pg/backup/`, sets `chmod 755`, then `mv`s it into
+  place. `cp` over a running bash script corrupts it, because bash reads by byte offset; `mv` swaps the inode
+  and leaves the running copy intact;
+- fails if `/etc/systemd/system/utils-pg-backup.{service,timer}` differ from the repo's, and prints the `sudo`
+  commands to fix them. The units need `sudo`, so they never update themselves.
+
+### `ops/utils-pg/backup.sh` (run as `gregochr` by the timer)
+
+- `set -euo pipefail`, `umask 077`, backup folders mode 700, `flock`, so a manual run and the timer cannot
+  overlap, and a `trap` that removes temp files. Temp names (`.partial-*`) never match the rotation or
+  "newest" patterns. No `set -x`.
+- **Precondition:** `docker exec utils-pg psql -U postgres -Atc 'select 1'` must print `1`.
+- **Enumerate** `datallowconn and not datistemplate and datname <> 'postgres'`. **Fail if the list is empty or
+  lacks `wainwrights`**: an empty list must never be a success.
+- Per database: `docker exec utils-pg pg_dump -U postgres -Fc --lock-wait-timeout=60s -d <db>`, **never
+  `exec -t`** (a terminal corrupts binary output). It writes to `daily/<db>/.partial-*`, relying on `pipefail` and the
+  exit code. Then **`pg_restore -f /dev/null`** checks the file. That reads every data block; `--list` does not,
+  so a dump truncated mid-data would pass it. Only then is the file renamed to `daily/<db>/<db>_<date>.dump`. A
+  re-run the same day replaces that day's file.
+- `pg_dumpall --globals-only --no-role-passwords` goes to `globals/`. The passwords live in each app's `.env`.
+- Rotation per database: 7 daily, 4 weekly. A database that no longer exists keeps its dumps (never rotated
+  away), and the script logs a warning.
+- **Marker** (`~/backups/utils-pg/marker`): the timestamp, then one line per database with its name, dump
+  size and live row total (the sum of `n_live_tup` from `pg_stat_user_tables` at dump time). It is written only
+  if every database succeeded.
+- **Off-box copy**, optional: `OFFBOX_DEST` comes from a host-only `EnvironmentFile` (`~/.config/utils-pg-backup.env`),
+  never from this public repo. The script rsyncs the per-database tree **without `--delete`** and with
+  `BatchMode`, so the copy accumulates, and pruning on the Mac is the owner's job. Keep goldenhour's
+  `offbox-status` file and its 48-hour staleness check. A sleeping Mac is a warning, not a failure.
+- Never touches goldenhour's own `goldenhour-db`.
+
+### Units
+
+`utils-pg-backup.service` (`Type=oneshot`, `User=gregochr`, `Requires=docker.service`, `TimeoutStartSec=30min`,
+`Environment=TZ=Europe/London`, `EnvironmentFile=-%h/.config/utils-pg-backup.env`) and
+`utils-pg-backup.timer` (`OnCalendar=*-*-* 02:30 Europe/London`, `Persistent=true`, `RandomizedDelaySec=10min`).
+That is clear of goldenhour's 02:00 timer and its 03:00 cron.
+
+### `ops/utils-pg/verify.sh` and `.github/workflows/utils-pg-backup-verify.yml`
+
+The workflow runs daily at `30 7 * * *` UTC (clear of goldenhour's 08:00 verify), with `workflow_dispatch`, on
+the self-hosted runner, and calls `verify.sh`. The logic lives in the script so CI can test it.
+
+- **Drift:** the `sha256sum` of the installed scripts must match the checkout.
+- **Freshness:** each database's newest dump is under 26 hours old, the marker's list of databases equals the
+  live `pg_database` list, and a database present live but missing from the marker fails.
+- **Restore each database** into a scratch server started from **`utils-pg`'s own image**
+  (`docker inspect -f '{{.Image}}' utils-pg`), not a floating tag. It runs as
+  `docker run --rm --network none --tmpfs /var/lib/postgresql/data --name utils-pg-verify-$GITHUB_RUN_ID`:
+  no `-p`, and never goldenhour's `backup-verify-db` name. The tmpfs keeps restored data off the disk, and a
+  plain `rm -f` would leave the image's anonymous volume behind. An `if: always()` step runs `docker rm -fv`.
+- `pg_restore --no-owner --no-acl --exit-on-error`. **Every `pg_restore`/`psql` error goes to a mode-600 file
+  on the host, never to the log**: a failed `COPY` prints row data. The log shows only the database name, the
+  error count, the number of tables and the total rows. **No table names, no artifacts**, and none of
+  goldenhour's `tail backup.log`.
+- **Gate:** fail if the restored row total is below the marker's live total for that database, or zero while the
+  live total was not. A legitimately empty new database (`cinelight` right after bootstrap) passes.
+- **Globals:** the file is non-empty and contains `CREATE ROLE` (`psql -f` exits 0 on errors, so running it
+  proves nothing).
+- On failure, `ci-failure-issue.yml` opens an issue, plus goldenhour's off-box watchdog for a runner that
+  never picks the job up.
+
+### Tests
+
+- Fixture tests with a fake `docker` on `PATH`: enumeration, the empty list and a missing `wainwrights`
+  failing, temp-then-rename, a partial file never being "newest", rotation, a dropped database's dumps kept,
+  the marker written only on full success, and that `set -x` and table names never appear in output.
+- **A real-Postgres CI job on `ubuntu-latest`** (not self-hosted): start `postgres:16` as a container named
+  `utils-pg`, load two databases (one named `wainwrights`), run `backup.sh` and `verify.sh` end to end, then
+  truncate a dump and prove both scripts fail. Only that job proves authentication, a complete archive and a
+  working restore.
+- `shellcheck` over `ops/`.
+
+### Owner actions
+
+1. Run `install-utils-pg-backup.yml` (needs D1's runner registered).
+2. Once, with `sudo`: copy the units to `/etc/systemd/system/`, `daemon-reload`, `enable --now` the timer.
+3. Optional: `~/.config/utils-pg-backup.env` with `OFFBOX_DEST=…`.
+4. `systemctl start utils-pg-backup` once by hand, then dispatch the verify and check it passes.
 
 ## D2: Postgres in `utils-pg` (after React PR 1)
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the utils-pg PostgreSQL backup nightly at 02:30 London time
+
+[Timer]
+# Clear of goldenhour's 02:00 timer and its 03:00 cron.
+OnCalendar=*-*-* 02:30:00 Europe/London
+# The host is not always up at 02:30. Without this a missed window is simply skipped.
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

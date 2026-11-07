@@ -201,3 +201,25 @@ Ported from goldenhour on 2026-11-07; the design and its reasons are in `deploy-
   `workflow_dispatch`, never on a PR or comment trigger.
 - **Not yet proven on the host.** The image was built only in CI, because the planning Mac has no Docker. The
   first release is the first real deploy, so watch it.
+
+## Backups of `utils-pg` (phase B)
+
+All the databases in the host's shared `utils-pg` (wainwrights, and cinelight from D2) are backed up from this
+repo. The design is in `deploy-plan.md`, section B.
+
+- **Nightly:** the `utils-pg-backup.timer` runs `ops/utils-pg/backup.sh` at 02:30 (Europe/London) as `gregochr`.
+  Each database gets a `pg_dump -Fc` that is read end to end by `pg_restore -f /dev/null` before it counts, plus
+  a globals dump without passwords. Dumps go to `~/backups/utils-pg/{daily,weekly,globals}/` (mode 700), with 7
+  daily and 4 weekly kept per database. A marker records each database's exact row count. An empty list of
+  databases, or one without `wainwrights`, fails the run. Optional off-box copy: `OFFBOX_DEST` in
+  `~/.config/utils-pg-backup.env` on the host only.
+- **Daily restore check:** `utils-pg-backup-verify.yml` (07:30 UTC, self-hosted) runs `ops/utils-pg/verify.sh`.
+  It checks that the installed scripts match the repo, that each dump is under 26 hours old, and that the list
+  of databases matches the server. It then restores every database into a capped, RAM-backed scratch container
+  (`VERIFY_TMPFS_SIZE`, default 2g) with no network, and requires at least 90% of the live row count. It
+  prints only counts; errors go to a mode-600 file on the host.
+- **Installing:** dispatch `install-utils-pg-backup.yml`. It replaces scripts with temp-then-`mv`, so a running
+  backup is never corrupted. It reports, but cannot fix, drift in the systemd units (those need `sudo`).
+- **Tests:** the fixture tests (`scripts/tests/utils-pg-backup-test.sh`), plus the `utils-pg backup end-to-end`
+  CI job. That job runs `ops/utils-pg/tests/e2e.sh` against a real `postgres:16` on GitHub's runners and proves
+  a truncated dump is caught by both scripts.

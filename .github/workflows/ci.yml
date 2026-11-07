@@ -109,9 +109,9 @@ jobs:
       # are linted and their fixture tests run on every change, in seconds, before the slow build.
       # -o check-unassigned-uppercase catches a variable that is used but was deleted or never set, which a
       # script ending in `|| echo unknown` would otherwise swallow silently.
-      - name: ShellCheck release.sh and scripts/
+      - name: ShellCheck release.sh and scripts/ (and ops/)
         if: needs.changes.outputs.docs_only != 'true'
-        run: shellcheck -o check-unassigned-uppercase release.sh scripts/*.sh scripts/tests/*.sh
+        run: shellcheck -o check-unassigned-uppercase release.sh scripts/*.sh scripts/tests/*.sh ops/utils-pg/*.sh ops/utils-pg/tests/*.sh
 
       - name: Script fixture tests
         if: needs.changes.outputs.docs_only != 'true'
@@ -204,6 +204,29 @@ jobs:
           if-no-files-found: warn
 
       - name: Documentation-only change, build skipped
+        if: needs.changes.outputs.docs_only == 'true'
+        run: echo "Every changed path is documentation (*.md or docs/**)."
+
+  # ── utils-pg backup end-to-end ───────────────────────────────────────────────
+  # A NEW job with its own name: the existing job names are stable check names that
+  # dependabot-auto-merge.yml reads. The fixture tests fake `docker`; only this job proves, against a real
+  # Postgres, that backup.sh authenticates, writes a complete archive, that verify.sh can restore it, and
+  # that a truncated dump is caught by BOTH scripts. The logic is in ops/utils-pg/tests/e2e.sh so it can be
+  # run locally with Docker. ubuntu-latest, never self-hosted: it starts its own throwaway `utils-pg`.
+  utils-pg-e2e:
+    needs: changes
+    name: utils-pg backup end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.docs_only != 'true'
+
+      - name: Backup and verify against a real postgres:16
+        if: needs.changes.outputs.docs_only != 'true'
+        run: ops/utils-pg/tests/e2e.sh
+
+      - name: Documentation-only change, end-to-end skipped
         if: needs.changes.outputs.docs_only == 'true'
         run: echo "Every changed path is documentation (*.md or docs/**)."
 

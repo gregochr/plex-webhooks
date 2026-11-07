@@ -4,10 +4,11 @@ name: Deploy
 # deploys it to the host.
 #
 # NO SSH, NO CLONE ON THE HOST. goldenhour's deploy SSHes to the host and runs `git fetch` in a clone
-# there, which works only because goldenhour is public. This repository is PRIVATE: a clone with no
-# credentials cannot fetch it. The self-hosted runner already sits on the host, so the hop adds nothing:
-# the deploy job checks the tag out onto the runner itself and runs everything from that checkout. There
-# is no appleboy/ssh-action and no DEPLOY_SSH_KEY.
+# there. This repository went public on 2026-11-07, so such a clone could now fetch it, but the design
+# stands: the self-hosted runner already sits on the host, so the hop adds nothing. The deploy job checks
+# the tag out onto the runner itself and runs everything from that checkout, so the scripts and compose
+# file are exactly the release's and nothing on the host can drift. There is no appleboy/ssh-action and
+# no DEPLOY_SSH_KEY.
 
 on:
   push:

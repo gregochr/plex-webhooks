@@ -14,7 +14,8 @@ opens any file*: a command, an invariant, a safety rule. Everything else goes in
 | Builds, gates, CI workflows, what runs where | `docs/engineering/dev-and-testing.md` |
 | How to write tests (read before touching any test) | `docs/engineering/test-standards.md` |
 | The testing/CI reboot and its open phases | `docs/engineering/reboot-plan.md` |
-| Roadmap (Apple TV, React UI) | `docs/engineering/roadmap.md` |
+| Roadmap (Apple TV) | `docs/engineering/roadmap.md` |
+| The React UI redesign and its phases | `docs/engineering/react-ui-plan.md` |
 | Code review rules and deliberate decisions | `AGENTS.md` |
 
 ---

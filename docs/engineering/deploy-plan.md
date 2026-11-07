@@ -198,8 +198,10 @@ updating whenever CineLight is pinned or broken. The job:
 - Rotation per database: 7 daily, 4 weekly. A database that no longer exists keeps its dumps (never rotated
   away), and the script logs a warning.
 - **Marker** (`~/backups/utils-pg/marker`): the timestamp, then one line per database with its name, dump
-  size and live row total (the sum of `n_live_tup` from `pg_stat_user_tables` at dump time). It is written only
-  if every database succeeded.
+  size and **exact** live row total (`count(*)` over every user table, taken right after that database's dump;
+  `n_live_tup` was rejected because it is an estimate that drifts high after deletes). It is written only if
+  every database succeeded. One failing database does not stop the others from being dumped, but it fails the
+  run and withholds the marker.
 - **Off-box copy**, optional: `OFFBOX_DEST` comes from a host-only `EnvironmentFile` (`~/.config/utils-pg-backup.env`),
   never from this public repo. The script rsyncs the per-database tree **without `--delete`** and with
   `BatchMode`, so the copy accumulates, and pruning on the Mac is the owner's job. Keep goldenhour's
@@ -209,8 +211,10 @@ updating whenever CineLight is pinned or broken. The job:
 ### Units
 
 `utils-pg-backup.service` (`Type=oneshot`, `User=gregochr`, `Requires=docker.service`, `TimeoutStartSec=30min`,
-`Environment=TZ=Europe/London`, `EnvironmentFile=-%h/.config/utils-pg-backup.env`) and
+`Environment=TZ=Europe/London`, `EnvironmentFile=-/home/gregochr/.config/utils-pg-backup.env`) and
 `utils-pg-backup.timer` (`OnCalendar=*-*-* 02:30 Europe/London`, `Persistent=true`, `RandomizedDelaySec=10min`).
+`EnvironmentFile` uses the absolute `/home/gregochr/.config/utils-pg-backup.env`: in a system unit `%h` is
+root's home, not the `User=`'s.
 That is clear of goldenhour's 02:00 timer and its 03:00 cron.
 
 ### `ops/utils-pg/verify.sh` and `.github/workflows/utils-pg-backup-verify.yml`
@@ -230,8 +234,11 @@ the self-hosted runner, and calls `verify.sh`. The logic lives in the script so 
   on the host, never to the log**: a failed `COPY` prints row data. The log shows only the database name, the
   error count, the number of tables and the total rows. **No table names, no artifacts**, and none of
   goldenhour's `tail backup.log`.
-- **Gate:** fail if the restored row total is below the marker's live total for that database, or zero while the
-  live total was not. A legitimately empty new database (`cinelight` right after bootstrap) passes.
+- **Gate:** fail if the restored row total is below **90%** of the marker's live total (writes can land between
+  the dump and the count), or zero while the live total was not. A legitimately empty new database
+  (`cinelight` right after bootstrap) passes.
+- The scratch server's tmpfs is capped (`VERIFY_TMPFS_SIZE`, default `2g`), so a large restore fails loudly
+  instead of squeezing the host's RAM. Raise it if a database grows past it.
 - **Globals:** the file is non-empty and contains `CREATE ROLE` (`psql -f` exits 0 on errors, so running it
   proves nothing).
 - On failure, `ci-failure-issue.yml` opens an issue, plus goldenhour's off-box watchdog for a runner that

@@ -25,15 +25,22 @@
 # Run
 ./mvnw spring-boot:run
 
-# Run unit tests only
+# Run all tests (unit + integration — no tag exclusion is configured)
 ./mvnw test
 
 # Run integration tests only
 ./mvnw test -Dgroups=integration
+
+# Mutation testing (PIT) — opt-in profile
+./mvnw verify -P mutation-testing
+
+# OWASP Dependency-Check — opt-in profile, slow (needs NVD_API_KEY env var)
+./mvnw verify -P security-scan -DskipTests
 ```
 
-> `application.properties` is git-ignored. Copy `application.properties.example` and fill in your values.
+> `src/main/resources/application.properties` is listed in `.gitignore`. Copy `application.properties.example` and fill in your values.
 > The admin password is sourced from `CINELIGHT_ADMIN_PASSWORD` env var (falls back to `changeme` in dev).
+> `hue-java-client` is pulled from GitHub Packages, so a local build needs a `github-gregochr` server entry with a GitHub token in `~/.m2/settings.xml`.
 
 ---
 
@@ -43,24 +50,29 @@
 src/main/java/gregochr/
 ├── Main.java                          Entry point (@SpringBootApplication + @EnableScheduling)
 ├── RestClientConfig.java              Spring RestClient bean
-├── commands/                          Plex command model (PlexCommand, PlexEvent, PlexMediaType, PlexCommandFactory)
+├── clients/                           LocationClient, SunriseSunsetClient (+ dto/) — external HTTP APIs
+├── commands/                          Plex command model (PlexCommand, PlexEvent, PlexMediaType, PlexCommandFactory, *Config)
 ├── controllers/
 │   ├── PlexController.java            POST /plex — receives Plex webhooks
 │   ├── DashboardController.java       GET / — Thymeleaf dashboard
 │   ├── ConfigController.java          GET|PUT /api/config/** — config API
 │   ├── SseController.java             GET /api/events — SSE subscription
+│   ├── DebugController.java           POST /api/debug/{command} — fire a Plex command manually
 │   ├── GlobalExceptionHandler.java
-│   ├── hue/                           Hue REST controllers + HueConfig bean
-│   └── dirigera/                      IKEA DIRIGERA hub controllers
+│   ├── hue/                           Hue REST controllers (/api/hue/**) + HueConfig bean
+│   └── dirigera/                      IKEA DIRIGERA hub status (/api/dirigera/status)
 └── services/
-    ├── config/                        ConfigService, PropertiesRepository, event publish/listen
-    ├── plex/                          PlexPayloadDto, PlexMetadataDto
-    └── sse/                           SseService, SseClient, SseEventDto, ScheduledTaskManager
+    ├── ScheduledTaskManager.java      Reschedule-able periodic tasks
+    ├── config/                        ConfigService, PropertiesRepository, ConfigurationView*, SecurityConfig, events
+    ├── plex/dto/                      PlexPayloadDto, PlexMetadataDto
+    └── sse/                           SseService, SseClient, SseEventDto
 ```
+
+Tests mirror this layout; `UnitTestSuite` / `IntegrationTestSuite` in the default package are aggregators excluded from Surefire.
 
 ### External Library
 
-`hue-java-client` (v1.0-SNAPSHOT, located at `../hue-java-client`) is the standalone Philips Hue HTTP client. It has **no Spring dependency** — pure `java.net.http.HttpClient`. It is installed to local Maven and referenced as a coordinate dependency.
+`hue-java-client` (`org.gregochr:hue-java-client:1.0.0`) is the standalone Philips Hue HTTP client, published to GitHub Packages from `gregochr/hue-java-client`. It has **no Spring dependency** — pure `java.net.http.HttpClient`.
 
 ---
 
@@ -79,46 +91,38 @@ These requirements apply to every PR and must be enforced in CI.
 
 ### 1. Test Coverage — 80% Minimum
 
-- Line coverage must be ≥ 80%, enforced by JaCoCo in the Maven build.
-- Add JaCoCo to `pom.xml` if not already present; configure it to **fail the build** below threshold.
+- Line coverage must be ≥ 80%, enforced by JaCoCo in `verify` (fails the build below threshold).
 - Unit tests live in `src/test/java`, tagged by default (no tag = unit).
 - Integration tests are tagged `@Tag("integration")`.
 - Do not mock what you can test for real (e.g. use real `PropertiesRepository` with temp files rather than mocking file I/O unless truly impractical).
 
 ### 2. GitHub Actions CI Pipeline
 
-The pipeline runs on every push and pull request to `main`. It must include all the jobs below.
+Defined in `.github/workflows/ci.yml`; runs on every push and pull request to `master` (and `main`).
 
-#### Required CI Jobs
+#### CI Jobs
 
 | Job | Tool | Notes |
 |-----|------|-------|
-| **Build & Unit Tests** | `./mvnw verify` | Fail fast |
-| **Integration Tests** | `./mvnw test -Dgroups=integration` | Separate job |
-| **Code Coverage** | JaCoCo | Fail below 80% |
-| **Mutation Testing** | PIT (pitest-maven-plugin) | Minimum mutation score TBD |
-| **Code Style** | Checkstyle (Google Java Style) | Fail on violation |
-| **Bug Detection** | SpotBugs + Find Security Bugs | Fail on HIGH bugs |
-| **OWASP / CVE Scan** | OWASP Dependency-Check | Fail on CVSS ≥ 7 |
-| **Dependency Updates** | Dependabot | Auto-PRs for patch/minor |
+| **Build & Verify** | `./mvnw verify` | Runs all tests + JaCoCo, Checkstyle, SpotBugs gates |
+| **Integration Tests** | `./mvnw test -Dgroups=integration` | Separate job, after build |
+| **Mutation Testing** | PIT, `-P mutation-testing` | Threshold 70% (`pitest.mutation.threshold`) |
+| **OWASP / CVE Scan** | Dependency-Check, `-P security-scan` | Fail on CVSS ≥ 7; NVD DB cached |
+| **Dependency Updates** | Dependabot (`.github/dependabot.yml`) | Maven + Actions, weekly (Mon); Spring and log4j grouped |
 
-#### Dependabot Configuration
-
-Create `.github/dependabot.yml`:
-- Maven dependencies: weekly, auto-merge patch
-- GitHub Actions: weekly
+Thresholds live as properties at the top of `pom.xml`. Dependabot auto-merge is **not** configured.
 
 ### 3. Mutation Testing
 
-Use **PIT** (`pitest-maven-plugin`). Run on every PR. Target packages: `gregochr.commands`, `gregochr.services`, `gregochr.controllers`. Aim for ≥ 70% mutation coverage initially, rising to ≥ 80% over time.
+Use **PIT** (`pitest-maven`, `mutation-testing` profile). Runs in CI on every push/PR. Target packages: `gregochr.commands`, `gregochr.services`, `gregochr.controllers`. Threshold is currently 70% (`pitest.mutation.threshold`); raise to 80% over time.
 
 ### 4. Code Style
 
-**Checkstyle** with Google Java Style. Configuration at `.checkstyle/google_checks.xml`. Violations fail the build. IDE plugin recommended.
+**Checkstyle** based on Google Java Style, but with 4-space indentation to match the codebase. Configuration at `.checkstyle/checkstyle.xml`. Violations fail the build. IDE plugin recommended.
 
 ### 5. Bug Detection
 
-**SpotBugs** with the **Find Security Bugs** plugin. Fail on any bug of category HIGH or above. Suppress with `@SuppressFBWarnings` only with a documented justification.
+**SpotBugs** with the **Find Security Bugs** plugin. Fail on any bug of category HIGH or above. Suppress with `@SuppressFBWarnings` (or `spotbugs-exclude.xml`) only with a documented justification.
 
 ### 6. OWASP / CVE Scanning
 
@@ -128,26 +132,9 @@ Use **PIT** (`pitest-maven-plugin`). Run on every PR. Target packages: `gregochr
 
 ## Roadmap & Future Work
 
-### [MOST URGENT] Philips Hue Client — Publish as Standalone Library
+### Philips Hue Client — published (done)
 
-The extraction of `HueBridgeClient` into `hue-java-client` (local SNAPSHOT) is already complete. The remaining work is to publish it as a proper open-source Maven artifact on GitHub.
-
-**Plan:**
-1. Create a dedicated GitHub repository: `gregochr/hue-java-client`
-2. Add a GitHub Actions workflow to that repo: build, test, and publish to **GitHub Packages** (Maven registry)
-3. Update `plex-webhooks/pom.xml` to reference the published GitHub Packages coordinate instead of the local SNAPSHOT
-4. Add the GitHub Packages repository to `pom.xml` (or `settings.xml`)
-5. Remove the local install step from any scripts
-6. Tag an initial release (`v1.0.0`) and write a README with usage instructions
-7. **Delete the local `../hue-java-client` directory** — once plex-webhooks references the published artifact, the local copy just creates noise
-
-**API surface to document:**
-- `HueBridgeClient.create(hubId, appKey)` — factory
-- `activateScene(sceneId)` — returns boolean
-- `testConnection()` — returns boolean
-- `getResources()` — returns JSON string
-
-> Note: The trust-all SSL context is intentional for local LAN bridges that use self-signed certs. Document this explicitly in the library README.
+`hue-java-client` now lives in `gregochr/hue-java-client` and is consumed from GitHub Packages as `org.gregochr:hue-java-client:1.0.0`; the local `../hue-java-client` copy is gone. Library API and the intentional trust-all SSL context (for self-signed LAN bridge certs) are documented in that repo's README.
 
 ---
 

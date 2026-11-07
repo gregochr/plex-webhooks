@@ -25,8 +25,11 @@
 # Run
 ./mvnw spring-boot:run
 
-# Run all tests (unit + integration — no tag exclusion is configured)
+# Run all tests (unit + integration; `real-api` tests are excluded by default)
 ./mvnw test
+
+# Run the live third-party API tests on purpose (need network; may drift with provider data)
+./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api
 
 # Run integration tests only
 ./mvnw test -Dgroups=integration
@@ -40,7 +43,7 @@
 
 > `src/main/resources/application.properties` is listed in `.gitignore`. Copy `application.properties.example` and fill in your values.
 > The admin password is sourced from `CINELIGHT_ADMIN_PASSWORD` env var (falls back to `changeme` in dev).
-> `hue-java-client` is pulled from GitHub Packages, so a local build needs a `github-gregochr` server entry with a GitHub token in `~/.m2/settings.xml`.
+> `hue-java-client` is resolved from JitPack (`https://jitpack.io`) — no token or `settings.xml` entry needed.
 
 ---
 
@@ -72,7 +75,7 @@ Tests mirror this layout; `UnitTestSuite` / `IntegrationTestSuite` in the defaul
 
 ### External Library
 
-`hue-java-client` (`org.gregochr:hue-java-client:1.0.0`) is the standalone Philips Hue HTTP client, published to GitHub Packages from `gregochr/hue-java-client`. It has **no Spring dependency** — pure `java.net.http.HttpClient`.
+`hue-java-client` (`com.github.gregochr:hue-java-client:v1.0.0`) is the standalone Philips Hue HTTP client, built by JitPack from the `v1.0.0` tag of `gregochr/hue-java-client`. It has **no Spring dependency** — pure `java.net.http.HttpClient`.
 
 ---
 
@@ -94,6 +97,7 @@ These requirements apply to every PR and must be enforced in CI.
 - Line coverage must be ≥ 80%, enforced by JaCoCo in `verify` (fails the build below threshold).
 - Unit tests live in `src/test/java`, tagged by default (no tag = unit).
 - Integration tests are tagged `@Tag("integration")`.
+- Tests that call a live third-party service are tagged `@Tag("real-api")` and are excluded from the build gate (`surefire.excludedGroups` in `pom.xml`).
 - Do not mock what you can test for real (e.g. use real `PropertiesRepository` with temp files rather than mocking file I/O unless truly impractical).
 
 ### 2. GitHub Actions CI Pipeline
@@ -134,7 +138,7 @@ Use **PIT** (`pitest-maven`, `mutation-testing` profile). Runs in CI on every pu
 
 ### Philips Hue Client — published (done)
 
-`hue-java-client` now lives in `gregochr/hue-java-client` and is consumed from GitHub Packages as `org.gregochr:hue-java-client:1.0.0`; the local `../hue-java-client` copy is gone. Library API and the intentional trust-all SSL context (for self-signed LAN bridge certs) are documented in that repo's README.
+`hue-java-client` now lives in `gregochr/hue-java-client` and is consumed from JitPack as `com.github.gregochr:hue-java-client:v1.0.0`; the local `../hue-java-client` copy is gone. Library API and the intentional trust-all SSL context (for self-signed LAN bridge certs) are documented in that repo's README.
 
 ---
 

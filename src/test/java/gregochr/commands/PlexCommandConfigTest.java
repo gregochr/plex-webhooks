@@ -151,7 +151,7 @@ public class PlexCommandConfigTest {
         assertEquals(Map.of(PlexMediaType.MOVIE, ALL_ENABLED), configs);
     }
 
-    @DisplayName("onPropertiesUpdated reads any value other than 'true' as false, in any case")
+    @DisplayName("onPropertiesUpdated reads true, on, yes and 1 (any case, trimmed) as true and anything else as false")
     @Test
     public void testOnPropertiesUpdatedParsesBooleans() {
         Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_DISABLED));
@@ -161,10 +161,26 @@ public class PlexCommandConfigTest {
                 "plex.movie-play-enabled", "TRUE",
                 "plex.movie-resume-enabled", "yes",
                 "plex.movie-stop-enabled", "",
-                "plex.movie-pause-enabled", "true",
+                "plex.movie-pause-enabled", " on ",
                 "plex.movie-scrobble-enabled", "1")));
 
-        assertEquals(new PlexMediaTypeConfig(true, false, false, true, false), configs.get(PlexMediaType.MOVIE));
+        assertEquals(new PlexMediaTypeConfig(true, true, false, true, true), configs.get(PlexMediaType.MOVIE));
+    }
+
+    @DisplayName("onPropertiesUpdated reads no, off, 0 and garbage as false")
+    @Test
+    public void testOnPropertiesUpdatedRejectsNonTrue() {
+        Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(Map.of(PlexMediaType.MOVIE, ALL_ENABLED));
+        PlexCommandConfig config = new PlexCommandConfig(configs);
+
+        config.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of(
+                "plex.movie-play-enabled", "no",
+                "plex.movie-resume-enabled", "off",
+                "plex.movie-stop-enabled", "0",
+                "plex.movie-pause-enabled", "garbage",
+                "plex.movie-scrobble-enabled", "")));
+
+        assertEquals(ALL_DISABLED, configs.get(PlexMediaType.MOVIE));
     }
 
     @DisplayName("onPropertiesUpdated starts an unconfigured media type from all disabled")

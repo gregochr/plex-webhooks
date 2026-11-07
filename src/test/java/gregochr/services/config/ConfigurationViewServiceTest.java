@@ -1,8 +1,11 @@
 package gregochr.services.config;
 
+import gregochr.commands.PlexMediaType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,6 +19,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
@@ -151,11 +155,55 @@ public class ConfigurationViewServiceTest {
         verifyNoInteractions(eventPublisher);
     }
 
-    @DisplayName("isValidMediaType rejects track and photo, which have config but no editable commands")
+    @DisplayName("isValidMediaType accepts every PlexMediaType, including track and photo")
     @Test
-    public void testInvalidMediaTypes() {
-        assertFalse(service.isValidMediaType("track"));
-        assertFalse(service.isValidMediaType("photo"));
+    public void testEveryEnumMediaTypeIsValid() {
+        for (PlexMediaType mediaType : PlexMediaType.values()) {
+            assertTrue(service.isValidMediaType(mediaType.getType()), mediaType.getType());
+        }
+        assertTrue(service.isValidMediaType("track"));
+        assertTrue(service.isValidMediaType("photo"));
+    }
+
+    @DisplayName("isValidPropertyValue accepts an interval from 1000 to 86400000 ms inclusive")
+    @ParameterizedTest(name = "[{0}]")
+    @ValueSource(strings = {"1000", "1001", "30000", "86399999", "86400000"})
+    public void testIntervalBoundsAccepted(String value) {
+        for (String key : service.getValidPropertyKeys()) {
+            assertTrue(service.isValidPropertyValue(key, value), key);
+        }
+    }
+
+    @DisplayName("isValidPropertyValue rejects non-numeric, empty, out-of-range and non-whole intervals")
+    @ParameterizedTest(name = "[{0}]")
+    @ValueSource(strings = {"abc", "", " ", "0", "-1", "999", "86400001", "1000.5", "1e3", " 5000", "5000 ",
+            "+5000", "99999999999999999999", "9999999999999999999"})
+    public void testIntervalRejected(String value) {
+        for (String key : service.getValidPropertyKeys()) {
+            assertFalse(service.isValidPropertyValue(key, value), key);
+        }
+    }
+
+    @DisplayName("isValidPropertyValue rejects a null interval")
+    @Test
+    public void testNullIntervalRejected() {
+        assertFalse(service.isValidPropertyValue("sse.heartbeat-interval", null));
+    }
+
+    @DisplayName("isValidPropertyValue puts no constraint on keys that are not intervals")
+    @Test
+    public void testNonIntervalKeyUnconstrained() {
+        assertTrue(service.isValidPropertyValue("hue.start-scene", "abc"));
+    }
+
+    @DisplayName("parseIntervalMs returns the value in range and null outside it")
+    @Test
+    public void testParseIntervalMs() {
+        assertEquals(1000L, ConfigurationViewService.parseIntervalMs("1000"));
+        assertEquals(86_400_000L, ConfigurationViewService.parseIntervalMs("86400000"));
+        assertNull(ConfigurationViewService.parseIntervalMs("999"));
+        assertNull(ConfigurationViewService.parseIntervalMs("86400001"));
+        assertNull(ConfigurationViewService.parseIntervalMs(null));
     }
 
     @DisplayName("isValidMediaType is case sensitive and does not trim")

@@ -1,5 +1,6 @@
 package gregochr.services;
 
+import gregochr.services.config.ConfigurationViewService;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import org.apache.logging.log4j.Logger;
 import org.springframework.scheduling.TaskScheduler;
@@ -55,7 +56,12 @@ public class ScheduledTaskManager {
     public synchronized void onPropertiesUpdated(PropertiesUpdatedEvent event) {
         String value = event.getUpdatedProperties().get(propertyKey);
         if (value != null) {
-            this.intervalMs = Long.parseLong(value);
+            Long parsed = ConfigurationViewService.parseIntervalMs(value);
+            if (parsed == null) {
+                logger.warn("Ignoring invalid value '{}' for {}; keeping {} ms", value, propertyKey, intervalMs);
+                return;
+            }
+            this.intervalMs = parsed;
             scheduleTask();
             logger.info("Hot-reloaded {}: {} ms", propertyKey, this.intervalMs);
         }

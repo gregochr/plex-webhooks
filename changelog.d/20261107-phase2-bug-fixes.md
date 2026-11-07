@@ -1,0 +1,3 @@
+### Fixed — Five bugs found while building the test suite
+
+iPhone and iPad Safari are now shown as iOS rather than macOS on the dashboard, and a Plex event with no media (such as a server-level event) is ignored instead of failing. The config API now rejects a heartbeat or status interval that is not a whole number of milliseconds between 1000 and 86400000 before writing anything, and the scheduler keeps its current interval if it is handed a bad one. Boolean settings are read the same way everywhere (`true`, `on`, `yes` and `1` all mean on), and `track` and `photo` can now be edited like the other media types.

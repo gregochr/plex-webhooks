@@ -1,5 +1,6 @@
 package gregochr.commands;
 
+import gregochr.services.config.BooleanProperties;
 import gregochr.services.config.PropertiesUpdatedEvent;
 import org.springframework.context.event.EventListener;
 
@@ -34,15 +35,15 @@ public class PlexCommandConfig {
                 PlexMediaTypeConfig current = configs.getOrDefault(mediaType,
                         new PlexMediaTypeConfig(false, false, false, false, false));
                 configs.put(mediaType, new PlexMediaTypeConfig(
-                        Boolean.parseBoolean(updates.getOrDefault(
+                        BooleanProperties.parse(updates.getOrDefault(
                                 prefix + "play-enabled", String.valueOf(current.playEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(
+                        BooleanProperties.parse(updates.getOrDefault(
                                 prefix + "resume-enabled", String.valueOf(current.resumeEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(
+                        BooleanProperties.parse(updates.getOrDefault(
                                 prefix + "stop-enabled", String.valueOf(current.stopEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(
+                        BooleanProperties.parse(updates.getOrDefault(
                                 prefix + "pause-enabled", String.valueOf(current.pauseEnabled()))),
-                        Boolean.parseBoolean(updates.getOrDefault(
+                        BooleanProperties.parse(updates.getOrDefault(
                                 prefix + "scrobble-enabled", String.valueOf(current.scrobbleEnabled())))
                 ));
             }

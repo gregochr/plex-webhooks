@@ -218,6 +218,17 @@ public class PlexCommandFactoryTest {
         assertFalse(result);
     }
 
+    @DisplayName("A payload with no Metadata creates a NoOp command instead of throwing")
+    @Test
+    public void testNoMetadataCreatesNoOpCommand() {
+        PlexCommand plexCommand = new PlexCommandFactory(new PlexPayloadDto("media.play", null)).getPlexCommand();
+
+        assertEquals("media.play", plexCommand.getEvent());
+        assertNull(plexCommand.getPlexEvent());
+        assertNull(plexCommand.getMediaType());
+        assertFalse(plexCommand.execute(null, mock(ConfigService.class), mock(PlexCommandConfig.class)));
+    }
+
     @Nonnull
     private static PlexPayloadDto getPlexPayloadDto(String event, String type) {
         PlexMetadataDto plexMetadata = new PlexMetadataDto("Good Will Hunting", 123, type);

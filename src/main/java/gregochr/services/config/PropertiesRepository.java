@@ -89,7 +89,7 @@ public class PropertiesRepository {
                     int eq = trimmed.indexOf('=');
                     String key = trimmed.substring(0, eq).trim();
                     String value = resolveValue(key);
-                    result.put(key, "true".equalsIgnoreCase(value));
+                    result.put(key, BooleanProperties.parse(value));
                 }
             }
         } catch (IOException e) {

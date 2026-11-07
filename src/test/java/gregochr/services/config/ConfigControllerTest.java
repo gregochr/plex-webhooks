@@ -14,6 +14,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -225,6 +226,7 @@ public class ConfigControllerTest {
     @Test
     public void testSaveProperties() throws Exception {
         when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
+        when(configurationViewService.isValidPropertyValue("sse.heartbeat-interval", "5000")).thenReturn(true);
 
         Map<String, String> body = Map.of("sse.heartbeat-interval", "5000");
 
@@ -250,6 +252,7 @@ public class ConfigControllerTest {
     @Test
     public void testSavePropertiesFiltersKeys() throws Exception {
         when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
+        when(configurationViewService.isValidPropertyValue("sse.heartbeat-interval", "8000")).thenReturn(true);
 
         Map<String, String> body = new LinkedHashMap<>();
         body.put("sse.heartbeat-interval", "8000");
@@ -261,6 +264,36 @@ public class ConfigControllerTest {
         assertEquals(1, response.getBody().size());
         assertEquals("8000", response.getBody().get("sse.heartbeat-interval"));
         verify(configurationViewService).saveProperties(Map.of("sse.heartbeat-interval", "8000"));
+    }
+
+    @DisplayName("PUT properties returns 400 and saves nothing when the value is invalid")
+    @Test
+    public void testSavePropertiesInvalidValue() throws Exception {
+        when(configurationViewService.getValidPropertyKeys()).thenReturn(Set.of("sse.heartbeat-interval"));
+        when(configurationViewService.isValidPropertyValue("sse.heartbeat-interval", "abc")).thenReturn(false);
+
+        ResponseEntity<Map<String, String>> response =
+                controller.saveProperties(Map.of("sse.heartbeat-interval", "abc"));
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(configurationViewService, never()).saveProperties(anyMap());
+    }
+
+    @DisplayName("PUT properties with a valid and an invalid value returns 400 and saves nothing at all")
+    @Test
+    public void testSavePropertiesMixedBodySavesNothing() throws Exception {
+        when(configurationViewService.getValidPropertyKeys())
+                .thenReturn(Set.of("sse.heartbeat-interval", "hue.status-interval"));
+        when(configurationViewService.isValidPropertyValue("sse.heartbeat-interval", "8000")).thenReturn(true);
+        when(configurationViewService.isValidPropertyValue("hue.status-interval", "0")).thenReturn(false);
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("sse.heartbeat-interval", "8000");
+        body.put("hue.status-interval", "0");
+
+        ResponseEntity<Map<String, String>> response = controller.saveProperties(body);
+
+        assertEquals(400, response.getStatusCode().value());
+        verify(configurationViewService, never()).saveProperties(anyMap());
     }
 
     @DisplayName("PUT properties with no keys returns 400 and saves nothing")

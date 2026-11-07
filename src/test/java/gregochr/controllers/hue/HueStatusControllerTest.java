@@ -55,7 +55,8 @@ public class HueStatusControllerTest {
 
         assertEquals("192.168.1.100", status.get("hubAddress"));
         assertEquals("001788fffe7107c8", status.get("hubId"));
-        assertEquals("TestApplicationKey1234", status.get("applicationKey"));
+        assertFalse(status.containsKey("applicationKey"));
+        assertEquals(true, status.get("applicationKeySet"));
         assertTrue(status.containsKey("connected"));
         assertTrue(status.containsKey("integrationEnabled"));
         assertTrue(status.containsKey("timestamp"));
@@ -81,14 +82,34 @@ public class HueStatusControllerTest {
         assertFalse((Boolean) status.get("integrationEnabled"));
     }
 
-    @DisplayName("getStatus sends login unmasked")
+    @DisplayName("getStatus never contains the application key value")
     @Test
-    public void testGetStatusLoginUnmasked() {
+    public void testGetStatusNeverContainsKeyValue() {
         when(configService.isHueIntegrationEnabled()).thenReturn(true);
 
         Map<String, Object> status = controller.getStatus();
 
-        assertEquals("TestApplicationKey1234", status.get("applicationKey"));
+        assertFalse(status.values().stream().anyMatch(v -> "TestApplicationKey1234".equals(v)));
+    }
+
+    @DisplayName("getStatus reports application key as not set when the key is blank")
+    @Test
+    public void testGetStatusKeyBlank() {
+        when(hueBridgeClient.getAppKey()).thenReturn(" ");
+
+        Map<String, Object> status = controller.getStatus();
+
+        assertEquals(false, status.get("applicationKeySet"));
+    }
+
+    @DisplayName("getStatus reports application key as not set when the key is null")
+    @Test
+    public void testGetStatusKeyNull() {
+        when(hueBridgeClient.getAppKey()).thenReturn(null);
+
+        Map<String, Object> status = controller.getStatus();
+
+        assertEquals(false, status.get("applicationKeySet"));
     }
 
     @DisplayName("getStatus returns connected false when bridge unreachable")

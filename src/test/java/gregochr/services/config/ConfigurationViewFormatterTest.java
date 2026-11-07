@@ -150,6 +150,105 @@ public class ConfigurationViewFormatterTest {
         assertTrue(item.duration());
     }
 
+    @DisplayName("buildItem blanks the value of hue.application-key and marks it secret and set")
+    @Test
+    public void testBuildItemHueApplicationKeySet() {
+        ConfigurationViewItem item = formatter.buildItem("hue.application-key", "SECRET-CANARY-1234");
+
+        assertEquals("hue.application-key", item.key());
+        assertEquals("Application Key", item.label());
+        assertEquals("", item.value());
+        assertEquals("Set", item.displayValue());
+        assertEquals("secret", item.type());
+        assertTrue(item.secret());
+        assertFalse(item.duration());
+    }
+
+    @DisplayName("buildItem blanks the value of app.admin.password and marks it secret and set")
+    @Test
+    public void testBuildItemAdminPasswordSet() {
+        ConfigurationViewItem item = formatter.buildItem("app.admin.password", "hunter2");
+
+        assertEquals("", item.value());
+        assertEquals("Set", item.displayValue());
+        assertTrue(item.secret());
+    }
+
+    @DisplayName("buildItem marks an empty credential as not set")
+    @Test
+    public void testBuildItemCredentialEmpty() {
+        ConfigurationViewItem item = formatter.buildItem("hue.application-key", "");
+
+        assertEquals("", item.value());
+        assertEquals("Not set", item.displayValue());
+        assertTrue(item.secret());
+    }
+
+    @DisplayName("buildItem marks a whitespace-only credential as not set")
+    @Test
+    public void testBuildItemCredentialBlank() {
+        ConfigurationViewItem item = formatter.buildItem("app.admin.password", "   ");
+
+        assertEquals("Not set", item.displayValue());
+    }
+
+    @DisplayName("buildItem marks a null credential as not set")
+    @Test
+    public void testBuildItemCredentialNull() {
+        ConfigurationViewItem item = formatter.buildItem("app.admin.password", null);
+
+        assertEquals("", item.value());
+        assertEquals("Not set", item.displayValue());
+    }
+
+    @DisplayName("buildItem blanks token, secret and api-key credentials")
+    @Test
+    public void testBuildItemOtherCredentialShapes() {
+        assertEquals("", formatter.buildItem("x.access-token", "abc").value());
+        assertEquals("", formatter.buildItem("x.client-secret", "abc").value());
+        assertEquals("", formatter.buildItem("x.api-key", "abc").value());
+    }
+
+    @DisplayName("buildItem leaves hue.hub-id visible")
+    @Test
+    public void testBuildItemHubIdVisible() {
+        ConfigurationViewItem item = formatter.buildItem("hue.hub-id", "001788fffe7107c8");
+
+        assertEquals("001788fffe7107c8", item.value());
+        assertEquals("001788fffe7107c8", item.displayValue());
+        assertFalse(item.secret());
+    }
+
+    @DisplayName("buildItem leaves a key ending in 'monkey' unchanged")
+    @Test
+    public void testBuildItemMonkeyNotSecret() {
+        ConfigurationViewItem item = formatter.buildItem("zoo.monkey", "george");
+
+        assertEquals("george", item.value());
+        assertFalse(item.secret());
+    }
+
+    @DisplayName("buildItem leaves a key containing 'keyboard' unchanged")
+    @Test
+    public void testBuildItemKeyboardNotSecret() {
+        ConfigurationViewItem item = formatter.buildItem("hue.hub-keyboard", "qwerty");
+
+        assertEquals("qwerty", item.value());
+        assertFalse(item.secret());
+    }
+
+    @DisplayName("buildSections does not make a section with a credential editable")
+    @Test
+    public void testBuildSectionsCredentialSectionNotEditable() {
+        List<ConfigurationViewSection> sections = formatter.buildSections(List.of(
+                new PropertySection("Hue", List.of(
+                        new AbstractMap.SimpleEntry<>("hue.application-key", "SECRET-CANARY-1234"),
+                        new AbstractMap.SimpleEntry<>("hue.status-interval", "10000")))));
+
+        assertFalse(sections.get(0).editable());
+        assertEquals("", sections.get(0).items().get(0).value());
+    }
+
     @DisplayName("buildItem creates correct item for text property")
     @Test
     public void testBuildItemText() {

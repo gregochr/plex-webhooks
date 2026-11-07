@@ -6,6 +6,7 @@ public record ConfigurationViewItem(
         String value,
         String displayValue,
         String type,
-        boolean duration
+        boolean duration,
+        boolean secret
 ) {
 }

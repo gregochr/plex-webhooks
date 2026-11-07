@@ -1,0 +1,105 @@
+name: utils-pg Backup Verification
+
+# Checks, every morning, that the nightly utils-pg backup (a) happened and (b) restores, by restoring
+# each database's newest dump into a scratch Postgres. Ported from goldenhour's backup-verify.yml.
+#
+# THIS REPOSITORY IS PUBLIC. The logic lives in ops/utils-pg/verify.sh, which prints only database
+# names, error counts, table counts and row totals: never a table name, a row or a log tail. This
+# workflow uploads no artifacts.
+#
+# SELF-HOSTED RUNNER RULE: only schedule and workflow_dispatch trigger this workflow.
+#
+# Two notifier jobs, each needing only its own probe: see `watchdog` below for why a second exists.
+
+on:
+  schedule:
+    # 07:30 UTC: after the 02:30 London backup, clear of goldenhour's 08:00 verify.
+    - cron: '30 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify utils-pg backups restore
+    runs-on: self-hosted
+    # Restoring every database takes minutes at worst. Thirty is several times the slowest honest run,
+    # so anything longer is a hung `docker` call. Without a timeout a hang stays `in_progress` forever:
+    # the watchdog accepts `in_progress` as alive, and the notifier never sees a terminal state.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the backups (drift, freshness, restore, row counts)
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: ops/utils-pg/verify.sh
+
+      # The script removes its scratch container in its own trap; this is the belt to that braces for a
+      # killed step. -v also removes the image's anonymous volume that a plain `rm -f` would leave.
+      - name: Remove the scratch container
+        if: always()
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: docker rm -fv "utils-pg-verify-${RUN_ID}" >/dev/null 2>&1 || true
+
+  # Deliberately NOT self-hosted, and no checkout. If the runner service on the host is down, the job
+  # above QUEUES instead of failing, and nothing would ever fire again. This job runs off the box and
+  # watches the RUN's own job list instead of asking the runner anything.
+  watchdog:
+    name: Watchdog (the runner picked up the verify job)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for the self-hosted runner to pick up the verify job
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Matched by NAME PREFIX, so renaming the tail of the verify job's `name:` does not silently
+          # disable this watchdog.
+          attempts=20
+          interval=30
+          status=""
+          for ((i = 1; i <= attempts; i++)); do
+            # `|| true`: a failed `gh api` call means "unknown this iteration", not "the runner is fine".
+            status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" \
+              --jq '.jobs[] | select(.name | startswith("Verify utils-pg backups")) | .status' 2>/dev/null || true)"
+            # Only the two real "the runner picked it up" statuses count as alive.
+            case "$status" in
+              in_progress | completed)
+                echo "verify job status: ${status}"
+                exit 0
+                ;;
+            esac
+            if [ "$i" -lt "$attempts" ]; then
+              sleep "$interval"
+            fi
+          done
+          echo "::error::The self-hosted runner for plex-webhooks has not picked up the utils-pg backup verification in 10 minutes. The runner service on the host is probably down, so the nightly backup is NOT being verified."
+          exit 1
+
+  # Two independent notifier jobs, not one `needs: [verify, watchdog]`: `needs` waits for EVERY listed
+  # job to finish, so a queued verify would hold the issue back for hours. Each carries a distinct
+  # workflow-name, because ci-failure-issue.yml keys its one-open-issue rule on it.
+  notify-failure:
+    needs: verify
+    # Not `if: failure()`: a job killed by its own timeout is not reliably reported as `failure`.
+    if: ${{ always() && needs.verify.result != 'success' }}
+    permissions:
+      issues: write
+    uses: ./.github/workflows/ci-failure-issue.yml
+    with:
+      workflow-name: utils-pg Backup Verification
+
+  notify-watchdog-failure:
+    needs: watchdog
+    if: failure()
+    permissions:
+      issues: write
+    uses: ./.github/workflows/ci-failure-issue.yml
+    with:
+      workflow-name: utils-pg Backup Verification — runner watchdog

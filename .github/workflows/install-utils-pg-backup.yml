@@ -1,0 +1,28 @@
+name: Install utils-pg backup
+
+# Installs ops/utils-pg/backup.sh and verify.sh onto the host. Run by hand (workflow_dispatch only)
+# after changing them. It is deliberately NOT part of CineLight's deploy: tying it there would stop
+# wainwrights' backups from updating whenever CineLight is pinned or broken.
+#
+# The systemd units need sudo, so this job never installs them. It FAILS if the installed units differ
+# from the repository's and prints the sudo commands to fix that.
+#
+# SELF-HOSTED RUNNER RULE (this repository is public): a self-hosted job runs only on schedule or
+# workflow_dispatch, never on a pull request or comment trigger.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Install utils-pg backup scripts
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the scripts and check the units
+        run: ops/utils-pg/install.sh

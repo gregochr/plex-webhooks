@@ -335,6 +335,25 @@ Two more behaviour changes Jackson 3 would make silently, both of which this PR 
 `CLAUDE.md`, `AGENTS.md`, `dev-and-testing.md` (including the SpotBugs line), `roadmap.md` and `docs/index.html`
 ("Requires Java 17+") move from Java 17 / Boot 3.5 to Java 25 / Boot 4.1.
 
+### Result
+
+Built on branch `build/phase3-jdk25-boot4`. Every planned version landed, Checkstyle 13.4.2 included with no rule
+changes. 639 tests, JaCoCo per class with no overrides, PIT 99% (264/267, the same 3 survivors), diff-cover 100%.
+The app starts on JDK 25 and serves `/` and the SSE stream.
+
+**Three Jackson 3 default changes, each one silent and each now pinned by a test:**
+
+1. `SORT_PROPERTIES_ALPHABETICALLY` is on. The app's mappers turn it off, so payloads keep declaration order.
+2. `FAIL_ON_EMPTY_BEANS` is off (an empty bean serialises as `{}`). `SseService` turns it back on, so a payload
+   that cannot be represented is dropped, not broadcast.
+3. `FAIL_ON_NULL_FOR_PRIMITIVES` is on. **All 634 tests passed with it**, and Plex payloads without `duration`
+   would have returned 500, as would postcodes.io answers with null coordinates. The planner's review found it by
+   parsing such payloads against the build. `PlexController`'s mapper and the `RestClient` (`RestClientConfig`)
+   turn it off; new tests send missing and null primitives through both paths.
+
+Lesson for the next major library bump: list the library's changed defaults and test each one against real
+payload shapes, because a suite written against the old defaults cannot see them.
+
 ### Owner action this creates
 
 Whatever runs CineLight at home must run it on **JDK 25** after this merges.

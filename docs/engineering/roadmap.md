@@ -8,9 +8,9 @@ Moved from `CLAUDE.md` on 2026-11-07 without changes in substance.
 `com.github.gregochr:hue-java-client:v1.0.0`; the local `../hue-java-client` copy is gone. The library API and the
 intentional trust-all SSL context (for self-signed LAN bridge certificates) are documented in that repo's README.
 
-## JDK 25 and Spring Boot 4
+## JDK 25 and Spring Boot 4 (done)
 
-Phase 3 of `reboot-plan.md`, under the new gates.
+Phase 3 of `reboot-plan.md`: JDK 25, Spring Boot 4.1.2, Jackson 3.
 
 ## Apple TV integration
 

@@ -6,6 +6,12 @@
 spring:
   application:
     name: cinelight
+  autoconfigure:
+    # The database is optional: with no spring.datasource.url there must be no DataSource at all, and with one,
+    # PlaybackDatabaseConfig builds the pool in code (a pool that never fails startup, with a 3 s connection
+    # timeout). This is Spring Boot 4's exact class name; an exclude naming a class that is not on the classpath is
+    # ignored silently, so NoDatabaseConfiguredTest asserts the effect.
+    exclude: org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
 
 management:
   endpoints:

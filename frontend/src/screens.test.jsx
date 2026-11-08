@@ -227,6 +227,18 @@ describe('routing and the More menu', () => {
     expect(screen.queryByRole('navigation', { name: 'More' })).not.toBeInTheDocument();
   });
 
+  it('closes when the hash changes without a click (Back, Forward, a typed URL)', async () => {
+    const { user } = await open();
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    act(() => {
+      window.location.hash = '#/config';
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole('navigation', { name: 'More' })).not.toBeInTheDocument()
+    );
+    expect(screen.getByRole('button', { name: 'More' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('a click inside the menu area does not close it', async () => {
     const { user } = await open();
     await user.click(screen.getByRole('button', { name: 'More' }));
@@ -582,6 +594,44 @@ describe('Config', () => {
     expect(screen.getByLabelText('Hue status refresh')).toHaveValue('60');
     expect(screen.queryByLabelText('Hub address')).not.toBeInTheDocument();
     expect(screen.getByText('sse.heartbeat-interval')).toBeInTheDocument();
+  });
+
+  it('names intervals itself, falls back to the backend label, and keeps the key underneath', async () => {
+    const body = sectionsBody();
+    body.sections[0].items.push(
+      {
+        key: 'dirigera.status-interval',
+        label: 'Status Interval',
+        duration: true,
+        secret: false,
+        writable: true,
+        value: '120000',
+      },
+      {
+        key: 'hue.scene-catalog-interval',
+        label: 'Catalog Interval',
+        duration: true,
+        secret: false,
+        writable: true,
+        value: '300000',
+      },
+      {
+        key: 'sse.other-interval',
+        label: 'Other Interval',
+        duration: true,
+        secret: false,
+        writable: true,
+        value: '5000',
+      }
+    );
+    await open('#/config', { '/api/config/sections': body });
+    expect(await screen.findByLabelText('SSE heartbeat')).toHaveValue('30');
+    expect(screen.getByLabelText('Hue status refresh')).toHaveValue('60');
+    expect(screen.getByLabelText('DIRIGERA status refresh')).toHaveValue('120');
+    expect(screen.getByLabelText('Hue scene list refresh')).toHaveValue('300');
+    expect(screen.getByLabelText('Other Interval')).toHaveValue('5');
+    expect(screen.queryByText('Status Interval')).not.toBeInTheDocument();
+    expect(screen.getByText('dirigera.status-interval')).toBeInTheDocument();
   });
 
   it('keeps Save disabled until a value changes, and Cancel restores', async () => {

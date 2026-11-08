@@ -20,6 +20,13 @@ const TYPES = [
   ['track', 'Track'],
   ['photo', 'Photo'],
 ];
+// The backend formatter gives two of these the same label ("Status Interval"), so the screen names them itself.
+const INTERVAL_LABELS = {
+  'sse.heartbeat-interval': 'SSE heartbeat',
+  'hue.status-interval': 'Hue status refresh',
+  'hue.scene-catalog-interval': 'Hue scene list refresh',
+  'dirigera.status-interval': 'DIRIGERA status refresh',
+};
 const cap = (word) => word.charAt(0).toUpperCase() + word.slice(1);
 
 function Matrix({ config, onToggle }) {
@@ -92,7 +99,9 @@ function Intervals({ items, onSaved }) {
           return (
             <li key={item.key} className="setting">
               <div className="setting-name">
-                <label htmlFor={`interval-${item.key}`}>{item.label}</label>
+                <label htmlFor={`interval-${item.key}`}>
+                  {INTERVAL_LABELS[item.key] ?? item.label}
+                </label>
                 <span className="setting-key">{item.key}</span>
                 {invalid && (
                   <span id={`error-${item.key}`} className="setting-error">

@@ -26,10 +26,13 @@ export default function MoreMenu({ adminTabEnabled }) {
         setOpen(false);
       }
     };
+    const onHash = () => setOpen(false);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('hashchange', onHash);
     document.addEventListener('mousedown', onPointer);
     return () => {
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('hashchange', onHash);
       document.removeEventListener('mousedown', onPointer);
     };
   }, [open]);

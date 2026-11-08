@@ -89,6 +89,7 @@
 }
 
 .table-scroll {
+  position: relative; /* contains the absolutely positioned .sr-only labels, so they cannot widen the page */
   max-width: 100%;
   overflow-x: auto;
 }

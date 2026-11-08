@@ -112,13 +112,20 @@ public class SettingsMirror implements DatabaseReadyListener {
                 LOGGER.warn("Settings not copied: a settings table is missing; the schema is being recreated");
                 schemaMissingHandler.run();
             } else {
-                warnRateLimited(e);
+                warnRateLimited("Settings not copied to the database (" + e.getClass().getSimpleName() + ": "
+                        + e.getMessage() + "); it is retried every " + CHECK_INTERVAL_MS / 1000 + " s");
             }
         }
     }
 
     private void apply(Map<String, String> file, Set<String> saved, Instant now) {
         Map<String, String> stored = repository.loadAll();
+        if (!stored.isEmpty() && file.keySet().stream().allMatch(SettingsDiff::isExcluded)) {
+            // A truncated or emptied file, or a wrong path, would delete every row: the one copy that could rebuild
+            // the file. Leave it; the next save or ready retries (dirty stays false).
+            warnRateLimited("the settings file has no entries; the database copy is left as it is");
+            return;
+        }
         List<SettingChange> changes = SettingsDiff.compute(stored, file, saved, stored.isEmpty());
         for (SettingChange change : changes) {
             if (change.newValue() == null) {
@@ -146,13 +153,11 @@ public class SettingsMirror implements DatabaseReadyListener {
     }
 
     /** Logs at most one warning a minute, counting what it held back. */
-    private void warnRateLimited(RuntimeException error) {
+    private void warnRateLimited(String message) {
         long now = clock.millis();
         long last = lastWarnMillis.get();
         if (now - last >= WARN_INTERVAL_MS && lastWarnMillis.compareAndSet(last, now)) {
-            LOGGER.warn("Settings not copied to the database ({}: {}); it is retried every {} s ({} similar "
-                    + "warnings suppressed since the last)", error.getClass().getSimpleName(), error.getMessage(),
-                    CHECK_INTERVAL_MS / 1000, suppressed.getAndSet(0));
+            LOGGER.warn("{} ({} similar warnings suppressed since the last)", message, suppressed.getAndSet(0));
         } else {
             suppressed.incrementAndGet();
         }

@@ -440,4 +440,41 @@ public class SettingsMirrorTest {
         assertEquals(Set.of("a", "hue.hub-address", "plex.movie-play-enabled", "sse.heartbeat-interval"),
                 repository.settings.keySet());
     }
+
+    @DisplayName("An emptied settings file (or one holding only credentials) does not wipe a non-empty copy: nothing "
+            + "is deleted, one rate-limited warning is logged, and nothing is retried until the next save")
+    @Test
+    public void emptyFileLeavesTheCopyAlone() throws IOException {
+        mirror.onDatabaseReady();
+        mirror.reconcile();
+        int logged = repository.changes().size();
+        repository.calls.clear();
+        write("hue.application-key=" + HUE_KEY);
+        mirror.onPropertiesUpdated(saved("hue.hub-address", "1.1.1.1"));
+
+        mirror.reconcile();
+        mirror.onPropertiesUpdated(saved("hue.hub-address", "1.1.1.1"));
+        mirror.reconcile();
+
+        assertEquals(3, repository.settings.size());
+        assertEquals(logged, repository.changes().size());
+        assertFalse(repository.calls.stream().anyMatch(c -> c.startsWith("delete")), repository.calls.toString());
+        assertEquals(List.of("the settings file has no entries; the database copy is left as it is (0 similar "
+                + "warnings suppressed since the last)"), log.warnings());
+        repository.calls.clear();
+        mirror.reconcile();
+        assertEquals(List.of(), repository.calls);
+    }
+
+    @DisplayName("An empty file into an empty table is a plain no-op, with no warning")
+    @Test
+    public void emptyFileIntoEmptyTableIsQuiet() throws IOException {
+        write("# nothing");
+        mirror.onDatabaseReady();
+
+        mirror.reconcile();
+
+        assertEquals(Map.of(), repository.settings);
+        assertEquals(List.of(), log.warnings());
+    }
 }

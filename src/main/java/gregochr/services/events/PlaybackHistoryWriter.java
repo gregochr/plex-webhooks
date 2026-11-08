@@ -70,6 +70,11 @@ public class PlaybackHistoryWriter {
         worker.start();
     }
 
+    /** The worker thread, or null before {@link #start()}. For tests only, so each finds its own thread. */
+    synchronized Thread workerThread() {
+        return worker;
+    }
+
     /** Called once the schema exists and the database accepts writes: events are stored from now on. */
     public void markReady() {
         ready.set(true);

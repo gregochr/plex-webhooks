@@ -114,6 +114,7 @@ public class ConfigControllerTest {
     @Test
     public void testSaveHueSceneBroadcastsConfig() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.start-scene")).thenReturn(true);
+        when(configurationViewService.isValidSceneId("abc")).thenReturn(true);
 
         controller.saveHueScene(Map.of("key", "hue.start-scene", "sceneId", "abc"));
 
@@ -228,6 +229,7 @@ public class ConfigControllerTest {
     @Test
     public void testSaveHueSceneStart() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.start-scene")).thenReturn(true);
+        when(configurationViewService.isValidSceneId("abc-123")).thenReturn(true);
 
         Map<String, String> body = Map.of("key", "hue.start-scene", "sceneId", "abc-123");
 
@@ -243,6 +245,7 @@ public class ConfigControllerTest {
     @Test
     public void testSaveHueSceneStop() throws Exception {
         when(configurationViewService.isValidSceneKey("hue.stop-scene")).thenReturn(true);
+        when(configurationViewService.isValidSceneId("xyz-456")).thenReturn(true);
 
         Map<String, String> body = Map.of("key", "hue.stop-scene", "sceneId", "xyz-456");
 

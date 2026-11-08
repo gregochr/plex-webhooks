@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.AbstractResource;
 import org.springframework.core.io.ByteArrayResource;
@@ -21,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -426,6 +429,53 @@ public class PropertiesRepositoryTest {
 
         assertEquals("old", repo.resolveValue("hue.start-scene"));
         assertEquals("old", repo.readSceneProperties().get("hue.start-scene"));
+    }
+
+    @DisplayName("saveProperties refuses a bad key before writing: file and reads unchanged")
+    @ParameterizedTest
+    @ValueSource(strings = {"a\nb", "a\rb", "a=b", "a:b", "a#b", "a!b", "a b", "a\tb", "", "  "})
+    public void testSavePropertiesRejectsBadKey(String badKey, @TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of("a=1"));
+        byte[] before = Files.readAllBytes(file);
+        PropertiesRepository repo = new PropertiesRepository(new MockEnvironment().withProperty("a", "1"),
+                new FileSystemResource(file));
+        Map<String, String> updates = new LinkedHashMap<>();
+        updates.put("a", "2");
+        updates.put(badKey, "x");
+
+        assertThrows(IllegalArgumentException.class, () -> repo.saveProperties(updates, file));
+
+        assertArrayEquals(before, Files.readAllBytes(file));
+        assertEquals("1", repo.resolveValue("a"));
+        assertEquals("", repo.resolveValue(badKey));
+    }
+
+    @DisplayName("saveProperties refuses a value with a line break, leaving file and reads unchanged")
+    @ParameterizedTest
+    @ValueSource(strings = {"x\ny=1", "x\ry=1"})
+    public void testSavePropertiesRejectsBadValue(String badValue, @TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of("a=1"));
+        byte[] before = Files.readAllBytes(file);
+        PropertiesRepository repo = new PropertiesRepository(new MockEnvironment().withProperty("a", "1"),
+                new FileSystemResource(file));
+
+        assertThrows(IllegalArgumentException.class, () -> repo.saveProperties(Map.of("a", badValue), file));
+
+        assertArrayEquals(before, Files.readAllBytes(file));
+        assertEquals("1", repo.resolveValue("a"));
+    }
+
+    @DisplayName("saveProperties refuses a null value")
+    @Test
+    public void testSavePropertiesRejectsNullValue(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of("a=1"));
+        Map<String, String> updates = new LinkedHashMap<>();
+        updates.put("a", null);
+
+        assertThrows(IllegalArgumentException.class, () -> repository.saveProperties(updates, file));
     }
 
     @DisplayName("saveProperties raises an IOException when the file does not exist")

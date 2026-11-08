@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/config")
@@ -72,10 +73,10 @@ public class ConfigController {
             return ResponseEntity.notFound().build();
         }
 
-        String prefix = "plex." + mediaType + "-";
+        Set<String> allowedKeys = ConfigurationViewService.plexCommandKeys(mediaType);
         Map<String, String> updates = new LinkedHashMap<>();
         for (Map.Entry<String, Boolean> entry : body.entrySet()) {
-            if (entry.getKey().startsWith(prefix)) {
+            if (allowedKeys.contains(entry.getKey())) {
                 updates.put(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
@@ -95,7 +96,8 @@ public class ConfigController {
     public ResponseEntity<Map<String, String>> saveHueScene(@RequestBody Map<String, String> body) throws IOException {
         String key = body.get("key");
         String sceneId = body.get("sceneId");
-        if (key == null || sceneId == null || !configurationViewService.isValidSceneKey(key)) {
+        if (key == null || sceneId == null || !configurationViewService.isValidSceneKey(key)
+                || !configurationViewService.isValidSceneId(sceneId)) {
             return ResponseEntity.badRequest().build();
         }
 

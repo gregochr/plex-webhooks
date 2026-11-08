@@ -133,6 +133,9 @@ public class PropertiesRepository {
     }
 
     public void saveProperties(Map<String, String> updates, Path propertiesFile) throws IOException {
+        for (Map.Entry<String, String> update : updates.entrySet()) {
+            requireSingleLine(update.getKey(), update.getValue());
+        }
         List<String> lines = Files.readAllLines(propertiesFile);
         List<String> output = new ArrayList<>(lines.size() + updates.size());
         Set<String> written = new HashSet<>();
@@ -158,6 +161,20 @@ public class PropertiesRepository {
         writeAtomically(propertiesFile, output);
         // Only after the file is safely replaced: a failed save must not change what reads return.
         savedValues.putAll(updates);
+    }
+
+    /**
+     * Backstop against injecting extra settings lines: a key or value with a line break, or a key that is blank
+     * or holds a properties separator, comment marker or whitespace, is refused before anything is written.
+     */
+    private static void requireSingleLine(String key, String value) {
+        if (key == null || key.isBlank() || key.chars().anyMatch(
+                c -> c == '=' || c == ':' || c == '#' || c == '!' || Character.isWhitespace(c))) {
+            throw new IllegalArgumentException("Invalid settings key");
+        }
+        if (value == null || value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException("Invalid settings value for " + key);
+        }
     }
 
     /**

@@ -275,8 +275,7 @@ public class PlaybackHistoryWriterTest {
             threaded.offer(event(7));
             await().atMost(10, SECONDS).until(() -> ids(repository.inserted).equals(List.of(7L)));
 
-            Thread writerThread = Thread.getAllStackTraces().keySet().stream()
-                    .filter(t -> t.getName().equals("cinelight-playback-writer")).findFirst().orElseThrow();
+            Thread writerThread = threaded.workerThread();
             assertTrue(writerThread.isDaemon());
             threaded.close();
             assertFalse(writerThread.isAlive());
@@ -291,6 +290,7 @@ public class PlaybackHistoryWriterTest {
         PlaybackHistoryWriter threaded =
                 new PlaybackHistoryWriter(repository, clock, 10, Duration.ofSeconds(5), System::nanoTime);
         threaded.start();
+        Thread writerThread = threaded.workerThread();
         Thread.currentThread().interrupt();
         try {
             threaded.close();
@@ -299,6 +299,8 @@ public class PlaybackHistoryWriterTest {
             Thread.interrupted();
             threaded.close();
         }
+        // The interrupted close returned early; the second close must have waited the worker out.
+        assertFalse(writerThread.isAlive());
     }
 
     /** A repository whose every insert moves the fake monotonic clock on, so the drain budget can be spent exactly. */
@@ -386,9 +388,7 @@ public class PlaybackHistoryWriterTest {
                 System::nanoTime);
         threaded.start();
         try {
-            Thread writerThread = Thread.getAllStackTraces().keySet().stream()
-                    .filter(t -> t.isAlive() && t.getName().equals("cinelight-playback-writer"))
-                    .findFirst().orElseThrow();
+            Thread writerThread = threaded.workerThread();
 
             writerThread.interrupt();
 

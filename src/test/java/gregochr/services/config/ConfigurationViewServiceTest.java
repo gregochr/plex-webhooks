@@ -232,4 +232,26 @@ public class ConfigurationViewServiceTest {
         assertFalse(keys.contains("app.admin.password"));
         assertFalse(keys.contains("hue.hub-address"));
     }
+
+    @DisplayName("scene ids: UUIDs and short ids pass; null, empty, newline, space, symbols and 65 chars fail")
+    @Test
+    public void testIsValidSceneId() {
+        assertTrue(service.isValidSceneId("04a6c3e1-0000-4abc-9def-0123456789ab"));
+        assertTrue(service.isValidSceneId("a"));
+        assertTrue(service.isValidSceneId("a".repeat(64)));
+        assertFalse(service.isValidSceneId("a".repeat(65)));
+        assertFalse(service.isValidSceneId(null));
+        assertFalse(service.isValidSceneId(""));
+        assertFalse(service.isValidSceneId("abc\napp.admin.password=x"));
+        assertFalse(service.isValidSceneId("a b"));
+        assertFalse(service.isValidSceneId("a=b"));
+    }
+
+    @DisplayName("plex command keys are exactly the five -enabled flags for the media type")
+    @Test
+    public void testPlexCommandKeys() {
+        assertEquals(Set.of("plex.movie-play-enabled", "plex.movie-resume-enabled", "plex.movie-stop-enabled",
+                "plex.movie-pause-enabled", "plex.movie-scrobble-enabled"),
+                ConfigurationViewService.plexCommandKeys("movie"));
+    }
 }

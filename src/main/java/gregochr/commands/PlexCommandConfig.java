@@ -5,12 +5,13 @@ import gregochr.services.config.PropertiesUpdatedEvent;
 import org.springframework.context.event.EventListener;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlexCommandConfig {
     private final Map<PlexMediaType, PlexMediaTypeConfig> configs;
 
     public PlexCommandConfig(Map<PlexMediaType, PlexMediaTypeConfig> configs) {
-        this.configs = configs;
+        this.configs = new ConcurrentHashMap<>(configs);
     }
 
     public boolean isCommandEnabled(PlexEvent event, PlexMediaType mediaType) {

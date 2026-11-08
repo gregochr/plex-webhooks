@@ -23,7 +23,7 @@ public class ClientConfigServiceTest {
 
     private ConfigService configService;
     private HueSceneController hueSceneController;
-    private Map<PlexMediaType, PlexMediaTypeConfig> configs;
+    private PlexCommandConfig plexCommandConfig;
     private ClientConfigService service;
 
     @BeforeEach
@@ -32,10 +32,11 @@ public class ClientConfigServiceTest {
         hueSceneController = mock(HueSceneController.class);
         when(hueSceneController.getStartScene()).thenReturn("start-id");
         when(hueSceneController.getStopScene()).thenReturn("stop-id");
-        configs = new EnumMap<>(PlexMediaType.class);
+        Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(PlexMediaType.class);
         configs.put(PlexMediaType.MOVIE, new PlexMediaTypeConfig(true, true, false, false, true));
         configs.put(PlexMediaType.EPISODE, new PlexMediaTypeConfig(false, false, true, true, false));
-        service = new ClientConfigService(configService, hueSceneController, new PlexCommandConfig(configs));
+        plexCommandConfig = new PlexCommandConfig(configs);
+        service = new ClientConfigService(configService, hueSceneController, plexCommandConfig);
     }
 
     @DisplayName("The snapshot serialises to exactly the documented shape, with all five media types in order")
@@ -74,7 +75,7 @@ public class ClientConfigServiceTest {
     @DisplayName("The snapshot reads the live state: a hot-reloaded media type and scene show immediately")
     @Test
     public void readsLiveState() {
-        configs.put(PlexMediaType.CLIP, new PlexMediaTypeConfig(true, true, true, true, true));
+        plexCommandConfig.updateMediaType(PlexMediaType.CLIP, new PlexMediaTypeConfig(true, true, true, true, true));
         when(hueSceneController.getStartScene()).thenReturn("new-start");
 
         ClientConfig snapshot = service.snapshot();

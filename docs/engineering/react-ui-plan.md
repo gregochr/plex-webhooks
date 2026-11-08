@@ -204,9 +204,27 @@ smoke loading `/` against `spring-boot:run`.
 
 ## PR 3a: backend for the More-menu screens
 
-`GET /api/config` (or a new `GET /api/config/sections`) returns the `ConfigurationViewService` sections as
-JSON, credentials as `set: true|false` only (per `SensitiveKeys`), plus `adminTabEnabled`
-(`dashboard.admin-tab-enabled`). Tests assert no credential value ever appears in the JSON.
+Java only; no visible UI change.
+
+1. **`GET /api/config/sections`** (public GET, credential-free) returns
+   `{adminTabEnabled, sections: [{title, editable, items: [...]}]}` built from
+   `ConfigurationViewService.getConfigurationSections()`. Each item is
+   `{key, label, type, duration, secret, writable, value, displayValue}`, except that a credential item
+   (`SensitiveKeys.isSensitive`) carries `set: true|false` and **no `value` or `displayValue` field at all**.
+   `writable` is true only for the keys `PUT /api/config/properties` accepts (the intervals), so the UI knows
+   which fields get Save/Cancel. `adminTabEnabled` is `dashboard.admin-tab-enabled` (default false). Tests feed
+   credential-like values (explicit keys and suffix-matched keys) and assert none appears anywhere in the raw
+   response body.
+2. **Reads stop going stale after a save.** Today every read (`readAllEntries`, `readBooleanProperties`,
+   `readSceneProperties`) resolves values from the Spring `Environment`, which is fixed at startup, so
+   `GET /api/config/plex-commands/{type}`, `GET /api/config/hue-scenes` and the sections keep showing the startup
+   values. `PropertiesRepository` keeps a thread-safe map of values saved since startup, filled only after a save
+   succeeds, consulted first by `resolveValue`; `readSceneProperties` goes through `resolveValue` too.
+3. **A saved key missing from the file is appended**, not dropped. `saveProperties` rewrites only keys already in
+   the file, so a key added after a user's file was made (such as `hue.scene-catalog-interval`) would save,
+   apply live, and vanish on restart. Callers pass only whitelisted keys.
+4. **`PlexCommandConfig` becomes thread-safe.** Its `EnumMap` is written by the properties listener on a request
+   thread while webhook threads read it; store the per-type configs in a concurrent map.
 
 ## PR 3b: the More-menu screens
 

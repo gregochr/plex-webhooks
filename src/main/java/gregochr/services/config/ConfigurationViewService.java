@@ -1,5 +1,6 @@
 package gregochr.services.config;
 
+import gregochr.commands.PlexEvent;
 import gregochr.commands.PlexMediaType;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,7 @@ public class ConfigurationViewService {
 
     public static final long MIN_INTERVAL_MS = 1_000L;
     public static final long MAX_INTERVAL_MS = 86_400_000L;
+    private static final Pattern SCENE_ID_PATTERN = Pattern.compile("[A-Za-z0-9-]{1,64}");
     private static final Pattern INTERVAL_PATTERN = Pattern.compile("\\d{1,18}");
 
     private final PropertiesRepository repository;
@@ -79,6 +82,26 @@ public class ConfigurationViewService {
 
     public boolean isValidMediaType(String mediaType) {
         return VALID_MEDIA_TYPES.contains(mediaType);
+    }
+
+    /**
+     * The only keys a Plex command save may write for a media type: one {@code -enabled} flag per Plex event.
+     *
+     * @param mediaType a valid media type such as {@code movie}
+     * @return the exact keys, e.g. {@code plex.movie-play-enabled}
+     */
+    public static Set<String> plexCommandKeys(String mediaType) {
+        return Arrays.stream(PlexEvent.values())
+                .map(event -> "plex." + mediaType + "-" + event.name().toLowerCase(Locale.ROOT) + "-enabled")
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /**
+     * Checks a Hue scene id: v2 UUIDs and v1 short ids fit {@code [A-Za-z0-9-]{1,64}}, and nothing else
+     * (in particular no line break) may reach the settings file.
+     */
+    public boolean isValidSceneId(String sceneId) {
+        return sceneId != null && SCENE_ID_PATTERN.matcher(sceneId).matches();
     }
 
     public boolean isValidSceneKey(String key) {

@@ -2,6 +2,10 @@ package gregochr.services.events;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import gregochr.services.config.PostgresSettingsRepository;
+import gregochr.services.config.PropertiesRepository;
+import gregochr.services.config.SettingsMirror;
+import gregochr.services.config.SettingsRepository;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -9,9 +13,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.TaskScheduler;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.time.Clock;
+import java.util.List;
 
 /**
  * Everything database-related, created only when {@code spring.datasource.url} is set. Without it nothing here
@@ -65,10 +71,33 @@ public class PlaybackDatabaseConfig {
     }
 
     @Bean
-    public PlaybackDatabaseLifecycle playbackDatabaseLifecycle(Flyway flyway, PlaybackEventRepository repository,
-            PlaybackHistory history, PlaybackService playbackService, PlaybackHistoryWriter writer,
-            TaskScheduler taskScheduler, Clock clock) {
-        return new PlaybackDatabaseLifecycle(flyway::migrate, repository, history, playbackService, writer,
-                taskScheduler, clock);
+    public PlaybackReadyListener playbackReadyListener(PlaybackEventRepository repository, PlaybackHistory history,
+            PlaybackService playbackService, PlaybackHistoryWriter writer, TaskScheduler taskScheduler,
+            Clock clock) {
+        return new PlaybackReadyListener(repository, history, playbackService, writer, taskScheduler, clock);
+    }
+
+    @Bean
+    public SettingsRepository settingsRepository(JdbcClient jdbcClient) {
+        return new PostgresSettingsRepository(jdbcClient);
+    }
+
+    /**
+     * The transaction template comes from Spring Boot's {@code DataSourceTransactionManagerAutoConfiguration} and
+     * {@code TransactionAutoConfiguration}, which still run here (only {@code DataSourceAutoConfiguration} is
+     * excluded) and build a {@code DataSourceTransactionManager} on this context's single {@code DataSource}.
+     * {@code PlaybackDatabaseTransactionTest} proves it exists with a database and not without one.
+     */
+    @Bean
+    public SettingsMirror settingsMirror(SettingsRepository settingsRepository, PropertiesRepository properties,
+            TransactionTemplate transactionTemplate, TaskScheduler taskScheduler, Clock clock) {
+        return new SettingsMirror(settingsRepository, properties, transactionTemplate, taskScheduler, clock);
+    }
+
+    /** Playback first, settings second: written out here, not left to {@code @Order}. */
+    @Bean
+    public PlaybackDatabaseLifecycle playbackDatabaseLifecycle(Flyway flyway, PlaybackReadyListener playback,
+            SettingsMirror settings, TaskScheduler taskScheduler, Clock clock) {
+        return new PlaybackDatabaseLifecycle(flyway::migrate, List.of(playback, settings), taskScheduler, clock);
     }
 }

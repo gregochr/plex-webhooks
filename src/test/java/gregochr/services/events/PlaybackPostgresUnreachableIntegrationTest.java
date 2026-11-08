@@ -1,17 +1,27 @@
 package gregochr.services.events;
 
 import gregochr.commands.PlexOutcome;
+import gregochr.services.config.PropertiesRepository;
+import gregochr.support.SettingsFiles;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.sql.DataSource;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,6 +34,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.password=not-a-real-password",
         "management.endpoint.health.group.database.include=db"})
 public class PlaybackPostgresUnreachableIntegrationTest extends PostgresSpringTestBase {
+
+    private static final Path CONFIG = SettingsFiles.create(SettingsFiles.TYPICAL);
+
+    @DynamicPropertySource
+    static void settingsFile(DynamicPropertyRegistry registry) {
+        registry.add(PropertiesRepository.CONFIG_FILE_PROPERTY, CONFIG::toString);
+    }
 
     @Autowired
     private DataSource dataSource;
@@ -50,6 +67,17 @@ public class PlaybackPostgresUnreachableIntegrationTest extends PostgresSpringTe
         verify(hueSceneController).startMovieLightScene();
         assertEquals(PlexOutcome.Kind.SCENE_APPLIED, event.outcome());
         assertEquals(event, history.newestFirst(1).get(0));
+        assertFalse(writer.isReady());
+    }
+
+    @DisplayName("With an unreachable database a dashboard save succeeds and the file is written")
+    @Test
+    public void saveSucceedsWithAnUnreachableDatabase() throws Exception {
+        mockMvc.perform(put("/api/config/properties").with(httpBasic("admin", "cinelight"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"sse.heartbeat-interval\":\"15000\"}"))
+                .andExpect(status().isOk());
+
+        assertTrue(Files.readAllLines(CONFIG).contains("sse.heartbeat-interval=15000"));
         assertFalse(writer.isReady());
     }
 }

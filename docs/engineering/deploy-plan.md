@@ -276,35 +276,154 @@ the self-hosted runner, and calls `verify.sh`. The logic lives in the script so 
 | Backups | **none**. The host's only database backups are goldenhour's (`goldenhour-backup.timer` and a 3am `pg_dump` cron of `goldenhour-db`). `wainwrights` is not backed up today. |
 | Port 8080 | free |
 
-### Design
+### Design (refined 2026-11-07 against the code React PR 1 merged; revised after review; built 2026-11-07)
 
-- **Follow the `wainwrights` pattern.** A database `cinelight` owned by a role `cinelight` (LOGIN, no superuser,
-  no CREATEDB, no CREATEROLE), with `CONNECT` revoked from `PUBLIC` on `cinelight`. Created once by
-  `scripts/utils-pg-bootstrap.sh`, run by the owner. It is idempotent (it checks `pg_roles` and `pg_database`
-  first) and uses `docker exec utils-pg psql -U postgres`. The password is read from `~/cinelight/.env`, never
-  passed on the command line. Put a copy in `utils-pg/init/` too, for a rebuild from scratch.
-- **Network:** the `cinelight` service joins `apps-net` (`external: true` in compose) and connects to
-  `jdbc:postgresql://utils-pg:5432/cinelight`. `SPRING_DATASOURCE_*` come from `.env`.
-- **Plain JDBC, not JPA:** `spring-boot-starter-jdbc` with `JdbcClient`, the PostgreSQL driver,
-  `spring-boot-starter-flyway` with `flyway-database-postgresql`. There is one table, and Hibernate would need
-  a connection at boot.
-- **CineLight starts and works when `utils-pg` is down** (the graceful-degradation invariant: the lights matter,
-  history does not):
-  - Boot's automatic Flyway run is off, and Hikari's `initialization-fail-timeout` is `-1`.
-  - A `ScheduledTaskManager` task runs Flyway with a retry until it succeeds, then flags the database ready.
-  - History writes are skipped, with a rate-limited warning, until that flag is set, and on any later
-    `DataAccessException`.
-  - Tests start the app with the database unreachable and check that a Plex play event still changes the
-    lights; and that history appears once the database comes back.
-- `V1__event_history.sql`: the history React PR 1 keeps in memory moves to a table, written after each event is
-  executed. Retention: 90 days, pruned by a `ScheduledTaskManager` task. The UI label changes from "since
-  CineLight started" to real history. Testcontainers uses **`postgres:16`** to match. Docker becomes a
-  prerequisite for `clean verify`, as in goldenhour: document it.
-- Health: a separate `db` group, which `prod-health.sh` warns on. It is **not** in `container`, so a database
-  outage never makes Docker restart CineLight.
-- **Backups:** nightly backups come from phase B. The deploy also dumps `cinelight` before pulling
-  (`docker exec utils-pg pg_dump -U postgres -d cinelight -Fc`), so `rollback.sh` can restore it, with
-  `--no-owner --role cinelight`.
+React PR 1 (#27) added `PlaybackHistory`: an in-memory ring of the last 100 media events, appended by
+`PlaybackService.process` **inside the lock** that also assigns ids and broadcasts SSE, so two webhooks are
+never recorded in one order and broadcast in another. `GET /api/playback/history?limit≤100` reads it, and the
+React reducer merges events **by `id`**. D2 keeps all of that and adds durability behind it.
+
+**1. The memory ring stays the live source; Postgres is a write-behind store.**
+- `process` still appends to `PlaybackHistory` inside the lock. After the lock, it hands the event to a
+  `PlaybackHistoryWriter`: one daemon thread with a **bounded queue** (1,000 events), which inserts it through
+  a `PlaybackEventRepository` interface (its Postgres implementation uses `JdbcClient`). **The Plex webhook
+  never waits on the database**, and a slow or dead database can never block the lights. A full queue drops
+  the event and logs a rate-limited warning.
+- **Lifecycle.** `@PreDestroy` stops accepting, drains the queue for at most 5 s (inside compose's
+  `stop_grace_period: 20s`), and logs how many events it dropped. An `offer` after close returns quietly; it
+  never throws into `process`.
+- **Test seam.** The writer's loop body is a package-private `drainOnce()`, so unit tests drive it
+  synchronously against a fake repository. Integration tests use Awaitility (in `spring-boot-starter-test`).
+  No `Thread.sleep` anywhere.
+- Reads (`recent(limit)`) still come from memory, so they work with the database down.
+- **Seeding:** once the database is ready (see 3), the newest 100 rows (`ORDER BY id DESC`, never by
+  `occurred_at`) go into one synchronized `PlaybackHistory.seed(rows)` that merges with events recorded since
+  boot by `id`, sorts by `id`, and keeps the newest 100. One locked call, never a read followed by a write.
+  A row whose `outcome` is not a known `PlexOutcome.Kind` is skipped with a warning; it never fails the seed.
+- Pagination beyond 100 is out of scope. The table keeps 90 days for later use and for the owner's queries.
+- `nowPlaying` is **not** restored after a restart: it describes the live session. Once D2 lands, history
+  survives restarts, so the React rail's "since CineLight started" label is no longer true.
+  The label isn't in the frontend yet (React PR 2b), so whichever of D2 and PR 2b lands second uses "Recent"
+  (see `react-ui-plan.md`).
+
+**2. Ids that survive a restart.** Today `nextId` restarts at 1, which would collide with stored rows and break
+the reducer's merge by `id`. New rule inside the lock: `id = max(nextId, clock.millis() * 1000)`, then
+`nextId = id + 1`. It stays below JavaScript's `MAX_SAFE_INTEGER` (about 1.8e15 against 9e15), so the
+reducer's `b.id - a.id` is exact. The clock can go back, though (an NTP or RTC jump after a reboot), so:
+- When the database becomes ready, `PlaybackService` reads `max(id)` and, **inside its lock**, raises
+  `nextId` past it.
+- The `id` is the table's primary key, and inserts use `ON CONFLICT (id) DO NOTHING`. An insert that affects
+  0 rows logs a **warning** (it is a collision, not a duplicate we expect).
+- Tests use a pinned `Clock`. Tests that assume ids 1 and 2 change: `PlaybackServiceTest` (around lines
+  137-138) and `PlaybackHistoryTest` (around lines 60-73).
+
+**3. Starting and working with the database down, or with no database configured.**
+- **No database configured** (development, and every test that does not ask for one): when
+  `spring.datasource.url` is unset, nothing database-related is created, and history is memory-only, exactly
+  as today. A test asserts that this context starts and has no `DataSource` bean.
+- **Auto-configuration.** Flyway comes from `flyway-core` plus `flyway-database-postgresql`, **not**
+  `spring-boot-starter-flyway`, so there is no Flyway auto-configuration. JDBC comes from
+  `spring-boot-starter-jdbc`, and its `DataSourceAutoConfiguration` is excluded in `application.yml` by its
+  exact Boot 4 class name, `org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration`. Verify
+  that name against the 4.1.2 jar: an exclude naming a class that is not on the classpath is ignored silently.
+  Exclude the matching JDBC health and `JdbcClient`/`JdbcTemplate` auto-configurations only if they would
+  otherwise create beans or fail without a `DataSource`. A test proves the no-database context is clean.
+- **Configured:** a `@Configuration` conditional on `spring.datasource.url` builds everything **in code**,
+  because with the auto-configuration excluded no `spring.datasource.hikari.*` key is bound. The
+  `HikariDataSource` gets `setInitializationFailTimeout(-1)` (the pool never fails startup) and
+  `setConnectionTimeout(3000)` (the 30 s default would stall a scheduler thread and `/actuator/health/db`).
+  It also builds the `JdbcClient`, the `Flyway` instance and the Postgres repository.
+- **Database configured but down:** a `ScheduledTaskManager` task runs `flyway.migrate()` **at once, then
+  every 30 s** until it succeeds. It catches `RuntimeException` (`migrate()` throws `FlywayException`, not
+  `DataAccessException`) and logs on a **change of state** only (first failure, recovery), not every 30 s.
+  On success it sets `ready`, raises `nextId` (see 2), seeds the ring, runs retention once (see 5), and stops
+  itself. Until `ready`, the writer drops events with a rate-limited warning. There is no backlog replay,
+  because the ring still has them and history matters less than the lights.
+- **After `ready`:** a `DataAccessException` logs, drops that event and carries on. If the table has vanished
+  (SQL state `42P01`, for example `utils-pg` rebuilt empty), the writer clears `ready` and restarts the
+  migration task, so the schema comes back without a restart.
+- **`ScheduledTaskManager` changes**, because today it fits none of this. Its first run is one full interval
+  after start, a task cannot stop itself, and it needs a `propertyKey`. Add an initial-delay option, a way
+  for the task to stop its own schedule, and a constructor with no `propertyKey` (not hot-reloadable;
+  `onPropertiesUpdated` ignores it). Existing callers and their tests keep their behaviour.
+  `SchedulingConfig.POOL_SIZE` goes from 4 to 6 (migration plus retention), and its Javadoc lists them.
+- Tests: the app with an unreachable database URL still turns a Plex play into a scene, and starts within
+  normal time. History appears in the table once the database comes up. With no URL configured, no
+  `DataSource` bean exists.
+
+**4. Schema: `V1__playback_history.sql`.** `playback_event(id bigint primary key, occurred_at timestamptz not
+null, event text not null, media_type text, title text, grandparent_title text, parent_index int, idx int,
+year int, player text, outcome text not null, scene_id text, source text not null, payload jsonb,
+command_title text, duration int)`, plus an index on `occurred_at`. `command_title` and `duration` are stored so
+that a row read back rebuilds the legacy `command` object exactly (for unsupported media, `PlexCommand`'s title
+is `""`, not the event's `title`) until PR 3c removes it. Only `media.*` events are stored, as in the ring. The
+payload is the already-sanitised one (`PlexPayloadSanitizer`), inserted with `cast(:payload as jsonb)`.
+`jsonb` reorders keys; that is accepted, since the dashboard renders the payload as a tree, not as text.
+
+**5. Retention:** a `ScheduledTaskManager` task deletes rows older than 90 days (`occurred_at`). It runs once
+when the database becomes ready, then every 24 h. Running it at ready matters: with a release more often
+than daily, an interval-only task would never run.
+
+**6. Tests run on embedded Postgres 16, not Testcontainers.** The owner's Mac has no Docker, and the gate
+(`clean verify`) must run there. Use `io.zonky.test:embedded-postgres` with the PostgreSQL 16 binaries pinned
+through `io.zonky.test.postgres:embedded-postgres-binaries-bom` 16.x, and declare the platform binaries
+explicitly: `darwin-arm64v8`, `darwin-amd64` and `linux-amd64` (the defaults lack Apple Silicon). One
+Postgres per JVM, shared by the database tests. If zonky cannot provide 16 for both platforms, stop and report;
+do not fall back to H2.
+- **PIT.** PIT's `targetTests` is `gregochr.*` and the build has about 4 survivors of headroom. Keep the logic
+  (writer, seeding, id rule, retry state machine) testable with fakes of `PlaybackEventRepository`, and
+  exclude the Postgres integration tests from PIT's test set, so mutation testing stays fast and the score
+  holds.
+
+**7. Wiring on the host.**
+- `scripts/utils-pg-bootstrap.sh` (the owner runs it once; idempotent): creates the role `cinelight`
+  (LOGIN, no superuser, no CREATEDB, no CREATEROLE) and the database `cinelight` owned by it, and revokes
+  `CONNECT` from `PUBLIC`.
+  - It runs `docker exec -i -e CINELIGHT_DB_PASSWORD utils-pg psql -U postgres -v ON_ERROR_STOP=1`, with the
+    variable exported from `~/cinelight/.env`. Never `-t`. The password is never on a command line (no `ps`
+    exposure), never echoed, and never spliced into SQL text, which would break on quotes.
+  - The SQL starts with `SET log_statement = 'none'`, so the password is not written to Postgres's log. It
+    reads the password with `\getenv pw CINELIGHT_DB_PASSWORD` and sets it with
+    `ALTER ROLE cinelight PASSWORD :'pw'`.
+  - The role and the database are created idempotently through `SELECT … WHERE NOT EXISTS … \gexec`, because
+    `CREATE DATABASE` cannot run inside a `DO` block.
+  - It prints the SQL to drop into `utils-pg/init/` for a rebuild from scratch, **without** the password.
+  - The same SQL (minus the password) is reused by `rollback.sh --restore-db` to recreate the database.
+- `docker-compose.yml`: the `cinelight` service joins `apps-net` (`external: true`) **as well as** its default
+  network, and gets `SPRING_DATASOURCE_URL=jdbc:postgresql://utils-pg:5432/cinelight`,
+  `SPRING_DATASOURCE_USERNAME=cinelight` and `SPRING_DATASOURCE_PASSWORD=${CINELIGHT_DB_PASSWORD}` from `.env`.
+- **Health:** a `database` group (`GET /actuator/health/database`, Boot's `db` indicator), **not** in
+  `container`. It is declared **only** in `docker-compose.yml` (`MANAGEMENT_ENDPOINT_HEALTH_GROUP_DATABASE_INCLUDE=db`),
+  never in `application.yml`: Boot validates group membership at startup, and with no `DataSource` there is no
+  `db` contributor, so a yml group would fail every test context and every dev boot. It cannot be named `db`
+  either: Boot refuses to start when a group has a contributor's name (found in the build, 2026-11-07).
+  `/actuator/health/**` is already public. `prod-health.sh` **warns** when `database` is not `UP`. With the
+  database down the aggregate `/actuator/health` reports DOWN too; nothing reads it (Docker, compose and the
+  scripts all read `container`), and that must stay so.
+- **Deploy (`pre-release.sh`):** dumps the outgoing state with
+  `docker exec -i utils-pg pg_dump -U postgres -Fc -d cinelight` (never `-t`, which corrupts binary output)
+  into the release folder (mode 600). It checks the dump with `pg_restore -l` (or `-f /dev/null`) before
+  recording it. It records one of three states, and warns on the last two rather than blocking the release:
+  `db=dump` (dumped and checked), `db=none` (`utils-pg` is up but there is no `cinelight` database, the
+  bootstrap has not been run) and `db=unavailable` (`utils-pg` is down or unreachable).
+- **Rollback (`rollback.sh --restore-db`, never the default,** because restoring discards history written
+  since the release). It refuses with a clear message when the release has no checked dump. With a dump, and
+  with the app stopped:
+  1. `DROP DATABASE cinelight WITH (FORCE)`, then recreate it with the bootstrap SQL. `pg_restore --clean`
+     alone would leave behind objects a later migration created (D3's `V2`), and the next forward deploy would
+     then fail its migration on every retry.
+  2. `pg_restore --no-owner --role cinelight --exit-on-error --single-transaction`.
+  3. If the restore fails, abort **before** starting the old image, and say so.
+- The phase B nightly backups already pick up `cinelight` once it exists, with no change.
+
+### Owner actions for D2 (after it merges, before the next release)
+
+1. Add `CINELIGHT_DB_PASSWORD=…` to `~/cinelight/.env`.
+2. Check who owns `apps-net`: `docker network inspect apps-net --format '{{json .Labels}}'`. It is expected to
+   be the `utils-pg` compose project. If it is ever missing, CineLight's `docker compose up` fails (see Risks).
+3. Run `scripts/utils-pg-bootstrap.sh` on the host (from a checkout of the tag, or the runner workspace).
+4. Release as usual. CineLight starts even if step 3 was missed: history just stays memory-only, and
+   `prod-health` warns.
 
 ## D3: settings in Postgres
 
@@ -327,3 +446,7 @@ the self-hosted runner, and calls `verify.sh`. The logic lives in the script so 
   brings it back.
 - **The LAN-only webhook has no TLS.** As today.
 - **A self-hosted runner per repo** is a second process on the host to keep updated.
+- **`apps-net` is external (D2).** If that network is missing, `docker compose up` fails and CineLight (and so
+  the lights) does not start, for the sake of history. Accepted: `apps-net` belongs to the long-lived
+  `utils-pg` project and wainwrights depends on it too. The fix is `docker network create apps-net` or bringing
+  `utils-pg` up.

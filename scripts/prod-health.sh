@@ -24,6 +24,11 @@
 #     real problem for the lights but not a failed deploy: graceful degradation means CineLight carries
 #     on without it, so it must not fail a release or open an issue every morning for the same thing.
 #     (DIRIGERA is not checked at all, for the same reason.)
+#   - GET /actuator/health/database is not UP: the playback-history database (utils-pg) is down, was never set up
+#     (scripts/utils-pg-bootstrap.sh), or the `database` health group is missing. CineLight carries on with in-memory history
+#     and keeps trying, so it must not fail a deploy or restart the container; but the owner should know that
+#     history is not being saved. The `database` group exists only in docker-compose.yml, not in the `container` group
+#     that Docker's HEALTHCHECK reads.
 #
 # WHAT IS DELIBERATELY NOT HERE
 #
@@ -190,10 +195,27 @@ check_hue_bridge() {
     esac
 }
 
+# --- warn: the playback database --------------------------------------------------------
+check_database() {
+    local name="database"
+    local url="${APP_URL}/actuator/health/database"
+    local body status
+
+    body="$(curl -sS --max-time 20 "$url" 2>&1 || true)"
+    status="$(printf '%s' "$body" | jq -r '.status // empty' 2>/dev/null || true)"
+
+    if [ "$status" = "UP" ]; then
+        report_ok "$name" "${url} -> status UP"
+    else
+        report_warn "$name" "${url} did not answer status UP (got: ${body:-no response}) — playback history is not being saved; run scripts/utils-pg-bootstrap.sh if the database was never set up"
+    fi
+}
+
 check_compose_service
 check_container_health
 check_dashboard
 check_hue_bridge
+check_database
 
 TOTAL_CHECKS=3
 echo "prod-health: ${TOTAL_CHECKS} checks, ${FAILURES} failed, ${WARNINGS} warning(s) (${MODE})"

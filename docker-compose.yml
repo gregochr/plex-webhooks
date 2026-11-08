@@ -15,10 +15,26 @@ services:
       SPRING_CONFIG_IMPORT: file:/config/application.properties
       # Where the dashboard's saves are written (PropertiesRepository).
       CINELIGHT_CONFIG_FILE: /config/application.properties
+      # The playback-history database in the shared utils-pg (see docs/engineering/deploy-plan.md, D2). The app
+      # starts without it and keeps history in memory until it is reachable. The password comes from .env.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://utils-pg:5432/cinelight
+      SPRING_DATASOURCE_USERNAME: cinelight
+      SPRING_DATASOURCE_PASSWORD: ${CINELIGHT_DB_PASSWORD:-}
+      # The `database` health group (GET /actuator/health/database), declared HERE and not in application.yml:
+      # Spring Boot validates group membership at startup, and with no DataSource (development, tests) there is no
+      # `db` contributor, so a yml group would fail every boot. It cannot be called `db`: Boot refuses a group
+      # named like a contributor ("HealthContributor with name db clashes with group"). It is deliberately not in
+      # the `container` group Docker's HEALTHCHECK reads, so a database outage can never mark the container
+      # unhealthy. scripts/prod-health.sh warns when it is not UP.
+      MANAGEMENT_ENDPOINT_HEALTH_GROUP_DATABASE_INCLUDE: db
     volumes:
       # The DIRECTORY, never the file. Saves write a temp file beside the settings file and rename it over the
       # original, and a rename onto a bind-mounted file fails with EBUSY.
       - /home/gregochr/cinelight-data/config:/config
+    networks:
+      # apps-net is where utils-pg lives; the default network stays so the published port keeps working.
+      - default
+      - apps-net
     restart: always
     # Docker's default stop budget is 10 s; this gives a graceful shutdown a little longer.
     stop_grace_period: 20s
@@ -34,3 +50,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  # Created and owned by the utils-pg compose project, not by this one. If it is missing, `docker compose up` fails
+  # naming it (see deploy-plan.md, "Risks accepted").
+  apps-net:
+    external: true

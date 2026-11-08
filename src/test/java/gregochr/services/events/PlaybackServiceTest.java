@@ -12,6 +12,7 @@ import gregochr.services.plex.dto.PlexMetadataDto;
 import gregochr.services.plex.dto.PlexPayloadDto;
 import gregochr.services.plex.dto.PlexPlayerDto;
 import gregochr.services.sse.SseService;
+import gregochr.support.MutableClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -31,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import static gregochr.support.TestClocks.FIXED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,6 +55,9 @@ public class PlaybackServiceTest {
     private PlaybackHistory history;
     private PlaybackService service;
 
+    /** FIXED is 2024-03-15T12:00:00Z: 1710504000000 ms, so ids start at that times 1000. */
+    private static final long FIRST_ID = 1_710_504_000_000_000L;
+
     private static final String RAW = "{\"event\":\"media.play\",\"Account\":{\"title\":\"alice\"},"
             + "\"Player\":{\"title\":\"Living Room TV\",\"publicAddress\":\"203.0.113.42\"},"
             + "\"Metadata\":{\"type\":\"episode\",\"title\":\"Cold Open\",\"grandparentTitle\":\"Slow Horses\","
@@ -67,7 +73,7 @@ public class PlaybackServiceTest {
         configs.put(PlexMediaType.MOVIE, new PlexMediaTypeConfig(true, true, true, true, false));
         configs.put(PlexMediaType.EPISODE, new PlexMediaTypeConfig(true, true, true, true, true));
         service = new PlaybackService(hueSceneController, configService, new PlexCommandConfig(configs),
-                sseService, new PlexPayloadSanitizer(), history, FIXED);
+                sseService, new PlexPayloadSanitizer(), history, FIXED, Optional.empty());
     }
 
     private static PlexPayloadDto episodePayload(String event) {
@@ -88,7 +94,7 @@ public class PlaybackServiceTest {
         PlaybackEvent event = service.process(episodeCommand(PlexEvent.PLAY), episodePayload("media.play"), RAW,
                 "plex");
 
-        assertEquals(new PlaybackEvent(1, "2024-03-15T12:00:00Z", "media.play", "episode", "Cold Open",
+        assertEquals(new PlaybackEvent(FIRST_ID, "2024-03-15T12:00:00Z", "media.play", "episode", "Cold Open",
                 "Slow Horses", 4, 2, 2025, "Living Room TV", PlexOutcome.Kind.SCENE_APPLIED, "start-scene", "plex",
                 "{\"event\":\"media.play\",\"Player\":{\"title\":\"Living Room TV\"},"
                         + "\"Metadata\":{\"type\":\"episode\",\"title\":\"Cold Open\","
@@ -126,7 +132,7 @@ public class PlaybackServiceTest {
         assertFalse(event.payload().contains("thumb"));
     }
 
-    @DisplayName("Ids count up from 1 and each event gets its own")
+    @DisplayName("Ids start at the clock's milliseconds times 1000 and count up, each event getting its own")
     @Test
     public void idsAreMonotonic() {
         PlaybackEvent first = service.process(episodeCommand(PlexEvent.PLAY), episodePayload("media.play"), RAW,
@@ -134,8 +140,8 @@ public class PlaybackServiceTest {
         PlaybackEvent second = service.process(episodeCommand(PlexEvent.STOP), episodePayload("media.stop"), RAW,
                 "plex");
 
-        assertEquals(1, first.id());
-        assertEquals(2, second.id());
+        assertEquals(FIRST_ID, first.id());
+        assertEquals(FIRST_ID + 1, second.id());
     }
 
     @DisplayName("The timestamp is the injected clock's instant as an ISO string")
@@ -310,7 +316,92 @@ public class PlaybackServiceTest {
         Collections.reverse(recordedOldestFirst);
         assertEquals(events, broadcastIds.size());
         assertEquals(recordedOldestFirst, broadcastIds);
-        assertEquals(IntStream.rangeClosed(1, events).boxed().map(Long::valueOf).toList(), broadcastIds);
+        assertEquals(LongStream.range(FIRST_ID, FIRST_ID + events).boxed().toList(), broadcastIds);
         assertEquals(NowPlaying.State.PLAYING, service.nowPlaying().state());
+    }
+
+    private PlaybackService serviceWith(MutableClock clock, Optional<PlaybackHistoryWriter> writer) {
+        Map<PlexMediaType, PlexMediaTypeConfig> configs = new EnumMap<>(PlexMediaType.class);
+        configs.put(PlexMediaType.EPISODE, new PlexMediaTypeConfig(true, true, true, true, true));
+        return new PlaybackService(hueSceneController, configService, new PlexCommandConfig(configs), sseService,
+                new PlexPayloadSanitizer(), history, clock, writer);
+    }
+
+    private long processedId(PlaybackService target) {
+        return target.process(episodeCommand(PlexEvent.PLAY), episodePayload("media.play"), RAW, "plex").id();
+    }
+
+    @DisplayName("When the clock moves on a millisecond the id jumps to that millisecond times 1000")
+    @Test
+    public void idFollowsClockForward() {
+        MutableClock clock = new MutableClock();
+        PlaybackService target = serviceWith(clock, Optional.empty());
+        assertEquals(FIRST_ID, processedId(target));
+        assertEquals(FIRST_ID + 1, processedId(target));
+
+        clock.advance(Duration.ofMillis(1));
+
+        assertEquals(FIRST_ID + 1000, processedId(target));
+    }
+
+    @DisplayName("When the clock goes back the ids keep increasing instead of repeating")
+    @Test
+    public void idsSurviveClockGoingBack() {
+        MutableClock clock = new MutableClock();
+        PlaybackService target = serviceWith(clock, Optional.empty());
+        assertEquals(FIRST_ID, processedId(target));
+
+        clock.advance(Duration.ofHours(-1));
+
+        assertEquals(FIRST_ID + 1, processedId(target));
+        assertEquals(FIRST_ID + 2, processedId(target));
+    }
+
+    @DisplayName("raiseNextId makes the next id at least the given value")
+    @Test
+    public void raiseNextIdRaises() {
+        PlaybackService target = serviceWith(new MutableClock(), Optional.empty());
+
+        target.raiseNextId(FIRST_ID + 5000);
+
+        assertEquals(FIRST_ID + 5000, processedId(target));
+    }
+
+    @DisplayName("raiseNextId never lowers the next id")
+    @Test
+    public void raiseNextIdNeverLowers() {
+        PlaybackService target = serviceWith(new MutableClock(), Optional.empty());
+        assertEquals(FIRST_ID, processedId(target));
+
+        target.raiseNextId(5);
+
+        assertEquals(FIRST_ID + 1, processedId(target));
+    }
+
+    @DisplayName("A recorded media event is offered to the writer, after it has been broadcast")
+    @Test
+    public void mediaEventIsOfferedToWriter() {
+        PlaybackHistoryWriter writer = mock(PlaybackHistoryWriter.class);
+        PlaybackService target = serviceWith(new MutableClock(), Optional.of(writer));
+
+        PlaybackEvent event = target.process(episodeCommand(PlexEvent.PLAY), episodePayload("media.play"), RAW,
+                "plex");
+
+        InOrder order = Mockito.inOrder(sseService, writer);
+        order.verify(sseService).broadcast(event);
+        order.verify(writer).offer(event);
+    }
+
+    @DisplayName("A non-media event is not offered to the writer")
+    @Test
+    public void nonMediaEventIsNotOffered() {
+        PlaybackHistoryWriter writer = mock(PlaybackHistoryWriter.class);
+        PlaybackService target = serviceWith(new MutableClock(), Optional.of(writer));
+
+        target.process(new PlexCommand("library.new", PlexMediaType.MOVIE),
+                new PlexPayloadDto("library.new", new PlexMetadataDto("Heat", 1, "movie")),
+                "{\"event\":\"library.new\"}", "plex");
+
+        verify(writer, never()).offer(any());
     }
 }

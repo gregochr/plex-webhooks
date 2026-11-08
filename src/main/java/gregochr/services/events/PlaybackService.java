@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The one pipeline every Plex event goes through, whether it came from the Plex webhook or the Debug endpoint:
@@ -22,10 +23,16 @@ import java.util.List;
  * <p>Assigning the id, appending to the history, updating the now-playing state and broadcasting happen in one
  * critical section, so two concurrent webhooks can never be recorded in one order and broadcast in another. The Hue
  * call itself runs outside the lock.
+ *
+ * <p>When a database is configured, each recorded event is then handed to the {@link PlaybackHistoryWriter}, which
+ * stores it on its own thread: the webhook never waits on the database.
  */
 @Service
 public class PlaybackService {
     private static final Logger LOGGER = LogManager.getLogger(PlaybackService.class);
+
+    /** Ids start at milliseconds-since-epoch times this, leaving room for 1,000 events in one millisecond. */
+    private static final long ID_PER_MILLI = 1000;
 
     private static final PlexMetadataDto NO_METADATA = new PlexMetadataDto(null, 0, null);
 
@@ -36,13 +43,14 @@ public class PlaybackService {
     private final PlexPayloadSanitizer sanitizer;
     private final PlaybackHistory history;
     private final Clock clock;
+    private final Optional<PlaybackHistoryWriter> writer;
     private final Object lock = new Object();
     private long nextId = 1;
     private volatile NowPlaying nowPlaying = NowPlaying.idle();
 
     public PlaybackService(HueSceneController hueSceneController, ConfigService configService,
             PlexCommandConfig plexCommandConfig, SseService sseService, PlexPayloadSanitizer sanitizer,
-            PlaybackHistory history, Clock clock) {
+            PlaybackHistory history, Clock clock, Optional<PlaybackHistoryWriter> writer) {
         this.hueSceneController = hueSceneController;
         this.configService = configService;
         this.plexCommandConfig = plexCommandConfig;
@@ -50,6 +58,7 @@ public class PlaybackService {
         this.sanitizer = sanitizer;
         this.history = history;
         this.clock = clock;
+        this.writer = writer;
     }
 
     /**
@@ -69,9 +78,15 @@ public class PlaybackService {
         String mediaType = command.getMediaType() != null ? command.getMediaType().getType() : metadata.type();
         String player = payload.player() != null ? payload.player().title() : null;
 
+        PlaybackEvent event;
         synchronized (lock) {
-            PlaybackEvent event = new PlaybackEvent(
-                    nextId++,
+            // The clock-derived floor keeps ids unique across restarts (they are the table's primary key) and below
+            // JavaScript's MAX_SAFE_INTEGER; the max() keeps them strictly increasing within a millisecond and if
+            // the clock steps back.
+            long id = Math.max(nextId, clock.millis() * ID_PER_MILLI);
+            nextId = id + 1;
+            event = new PlaybackEvent(
+                    id,
                     clock.instant().toString(),
                     command.getEvent(),
                     mediaType,
@@ -94,7 +109,20 @@ public class PlaybackService {
             if (event.isMedia()) {
                 sseService.broadcastNowPlaying(nowPlaying);
             }
-            return event;
+        }
+        if (event.isMedia()) {
+            writer.ifPresent(w -> w.offer(event));
+        }
+        return event;
+    }
+
+    /**
+     * Makes sure the next id is at least {@code minimum}. Called when the database becomes ready, with one more than
+     * the largest stored id, so a clock that went backwards can never mint an id that is already stored.
+     */
+    public void raiseNextId(long minimum) {
+        synchronized (lock) {
+            nextId = Math.max(nextId, minimum);
         }
     }
 

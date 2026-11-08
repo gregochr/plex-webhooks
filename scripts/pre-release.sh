@@ -5,8 +5,9 @@
 # Runs on the production host from deploy.yml, immediately before `docker compose pull`. Writes
 # ~/cinelight-data/releases/<version>/ containing
 #
-#   manifest                 key=value lines: releasing, taken_at, image, settings
+#   manifest                 key=value lines: releasing, taken_at, image, settings, db (and db_dump)
 #   application.properties   a 0600 copy of the settings file as it is right now
+#   cinelight.dump           a 0600 pg_dump -Fc of the cinelight database in utils-pg, when there is one
 #
 # `image` is the DIGEST of the image running now (never a tag: `docker compose pull` moves :latest, so
 # after a bad release :latest IS the bad release, while a digest can never be re-pointed), or the word
@@ -16,8 +17,16 @@
 # settings file holds, and the app rewrites that file on every dashboard save. Restoring one without
 # the other gives a combination that was never run.
 #
-# Failure here aborts the release. That is deliberate: this is the one moment the manifest is
-# load-bearing, and deploying without one would leave nothing to roll back to.
+# `db` records what happened to the database, and is one of three states. Only the first can be restored by
+# `rollback.sh --restore-db`; the other two WARN and never block the release (the app starts without the
+# database, so a missing dump must not stop a deploy):
+#
+#   db=dump         the database was dumped and the dump passed `pg_restore -l`
+#   db=none         utils-pg is up but has no `cinelight` database (scripts/utils-pg-bootstrap.sh has not been run)
+#   db=unavailable  utils-pg is down or unreachable, or the dump failed or did not verify
+#
+# Failure to capture the image or the settings aborts the release. That is deliberate: this is the one moment
+# the manifest is load-bearing, and deploying without one would leave nothing to roll back to.
 #
 # Re-running for a version that already has a manifest KEEPS the first one. A deploy that failed after
 # `docker compose up` and is then retried would otherwise record the NEW, broken image as the outgoing
@@ -31,6 +40,8 @@
 #   CINELIGHT_DATA_DIR       Data directory (default: $HOME/cinelight-data)
 #   CINELIGHT_SETTINGS_FILE  Settings file to copy (default: $CINELIGHT_DATA_DIR/config/application.properties)
 #   DEPLOYED_IMAGES_LEDGER   Written by record-deployed-images.sh (default: $CINELIGHT_DATA_DIR/deployed-images.tsv)
+#   DB_CONTAINER             The Postgres container (default: utils-pg)
+#   DB_NAME                  The database to dump (default: cinelight)
 # ============================================================================
 
 set -euo pipefail
@@ -45,6 +56,8 @@ CONTAINER="${CONTAINER:-cinelight}"
 DATA_DIR="${CINELIGHT_DATA_DIR:-${HOME}/cinelight-data}"
 SETTINGS_FILE="${CINELIGHT_SETTINGS_FILE:-${DATA_DIR}/config/application.properties}"
 LEDGER="${DEPLOYED_IMAGES_LEDGER:-${DATA_DIR}/deployed-images.tsv}"
+DB_CONTAINER="${DB_CONTAINER:-utils-pg}"
+DB_NAME="${DB_NAME:-cinelight}"
 RELEASE_DIR="${DATA_DIR}/releases/${RELEASE_VERSION}"
 MANIFEST="${RELEASE_DIR}/manifest"
 
@@ -138,12 +151,50 @@ chmod 600 "${STAGING}/application.properties"
 cmp -s "$SETTINGS_FILE" "${STAGING}/application.properties" \
     || { echo "ERROR: the settings copy differs from the original — aborting the release." >&2; exit 1; }
 
-cat > "${STAGING}/manifest" <<MANIFEST_EOF
-releasing=${RELEASE_VERSION}
-taken_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-image=${PREV_IMAGE}
-settings=application.properties
-MANIFEST_EOF
+# --- The database -----------------------------------------------------------------------
+# Every docker call here is `docker exec -i`, never `-t`: a TTY rewrites the binary dump stream (it turns
+# newlines into CRLF) and corrupts it. Output of the pg tools goes to /dev/null: this runs in a workflow whose
+# logs are public, and an error from pg_dump or pg_restore can name tables.
+pg() { docker exec -i "$DB_CONTAINER" "$@"; }
+
+db_container_running() {
+    [ -n "$(docker ps --filter "name=^/${DB_CONTAINER}\$" --format '{{.Names}}' 2>/dev/null)" ]
+}
+
+# Prints dump | none | unavailable. On `dump` the file is ${STAGING}/cinelight.dump; otherwise nothing is left.
+dump_database() {
+    local dump="${STAGING}/${DB_NAME}.dump" exists
+    db_container_running || { echo unavailable; return 0; }
+    exists="$(pg psql -U postgres -v ON_ERROR_STOP=1 -At \
+        -c "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'" 2>/dev/null)" || { echo unavailable; return 0; }
+    [ "$exists" = "1" ] || { echo none; return 0; }
+    # 0600 before the first byte is written: the dump holds the whole viewing history.
+    if ! ( umask 077 && pg pg_dump -U postgres -Fc -d "$DB_NAME" > "$dump" 2>/dev/null ); then
+        rm -f "$dump"; echo unavailable; return 0
+    fi
+    # A dump that is empty, or that pg_restore cannot list, is not a backup.
+    if [ ! -s "$dump" ] || ! pg pg_restore -l < "$dump" >/dev/null 2>&1; then
+        rm -f "$dump"; echo unavailable; return 0
+    fi
+    chmod 600 "$dump"
+    echo dump
+}
+
+DB_STATE="$(dump_database)"
+case "$DB_STATE" in
+    dump) log "database: ${DB_NAME} dumped and checked (db=dump)" ;;
+    none) log "WARNING: ${DB_CONTAINER} has no ${DB_NAME} database (db=none): run scripts/utils-pg-bootstrap.sh. The release continues; history stays in memory until then, and \`rollback.sh --restore-db\` will not be available." >&2 ;;
+    *) log "WARNING: could not dump ${DB_NAME} from ${DB_CONTAINER} (db=unavailable). The release continues, but \`rollback.sh --restore-db\` will not be available for it." >&2 ;;
+esac
+
+{
+    echo "releasing=${RELEASE_VERSION}"
+    echo "taken_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "image=${PREV_IMAGE}"
+    echo "settings=application.properties"
+    echo "db=${DB_STATE}"
+    if [ "$DB_STATE" = "dump" ]; then echo "db_dump=${DB_NAME}.dump"; fi
+} > "${STAGING}/manifest"
 
 mv "$STAGING" "$RELEASE_DIR"
 trap - EXIT

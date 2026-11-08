@@ -189,7 +189,8 @@ one sentence per media type (movie, episode, clip, track, photo slideshow) with 
   `Off`.
 - Writes: `PUT /api/config/plex-commands/{mediaType}` with the type's full map, optimistically.
 - Right rail (desktop): "Now" (title, state, `room at N%, Scene` or just `Scene`) and "Tonight's programme"
-  (history newest first, labelled "since CineLight started"). Mobile: last 4 events below the rules. Empty state
+  (history newest first, labelled "since CineLight started" until deploy phase D2 stores history in Postgres;
+  after that it survives restarts and the label is just "Recent"). Mobile: last 4 events below the rules. Empty state
   "Nothing has played yet."
 - Classical rules (HANDOVER §5): colour on strokes not fills, outlined buttons, weight ≤ 600, `tnum` on
   times and levels, the focus ring, every control a real `<button>`/`<a>`/`<input>`, 44px tap targets on mobile.
@@ -240,4 +241,5 @@ its own `changelog.d/` entry.
 - **Node in the Maven build** slows `clean verify` and `compile`; `-Dfrontend.skip=true` covers the inner loop.
 - **Mixed state differs from the prototype**: owner-approved, noted in the changelog.
 - **Room level is the scene's set level**, not a reading; null hides it.
-- **History is in memory**: lost on restart, labelled "since CineLight started".
+- **History is in memory** until deploy phase D2 (`deploy-plan.md`), which keeps it in Postgres and seeds the
+  ring on start; the "since CineLight started" label goes when D2 lands.

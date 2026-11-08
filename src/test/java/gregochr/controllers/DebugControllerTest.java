@@ -49,7 +49,8 @@ public class DebugControllerTest {
         configs.put(PlexMediaType.MOVIE, new PlexMediaTypeConfig(true, true, true, true, true));
         configs.put(PlexMediaType.EPISODE, new PlexMediaTypeConfig(false, false, false, false, false));
         playbackService = new PlaybackService(hueSceneController, configService, new PlexCommandConfig(configs),
-                sseService, new PlexPayloadSanitizer(), new PlaybackHistory(), FIXED);
+                sseService, new PlexPayloadSanitizer(), new PlaybackHistory(), FIXED,
+                Optional.empty());
         debugController = new DebugController(playbackService);
     }
 
@@ -67,7 +68,7 @@ public class DebugControllerTest {
         Map<String, Object> result = debugController.triggerCommand("play", "movie", null);
 
         assertEquals(Map.of("command", "play", "type", "movie", "success", true, "outcome", "SCENE_APPLIED",
-                "id", 1L), result);
+                "id", 1_710_504_000_000_000L), result);
         verify(hueSceneController).startMovieLightScene();
     }
 

@@ -197,4 +197,87 @@ public class ScheduledTaskManagerTest {
         verify(scheduler, times(2)).scheduleAtFixedRate(
                 eq(task), eq(Instant.parse("2024-03-15T12:01:00Z")), eq(Duration.ofSeconds(60)));
     }
+
+    private ScheduledTaskManager unkeyed(TaskScheduler scheduler, long intervalMs, long initialDelayMs) {
+        return new ScheduledTaskManager(scheduler, FIXED, intervalMs, initialDelayMs, "database", task,
+                LogManager.getLogger(ScheduledTaskManagerTest.class));
+    }
+
+    @DisplayName("An initial delay of zero schedules the first run at once, then at the interval")
+    @Test
+    public void zeroInitialDelayRunsAtOnce() {
+        TaskScheduler scheduler = TaskSchedulers.returning(TaskSchedulers.future());
+
+        unkeyed(scheduler, 30000, 0).start();
+
+        verify(scheduler).scheduleAtFixedRate(eq(task), eq(Instant.parse("2024-03-15T12:00:00Z")),
+                eq(Duration.ofSeconds(30)));
+    }
+
+    @DisplayName("An initial delay schedules the first run that long from now, independent of the interval")
+    @Test
+    public void initialDelayIsSeparateFromInterval() {
+        TaskScheduler scheduler = TaskSchedulers.returning(TaskSchedulers.future());
+
+        unkeyed(scheduler, 30000, 5000).start();
+
+        verify(scheduler).scheduleAtFixedRate(eq(task), eq(Instant.parse("2024-03-15T12:00:05Z")),
+                eq(Duration.ofSeconds(30)));
+    }
+
+    @DisplayName("A task with no property key ignores property updates, even one that names its task")
+    @Test
+    public void unkeyedTaskIgnoresPropertyUpdates() {
+        TaskScheduler scheduler = TaskSchedulers.returning(TaskSchedulers.future());
+        ScheduledTaskManager manager = unkeyed(scheduler, 30000, 0);
+        manager.start();
+
+        manager.onPropertiesUpdated(update(KEY, "1000"));
+        manager.onPropertiesUpdated(update("null", "1000"));
+
+        verify(scheduler, times(1)).scheduleAtFixedRate(eq(task), eq(Instant.parse("2024-03-15T12:00:00Z")),
+                eq(Duration.ofSeconds(30)));
+    }
+
+    @DisplayName("A self-stopping task is handed its manager and can cancel its own schedule")
+    @Test
+    public void selfStoppingTaskCancelsItself() {
+        ScheduledFuture<Object> future = TaskSchedulers.future();
+        TaskScheduler scheduler = TaskSchedulers.returning(future);
+        ScheduledTaskManager manager = ScheduledTaskManager.selfStopping(scheduler, FIXED, 30000, 0, "database",
+                self -> {
+                    runs++;
+                    self.shutdown();
+                }, LogManager.getLogger(ScheduledTaskManagerTest.class));
+        manager.start();
+        ArgumentCaptor<Runnable> scheduled = ArgumentCaptor.forClass(Runnable.class);
+        verify(scheduler).scheduleAtFixedRate(scheduled.capture(), eq(Instant.parse("2024-03-15T12:00:00Z")),
+                eq(Duration.ofSeconds(30)));
+        verify(future, never()).cancel(false);
+
+        scheduled.getValue().run();
+
+        assertEquals(1, runs);
+        verify(future).cancel(false);
+    }
+
+    @DisplayName("A task that stopped itself can be started again")
+    @Test
+    public void selfStoppedTaskRestarts() {
+        ScheduledFuture<Object> first = TaskSchedulers.future();
+        ScheduledFuture<Object> second = TaskSchedulers.future();
+        TaskScheduler scheduler = TaskSchedulers.returning(first, second);
+        ScheduledTaskManager manager = ScheduledTaskManager.selfStopping(scheduler, FIXED, 30000, 0, "database",
+                ScheduledTaskManager::shutdown, LogManager.getLogger(ScheduledTaskManagerTest.class));
+        ArgumentCaptor<Runnable> scheduled = ArgumentCaptor.forClass(Runnable.class);
+        manager.start();
+        verify(scheduler).scheduleAtFixedRate(scheduled.capture(), eq(Instant.parse("2024-03-15T12:00:00Z")),
+                eq(Duration.ofSeconds(30)));
+        scheduled.getValue().run();
+
+        manager.start();
+
+        verify(first).cancel(false);
+        verify(second, never()).cancel(false);
+    }
 }

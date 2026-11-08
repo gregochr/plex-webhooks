@@ -38,6 +38,11 @@ Focus on:
   no table name, row, `set -x` output or dump artifact may reach them. A missing database, a partial dump or a
   low restored row count must fail, never warn. Scripts are installed with temp-then-`mv`, never `cp` over a
   file that may be running.
+- **The playback database never touches the lights (D2).** `PlaybackService.process` only offers to
+  `PlaybackHistoryWriter`'s bounded queue; any code that makes the webhook wait on JDBC, lets a database exception
+  reach `process`, or makes startup depend on the database is a defect. Event ids come from
+  `max(nextId, millis*1000)` inside the lock and are raised past the stored `max(id)` before the writer is marked
+  ready. The `database` health group stays out of `container`, and nothing may gate on aggregate `/actuator/health`.
 - **Tests that cannot fail.** `any()` where the value is knowable, `lenient()`, `Thread.sleep`, a fixed `Clock` on
   a date that could be today, a live network call outside a `real-api` test.
 
@@ -54,4 +59,8 @@ Focus on:
 - **Jackson 3 (`tools.jackson`) in the app's own code; Jackson 2 only inside `hue-java-client`.** Checkstyle bans
   `com.fasterxml.jackson.databind`/`.core` imports (the shared `com.fasterxml.jackson.annotation` is fine).
   Jackson 3 silently ignores Jackson 2's `@JsonDeserialize`, so a Jackson 2 import is a defect, not a style nit.
+- **Playback events are dropped, not queued, while the database is not ready (D2).** The in-memory ring still has
+  them; history matters less than the lights, so there is no backlog replay. Likewise a full writer queue drops.
+- **Aggregate `/actuator/health` goes DOWN when the database is down.** Nothing reads it; Docker and the scripts
+  read `/actuator/health/container`.
 - **Admin password default `changeme`** via `${CINELIGHT_ADMIN_PASSWORD:changeme}`: a development fallback only.

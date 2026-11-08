@@ -78,4 +78,81 @@ public class PlaybackHistoryTest {
     public void capacityIsOneHundred() {
         assertEquals(100, PlaybackHistory.CAPACITY);
     }
+
+    @DisplayName("Seeding an empty history loads the stored events, newest first")
+    @Test
+    public void seedLoadsStored() {
+        PlaybackHistory history = new PlaybackHistory();
+
+        history.seed(List.of(event(3), event(2), event(1)));
+
+        assertEquals(List.of(3L, 2L, 1L), ids(history.newestFirst(100)));
+    }
+
+    @DisplayName("Seeding merges with events recorded since boot by id, and an event in memory wins over a stored one")
+    @Test
+    public void seedMergesById() {
+        PlaybackHistory history = new PlaybackHistory();
+        PlaybackEvent inMemory = new PlaybackEvent(5, "2024-03-15T12:00:00Z", "media.stop", "movie", "Heat", null,
+                null, null, null, null, PlexOutcome.Kind.SCENE_APPLIED, "scene", "plex", "{}",
+                new PlaybackEvent.Command("media.stop", "Heat", 0));
+        history.add(event(6));
+        history.add(inMemory);
+
+        history.seed(List.of(event(5), event(4), event(3)));
+
+        List<PlaybackEvent> all = history.newestFirst(100);
+        assertEquals(List.of(6L, 5L, 4L, 3L), ids(all));
+        assertEquals(inMemory, all.get(1));
+    }
+
+    @DisplayName("Seeding keeps the newest 100 by id, however the rows arrive")
+    @Test
+    public void seedKeepsNewestHundred() {
+        PlaybackHistory history = new PlaybackHistory();
+        history.add(event(150));
+
+        history.seed(IntStream.rangeClosed(1, 120).mapToObj(i -> event(i)).toList());
+
+        List<PlaybackEvent> all = history.newestFirst(1000);
+        assertEquals(100, all.size());
+        assertEquals(150L, all.get(0).id());
+        assertEquals(22L, all.get(99).id());
+    }
+
+    @DisplayName("Seeding exactly 100 events drops none")
+    @Test
+    public void seedAtCapacityDropsNone() {
+        PlaybackHistory history = new PlaybackHistory();
+
+        history.seed(IntStream.rangeClosed(1, 100).mapToObj(i -> event(i)).toList());
+
+        List<PlaybackEvent> all = history.newestFirst(1000);
+        assertEquals(100, all.size());
+        assertEquals(1L, all.get(99).id());
+    }
+
+    @DisplayName("After seeding, a new event is appended as the newest and the oldest is pushed out at 100")
+    @Test
+    public void addAfterSeed() {
+        PlaybackHistory history = new PlaybackHistory();
+        history.seed(IntStream.rangeClosed(1, 100).mapToObj(i -> event(i)).toList());
+
+        history.add(event(101));
+
+        List<PlaybackEvent> all = history.newestFirst(1000);
+        assertEquals(101L, all.get(0).id());
+        assertEquals(2L, all.get(99).id());
+    }
+
+    @DisplayName("Seeding with nothing stored leaves the history as it was")
+    @Test
+    public void seedEmptyKeepsEvents() {
+        PlaybackHistory history = new PlaybackHistory();
+        history.add(event(1));
+
+        history.seed(List.of());
+
+        assertEquals(List.of(1L), ids(history.newestFirst(100)));
+    }
 }

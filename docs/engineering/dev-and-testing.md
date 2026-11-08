@@ -69,6 +69,13 @@ npm audit --audit-level=high
 - **Data.** `useCineLight()` (`src/state/`) seeds from the GET endpoints, then follows one `EventSource`
   (`message`, `now-playing`, `config`, `hue-status`, `dirigera-status`, `heartbeat`), reconnecting with backoff and
   re-fetching history and now-playing after a reconnect.
+- **Views.** `components/Theater.jsx` and `components/Rules.jsx` render from that state; `App.jsx` picks one with
+  `resolveView`. Pure logic lives in `src/lib/` (`rules.js` group state and toggles, `scenes.js` cycle order,
+  `format.js` titles and clocks, `outcomes.js` plain-word outcome labels) and is unit-tested. Scene and rule edits go
+  through `state/useConfigActions.js`: optimistic (`config-local`), rolled back (`config-rollback`) if the write
+  fails or the login dialog is cancelled. The phone layout is chosen in JavaScript (`useNarrow`, the 768px query), so
+  tests switch width by stubbing `matchMedia` (`stubWidth` in `src/test/fixtures.js`). With no scene catalog (no Hue
+  bridge) the scene buttons show the configured id or "Not set" and cycling is disabled.
 
 ## The gate: `./mvnw clean verify`
 

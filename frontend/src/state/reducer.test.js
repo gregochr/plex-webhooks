@@ -78,6 +78,31 @@ describe('reducer', () => {
     expect(reducer(initialState, { type: 'set-view', view: 'rules' }).view).toBe('rules');
   });
 
+  it('shows an optimistic config and rolls it back when it is still the one on screen', () => {
+    const previous = { v: 'server' };
+    const optimistic = { v: 'local' };
+    const local = reducer(
+      { ...initialState, config: previous },
+      { type: 'config-local', config: optimistic }
+    );
+    expect(local.config).toBe(optimistic);
+    expect(reducer(local, { type: 'config-rollback', optimistic, previous }).config).toBe(previous);
+  });
+
+  it('does not roll back over a newer config that arrived meanwhile', () => {
+    const optimistic = { v: 'local' };
+    const newer = reducer(
+      { ...initialState, config: optimistic },
+      { type: 'config', data: { v: 'other dashboard' } }
+    );
+    const after = reducer(newer, {
+      type: 'config-rollback',
+      optimistic,
+      previous: { v: 'server' },
+    });
+    expect(after.config).toEqual({ v: 'other dashboard' });
+  });
+
   it('returns the same state for an unknown action', () => {
     expect(reducer(initialState, { type: 'nope' })).toBe(initialState);
   });

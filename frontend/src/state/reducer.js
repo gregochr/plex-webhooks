@@ -69,6 +69,12 @@ export function reducer(state, action) {
       return live(state, 'hueStatus', action.data);
     case 'dirigera-status':
       return live(state, 'dirigeraStatus', action.data);
+    // An optimistic edit of the config, shown before the server confirms (the `config` event then replaces it).
+    case 'config-local':
+      return { ...state, config: action.config };
+    // A failed write: restore the previous config, but only if nothing newer (a `config` event) replaced ours.
+    case 'config-rollback':
+      return state.config === action.optimistic ? { ...state, config: action.previous } : state;
     case 'heartbeat':
       return { ...state, lastHeartbeat: action.at };
     case 'connection':

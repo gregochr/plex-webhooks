@@ -37,8 +37,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**",
                         "/api/events", "/api/hue/**", "/api/dirigera/**",
-                        "/api/config", "/api/config/sections", "/api/config/plex-commands/**",
-                        "/api/config/hue-scenes").permitAll()
+                        "/api/config", "/api/config/sections").permitAll()
                 .requestMatchers(HttpMethod.POST, "/plex").permitAll()
                 .requestMatchers("/favicon.svg", "/philips-hue-logo.png", "/hue-logo.png").permitAll()
                 // Health only: Docker's HEALTHCHECK and prod-health.sh call it without credentials. Everything

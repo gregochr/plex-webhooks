@@ -64,30 +64,6 @@ public class ConfigurationViewServiceTest {
         verify(formatter).buildSections(raw);
     }
 
-    @DisplayName("getPlexProperties delegates to repository with correct prefix")
-    @Test
-    public void testGetPlexPropertiesDelegates() {
-        Map<String, Boolean> expected = Map.of("plex.movie-play-enabled", true);
-        when(repository.readBooleanProperties("plex.movie-")).thenReturn(expected);
-
-        Map<String, Boolean> result = service.getPlexProperties("movie");
-
-        assertEquals(expected, result);
-        verify(repository).readBooleanProperties("plex.movie-");
-    }
-
-    @DisplayName("getSceneProperties delegates to repository")
-    @Test
-    public void testGetScenePropertiesDelegates() {
-        Map<String, String> expected = Map.of("hue.start-scene", "abc");
-        when(repository.readSceneProperties()).thenReturn(expected);
-
-        Map<String, String> result = service.getSceneProperties();
-
-        assertEquals(expected, result);
-        verify(repository).readSceneProperties();
-    }
-
     @DisplayName("isValidMediaType accepts movie, episode, clip")
     @Test
     public void testValidMediaTypes() {

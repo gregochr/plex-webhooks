@@ -139,34 +139,6 @@ public class PropertiesRepository {
         return entries;
     }
 
-    public Map<String, Boolean> readBooleanProperties(String prefix) {
-        Map<String, Boolean> result = new LinkedHashMap<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(
-                        propertiesResource.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String trimmed = line.trim();
-                if (trimmed.startsWith(prefix) && trimmed.contains("=")) {
-                    int eq = trimmed.indexOf('=');
-                    String key = trimmed.substring(0, eq).trim();
-                    String value = resolveValue(key);
-                    result.put(key, BooleanProperties.parse(value));
-                }
-            }
-        } catch (IOException e) {
-            LOGGER.warn("Failed to read boolean properties with prefix '{}': {}", prefix, e.getMessage());
-        }
-        return result;
-    }
-
-    public Map<String, String> readSceneProperties() {
-        Map<String, String> result = new LinkedHashMap<>();
-        result.put("hue.start-scene", resolveValue("hue.start-scene"));
-        result.put("hue.stop-scene", resolveValue("hue.stop-scene"));
-        return result;
-    }
-
     public void saveProperties(Map<String, String> updates, Path propertiesFile) throws IOException {
         for (Map.Entry<String, String> update : updates.entrySet()) {
             requireSingleLine(update.getKey(), update.getValue());

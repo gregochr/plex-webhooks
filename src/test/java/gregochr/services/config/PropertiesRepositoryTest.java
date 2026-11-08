@@ -101,70 +101,6 @@ public class PropertiesRepositoryTest {
         assertEquals(2, sections.get(sections.size() - 1).entries().size());
     }
 
-    @DisplayName("readBooleanProperties returns only prefixed keys with true/false resolved from the environment")
-    @Test
-    public void testReadBooleanPropertiesFiltersByPrefix() {
-        MockEnvironment env = new MockEnvironment()
-                .withProperty("plex.movie-play-enabled", "TRUE")
-                .withProperty("plex.movie-scrobble-enabled", "false");
-        PropertiesRepository repo = new PropertiesRepository(env);
-
-        Map<String, Boolean> result = repo.readBooleanProperties("plex.movie-");
-
-        assertEquals(5, result.size());
-        assertEquals(Boolean.TRUE, result.get("plex.movie-play-enabled"));
-        assertEquals(Boolean.FALSE, result.get("plex.movie-scrobble-enabled"));
-        assertEquals(Boolean.FALSE, result.get("plex.movie-stop-enabled"));
-    }
-
-    @DisplayName("readBooleanProperties reads yes, on and 1 as true and no, off, 0 as false, like startup does")
-    @Test
-    public void testReadBooleanPropertiesSpringSemantics() {
-        MockEnvironment env = new MockEnvironment()
-                .withProperty("plex.movie-play-enabled", "yes")
-                .withProperty("plex.movie-resume-enabled", "on")
-                .withProperty("plex.movie-stop-enabled", "1")
-                .withProperty("plex.movie-pause-enabled", "off")
-                .withProperty("plex.movie-scrobble-enabled", "0");
-
-        Map<String, Boolean> result = new PropertiesRepository(env).readBooleanProperties("plex.movie-");
-
-        assertEquals(Map.of(
-                "plex.movie-play-enabled", true,
-                "plex.movie-resume-enabled", true,
-                "plex.movie-stop-enabled", true,
-                "plex.movie-pause-enabled", false,
-                "plex.movie-scrobble-enabled", false), result);
-    }
-
-    @DisplayName("readBooleanProperties returns an empty map when no key matches the prefix")
-    @Test
-    public void testReadBooleanPropertiesNoMatch() {
-        PropertiesRepository repo = new PropertiesRepository(new MockEnvironment());
-
-        assertTrue(repo.readBooleanProperties("nonexistent.").isEmpty());
-    }
-
-    @DisplayName("readSceneProperties returns configured scene ids")
-    @Test
-    public void testReadScenePropertiesConfigured() {
-        MockEnvironment env = new MockEnvironment()
-                .withProperty("hue.start-scene", "start-id")
-                .withProperty("hue.stop-scene", "stop-id");
-
-        Map<String, String> result = new PropertiesRepository(env).readSceneProperties();
-
-        assertEquals(Map.of("hue.start-scene", "start-id", "hue.stop-scene", "stop-id"), result);
-    }
-
-    @DisplayName("readSceneProperties returns empty strings when scenes are unset")
-    @Test
-    public void testReadScenePropertiesUnset() {
-        Map<String, String> result = new PropertiesRepository(new MockEnvironment()).readSceneProperties();
-
-        assertEquals(Map.of("hue.start-scene", "", "hue.stop-scene", ""), result);
-    }
-
     @DisplayName("resolveValue returns the environment value, or empty string when absent")
     @Test
     public void testResolveValue() {
@@ -229,16 +165,6 @@ public class PropertiesRepositoryTest {
         assertEquals("a", sections.get(0).entries().get(0).getKey());
     }
 
-    @DisplayName("readBooleanProperties keeps the entries read before a read failure")
-    @Test
-    public void testReadBooleanPropertiesKeepsEntriesBeforeReadFailure() {
-        Resource failingMidway = failingAfter("plex.movie-play-enabled=true\n");
-        PropertiesRepository repo = new PropertiesRepository(
-                new MockEnvironment().withProperty("plex.movie-play-enabled", "true"), failingMidway);
-
-        assertEquals(Map.of("plex.movie-play-enabled", true), repo.readBooleanProperties("plex.movie-"));
-    }
-
     @DisplayName("readAllEntries skips a comment that directly follows another, so no empty section appears")
     @Test
     public void testReadAllEntriesConsecutiveComments() {
@@ -288,39 +214,6 @@ public class PropertiesRepositoryTest {
     @Test
     public void testReadAllEntriesEmptyFile() {
         assertTrue(repositoryFor("\n  \n", new MockEnvironment()).readAllEntries().isEmpty());
-    }
-
-    @DisplayName("readBooleanProperties returns an empty map when the properties file cannot be read")
-    @Test
-    public void testReadBooleanPropertiesUnreadableFile() {
-        assertTrue(unreadableRepository().readBooleanProperties("plex.movie-").isEmpty());
-    }
-
-    @DisplayName("readBooleanProperties ignores a prefixed line that has no equals sign")
-    @Test
-    public void testReadBooleanPropertiesPrefixedLineWithoutEquals() {
-        PropertiesRepository repo = repositoryFor("plex.movie-play-enabled\nplex.movie-stop-enabled=true\n",
-                new MockEnvironment().withProperty("plex.movie-stop-enabled", "true"));
-
-        assertEquals(Map.of("plex.movie-stop-enabled", true), repo.readBooleanProperties("plex.movie-"));
-    }
-
-    @DisplayName("readBooleanProperties reads a value that is not a Spring true value as false")
-    @Test
-    public void testReadBooleanPropertiesNonBooleanValue() {
-        PropertiesRepository repo = repositoryFor("plex.movie-play-enabled=maybe\n",
-                new MockEnvironment().withProperty("plex.movie-play-enabled", "maybe"));
-
-        assertEquals(Map.of("plex.movie-play-enabled", false), repo.readBooleanProperties("plex.movie-"));
-    }
-
-    @DisplayName("readBooleanProperties does not match a key that only shares the start of the prefix")
-    @Test
-    public void testReadBooleanPropertiesPrefixBoundary() {
-        PropertiesRepository repo = repositoryFor("plex.movie=true\nplex.movie-play-enabled=true\n",
-                new MockEnvironment().withProperty("plex.movie-play-enabled", "true"));
-
-        assertEquals(Map.of("plex.movie-play-enabled", true), repo.readBooleanProperties("plex.movie-"));
     }
 
     @DisplayName("saveProperties leaves a line alone when its key is not in the updates")
@@ -393,7 +286,7 @@ public class PropertiesRepositoryTest {
         assertEquals(List.of("a=1", "# note", "b=20", "y=25", "x=24"), Files.readAllLines(file));
     }
 
-    @DisplayName("a saved value is what the next read returns, for values, booleans and scenes")
+    @DisplayName("a saved value is what the next read returns, for plex flags and scenes")
     @Test
     public void testReadsSeeSavedValues(@TempDir Path tempDir) throws IOException {
         Path file = tempDir.resolve("test.properties");
@@ -407,8 +300,8 @@ public class PropertiesRepositoryTest {
                 "hue.stop-scene", "stop-new"), file);
 
         assertEquals("true", repo.resolveValue("plex.movie-play-enabled"));
-        assertEquals(Map.of("plex.movie-play-enabled", true), repo.readBooleanProperties("plex.movie-"));
-        assertEquals(Map.of("hue.start-scene", "new", "hue.stop-scene", "stop-new"), repo.readSceneProperties());
+        assertEquals("new", repo.resolveValue("hue.start-scene"));
+        assertEquals("stop-new", repo.resolveValue("hue.stop-scene"));
         assertEquals("true", repo.readAllEntries().get(0).entries().get(0).getValue());
     }
 
@@ -428,7 +321,7 @@ public class PropertiesRepositoryTest {
         assertThrows(IOException.class, () -> repo.saveProperties(Map.of("hue.start-scene", "lost"), file));
 
         assertEquals("old", repo.resolveValue("hue.start-scene"));
-        assertEquals("old", repo.readSceneProperties().get("hue.start-scene"));
+        assertEquals("old", repo.resolveValue("hue.start-scene"));
     }
 
     @DisplayName("saveProperties refuses a bad key before writing: file and reads unchanged")

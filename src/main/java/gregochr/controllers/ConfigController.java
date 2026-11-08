@@ -56,15 +56,6 @@ public class ConfigController {
         return config;
     }
 
-    @GetMapping("/plex-commands/{mediaType}")
-    public ResponseEntity<Map<String, Boolean>> getPlexCommands(@PathVariable String mediaType) {
-        if (!configurationViewService.isValidMediaType(mediaType)) {
-            return ResponseEntity.notFound().build();
-        }
-        Map<String, Boolean> properties = configurationViewService.getPlexProperties(mediaType);
-        return ResponseEntity.ok(properties);
-    }
-
     @PutMapping("/plex-commands/{mediaType}")
     public ResponseEntity<Map<String, Boolean>> savePlexCommands(
             @PathVariable String mediaType,
@@ -85,11 +76,6 @@ public class ConfigController {
         broadcastConfig();
 
         return ResponseEntity.ok(body);
-    }
-
-    @GetMapping("/hue-scenes")
-    public Map<String, String> getHueScenes() {
-        return configurationViewService.getSceneProperties();
     }
 
     @PutMapping("/hue-scene")

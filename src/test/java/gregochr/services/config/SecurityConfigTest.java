@@ -189,6 +189,19 @@ public class SecurityConfigTest {
         }
     }
 
+    @DisplayName("The retired GET plex-commands and GET hue-scenes config reads reach no handler")
+    @Test
+    public void testRetiredConfigReadsAreGone() throws Exception {
+        // A PUT handler still lives at the plex-commands path, so a GET there is a 405; hue-scenes has none, so 404.
+        String plex = mockMvc.perform(get("/api/config/plex-commands/movie"))
+                .andExpect(status().isMethodNotAllowed()).andReturn().getResponse().getContentAsString();
+        String scenes = mockMvc.perform(get("/api/config/hue-scenes"))
+                .andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
+
+        assertFalse(plex.contains("plex.movie-"), plex);
+        assertFalse(scenes.contains("hue.start-scene"), scenes);
+    }
+
     @DisplayName("POST /api/debug/** returns 401 without credentials, whichever command")
     @Test
     public void testEveryDebugCommandRequiresAuth() throws Exception {

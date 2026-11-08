@@ -1,13 +1,12 @@
-import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { modeStatusText } from '../lib/view';
+import MoreMenu from './MoreMenu';
 
 /**
  * The wordmark, the mode status text, the mode button and the More menu. `resolved` is the view on screen
  * (`theater` | `rules`); `view` is the setting (`auto` | `theater` | `rules`).
  */
-export default function Header({ view, resolved, onSetView }) {
-  const [moreOpen, setMoreOpen] = useState(false);
+export default function Header({ view, resolved, onSetView, adminTabEnabled }) {
   const toTheater = resolved === 'rules';
 
   return (
@@ -25,22 +24,7 @@ export default function Header({ view, resolved, onSetView }) {
           {toTheater ? 'Theater' : 'Rules'}
         </span>
       </button>
-      <div className="more">
-        <button
-          type="button"
-          className="btn btn-ghost more-button"
-          aria-expanded={moreOpen}
-          aria-controls="more-panel"
-          onClick={() => setMoreOpen((open) => !open)}
-        >
-          More
-        </button>
-        {moreOpen && (
-          <div id="more-panel" className="more-panel">
-            The event monitor, lighting, configuration and debug screens arrive in a later release.
-          </div>
-        )}
-      </div>
+      <MoreMenu adminTabEnabled={adminTabEnabled} />
     </header>
   );
 }
@@ -49,4 +33,5 @@ Header.propTypes = {
   view: PropTypes.oneOf(['auto', 'theater', 'rules']).isRequired,
   resolved: PropTypes.oneOf(['theater', 'rules']).isRequired,
   onSetView: PropTypes.func.isRequired,
+  adminTabEnabled: PropTypes.bool.isRequired,
 };

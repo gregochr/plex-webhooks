@@ -134,9 +134,9 @@ public class PlexCommandConfigTest {
 
         config.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of("plex.episode-play-enabled", "true")));
 
-        assertEquals(Map.of(
-                PlexMediaType.MOVIE, ALL_ENABLED,
-                PlexMediaType.EPISODE, new PlexMediaTypeConfig(true, false, false, false, false)), configs);
+        assertEquals(ALL_ENABLED, config.getConfig(PlexMediaType.MOVIE));
+        assertEquals(new PlexMediaTypeConfig(true, false, false, false, false),
+                config.getConfig(PlexMediaType.EPISODE));
     }
 
     @DisplayName("onPropertiesUpdated ignores a key that only shares the start of a media type's prefix")
@@ -148,7 +148,8 @@ public class PlexCommandConfigTest {
         config.onPropertiesUpdated(new PropertiesUpdatedEvent(this, Map.of(
                 "plex.movie", "false", "plex.movies-play-enabled", "false", "movie-play-enabled", "false")));
 
-        assertEquals(Map.of(PlexMediaType.MOVIE, ALL_ENABLED), configs);
+        assertEquals(ALL_ENABLED, config.getConfig(PlexMediaType.MOVIE));
+        assertEquals(ALL_DISABLED, config.getConfig(PlexMediaType.EPISODE));
     }
 
     @DisplayName("onPropertiesUpdated reads true, on, yes and 1 (any case, trimmed) as true and anything else as false")
@@ -164,7 +165,7 @@ public class PlexCommandConfigTest {
                 "plex.movie-pause-enabled", " on ",
                 "plex.movie-scrobble-enabled", "1")));
 
-        assertEquals(new PlexMediaTypeConfig(true, true, false, true, true), configs.get(PlexMediaType.MOVIE));
+        assertEquals(new PlexMediaTypeConfig(true, true, false, true, true), config.getConfig(PlexMediaType.MOVIE));
     }
 
     @DisplayName("onPropertiesUpdated reads no, off, 0 and garbage as false")
@@ -180,7 +181,7 @@ public class PlexCommandConfigTest {
                 "plex.movie-pause-enabled", "garbage",
                 "plex.movie-scrobble-enabled", "")));
 
-        assertEquals(ALL_DISABLED, configs.get(PlexMediaType.MOVIE));
+        assertEquals(ALL_DISABLED, config.getConfig(PlexMediaType.MOVIE));
     }
 
     @DisplayName("onPropertiesUpdated starts an unconfigured media type from all disabled")

@@ -22,9 +22,12 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class PropertiesRepository {
@@ -38,6 +41,11 @@ public class PropertiesRepository {
 
     private final Environment environment;
     private final Resource propertiesResource;
+    /**
+     * Values saved since startup. The Spring {@link Environment} is fixed at startup, so reads consult this map
+     * first; otherwise a saved setting would read back stale until the next restart.
+     */
+    private final Map<String, String> savedValues = new ConcurrentHashMap<>();
 
     @Autowired
     public PropertiesRepository(Environment environment) {
@@ -154,16 +162,18 @@ public class PropertiesRepository {
 
     public Map<String, String> readSceneProperties() {
         Map<String, String> result = new LinkedHashMap<>();
-        String startScene = environment.getProperty("hue.start-scene");
-        String stopScene = environment.getProperty("hue.stop-scene");
-        result.put("hue.start-scene", startScene != null ? startScene : "");
-        result.put("hue.stop-scene", stopScene != null ? stopScene : "");
+        result.put("hue.start-scene", resolveValue("hue.start-scene"));
+        result.put("hue.stop-scene", resolveValue("hue.stop-scene"));
         return result;
     }
 
     public void saveProperties(Map<String, String> updates, Path propertiesFile) throws IOException {
+        for (Map.Entry<String, String> update : updates.entrySet()) {
+            requireSingleLine(update.getKey(), update.getValue());
+        }
         List<String> lines = Files.readAllLines(propertiesFile);
-        List<String> output = new ArrayList<>(lines.size());
+        List<String> output = new ArrayList<>(lines.size() + updates.size());
+        Set<String> written = new HashSet<>();
         for (String line : lines) {
             String trimmed = line.trim();
             if (!trimmed.isEmpty() && !trimmed.startsWith("#") && trimmed.contains("=")) {
@@ -171,12 +181,35 @@ public class PropertiesRepository {
                 String key = trimmed.substring(0, eq).trim();
                 if (updates.containsKey(key)) {
                     output.add(key + "=" + updates.get(key));
+                    written.add(key);
                     continue;
                 }
             }
             output.add(line);
         }
+        // A key the file does not mention yet is appended rather than silently dropped.
+        for (Map.Entry<String, String> update : updates.entrySet()) {
+            if (!written.contains(update.getKey())) {
+                output.add(update.getKey() + "=" + update.getValue());
+            }
+        }
         writeAtomically(propertiesFile, output);
+        // Only after the file is safely replaced: a failed save must not change what reads return.
+        savedValues.putAll(updates);
+    }
+
+    /**
+     * Backstop against injecting extra settings lines: a key or value with a line break, or a key that is blank
+     * or holds a properties separator, comment marker or whitespace, is refused before anything is written.
+     */
+    private static void requireSingleLine(String key, String value) {
+        if (key == null || key.isBlank() || key.chars().anyMatch(
+                c -> c == '=' || c == ':' || c == '#' || c == '!' || Character.isWhitespace(c))) {
+            throw new IllegalArgumentException("Invalid settings key");
+        }
+        if (value == null || value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException("Invalid settings value for " + key);
+        }
     }
 
     /**
@@ -219,6 +252,10 @@ public class PropertiesRepository {
     }
 
     String resolveValue(String key) {
+        String saved = savedValues.get(key);
+        if (saved != null) {
+            return saved;
+        }
         String envValue = environment.getProperty(key);
         return envValue != null ? envValue : "";
     }

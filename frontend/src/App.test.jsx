@@ -92,6 +92,7 @@ describe('App shell', () => {
     await user.click(more);
     expect(more).toHaveAttribute('aria-expanded', 'true');
     expect(document.getElementById('more-panel')).toBeInTheDocument();
+    expect(more).toHaveAttribute('aria-controls', 'more-panel');
 
     await user.click(more);
     expect(document.getElementById('more-panel')).not.toBeInTheDocument();

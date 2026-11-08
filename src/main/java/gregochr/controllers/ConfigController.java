@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/config")
@@ -72,16 +73,12 @@ public class ConfigController {
             return ResponseEntity.notFound().build();
         }
 
-        String prefix = "plex." + mediaType + "-";
+        Set<String> allowedKeys = ConfigurationViewService.plexCommandKeys(mediaType);
         Map<String, String> updates = new LinkedHashMap<>();
         for (Map.Entry<String, Boolean> entry : body.entrySet()) {
-            if (entry.getKey().startsWith(prefix)) {
+            if (allowedKeys.contains(entry.getKey())) {
                 updates.put(entry.getKey(), String.valueOf(entry.getValue()));
             }
-        }
-
-        if (configurationViewService.hasLineBreak(updates)) {
-            return ResponseEntity.badRequest().build();
         }
 
         configurationViewService.saveProperties(updates);
@@ -100,7 +97,7 @@ public class ConfigController {
         String key = body.get("key");
         String sceneId = body.get("sceneId");
         if (key == null || sceneId == null || !configurationViewService.isValidSceneKey(key)
-                || configurationViewService.hasLineBreak(Map.of(key, sceneId))) {
+                || !configurationViewService.isValidSceneId(sceneId)) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -123,7 +120,6 @@ public class ConfigController {
             }
         }
 
-        // Every whitelisted key is an interval, and isValidPropertyValue accepts digits only: no CR or LF gets here.
         if (updates.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }

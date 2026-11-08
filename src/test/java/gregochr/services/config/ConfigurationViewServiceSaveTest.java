@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
@@ -23,9 +22,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /** Save safety against a real file: concurrent saves lose nothing, and a CR or LF never reaches the file. */
@@ -81,7 +78,7 @@ public class ConfigurationViewServiceSaveTest {
         return null;
     }
 
-    @DisplayName("A value with a CR or LF is refused with IllegalArgumentException: nothing is written or published")
+    @DisplayName("A value with a CR or LF is refused (by the repository backstop): nothing is written or published")
     @ParameterizedTest(name = "[{index}]")
     @ValueSource(strings = {"abc\ndef", "abc\rdef", "abc\r\ndef", "\n", "x\nhue.stop-scene=injected"})
     public void lineBreakInValueIsRefused(String value, @TempDir Path dir) throws IOException {
@@ -103,26 +100,5 @@ public class ConfigurationViewServiceSaveTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> serviceFor(file).saveProperties(Map.of("hue.start-scene\nx", "v")));
-    }
-
-    @DisplayName("hasLineBreak is true for a CR or LF in any key or value, and false for clean text, null and empty")
-    @Test
-    public void hasLineBreak() {
-        ConfigurationViewService service = serviceFor(Path.of("unused"));
-        Map<String, String> withNullValue = new HashMap<>();
-        withNullValue.put("k", null);
-
-        assertTrue(service.hasLineBreak(Map.of("k", "a\nb")));
-        assertTrue(service.hasLineBreak(Map.of("k", "a\rb")));
-        assertTrue(service.hasLineBreak(Map.of("k\n", "v")));
-        assertTrue(service.hasLineBreak(Map.of("k\r", "v")));
-        assertTrue(service.hasLineBreak(Map.of("k", "\nabc")), "a LF as the very first character");
-        assertTrue(service.hasLineBreak(Map.of("k", "\rabc")), "a CR as the very first character");
-        assertTrue(service.hasLineBreak(Map.of("\nk", "v")), "a LF as the very first character of a key");
-        assertTrue(service.hasLineBreak(Map.of("\rk", "v")), "a CR as the very first character of a key");
-        assertFalse(service.hasLineBreak(Map.of("k", "a b\t=c")));
-        assertFalse(service.hasLineBreak(withNullValue));
-        assertFalse(service.hasLineBreak(Map.of()));
-        assertFalse(service.hasLineBreak(Map.of("k", "")));
     }
 }

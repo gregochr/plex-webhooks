@@ -78,11 +78,15 @@ public class ConfigLineBreakTest {
         putAndExpect400("/api/config/properties", "{\"sse.heartbeat-interval\":\"20000\\r\"}");
     }
 
-    @DisplayName("PUT plex-commands with a line break in a key is 400 and writes nothing")
+    @DisplayName("PUT plex-commands ignores a key that is not one of the known flags, so a line break in a key writes "
+            + "nothing")
     @Test
-    public void plexCommandsRejectsLineBreaksInKeys() throws Exception {
-        putAndExpect400("/api/config/plex-commands/movie",
-                "{\"plex.movie-play-enabled\\nhue.stop-scene=x\":true}");
-        putAndExpect400("/api/config/plex-commands/movie", "{\"plex.movie-play-enabled\\r\":true}");
+    public void plexCommandsIgnoresUnknownKeys() throws Exception {
+        mockMvc.perform(put("/api/config/plex-commands/movie").with(httpBasic("admin", "cinelight"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"plex.movie-play-enabled\\nhue.stop-scene=x\":true,\"plex.movie-play-enabled\\r\":true}"))
+                .andExpect(status().isOk());
+
+        assertEquals(ORIGINAL, Files.readAllLines(CONFIG), "the file must be untouched");
     }
 }

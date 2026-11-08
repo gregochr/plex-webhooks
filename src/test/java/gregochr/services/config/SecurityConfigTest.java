@@ -10,6 +10,7 @@ import gregochr.services.events.PlaybackHistory;
 import gregochr.services.events.PlaybackService;
 import gregochr.services.events.PlexPayloadSanitizer;
 import gregochr.controllers.ConfigController;
+import gregochr.controllers.ConfigSectionsController;
 import gregochr.controllers.DebugController;
 import gregochr.controllers.PlexController;
 import gregochr.controllers.hue.HueSceneController;
@@ -55,7 +56,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Security Config Tests")
 @WebMvcTest(
         controllers = {ConfigController.class, PlexController.class, DebugController.class,
-                HueStatusController.class, PlaybackController.class, HueSceneCatalogController.class},
+                HueStatusController.class, PlaybackController.class, HueSceneCatalogController.class,
+                ConfigSectionsController.class},
         properties = {
                 "app.admin.username=admin",
                 "app.admin.password=cinelight",
@@ -63,6 +65,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "hue.status-interval=30000",
                 "hue.application-key=SECRET-CANARY-1234"})
 @Import({SecurityConfig.class, ConfigService.class, ConfigurationViewService.class, ClientConfigService.class,
+        ConfigSectionsService.class,
         PlaybackService.class, PlaybackHistory.class, PlexPayloadSanitizer.class})
 public class SecurityConfigTest {
 
@@ -133,6 +136,28 @@ public class SecurityConfigTest {
         assertFalse(body.contains("cinelight"), body);
         assertFalse(body.toLowerCase().contains("password"), body);
         assertFalse(body.toLowerCase().contains("application-key"), body);
+    }
+
+    @DisplayName("GET /api/config/sections is public and carries no credential value")
+    @Test
+    public void testGetSectionsNoAuthAndNoCredentials() throws Exception {
+        when(propertiesRepository.readAllEntries()).thenReturn(List.of());
+        when(configurationViewFormatter.buildSections(List.of())).thenReturn(List.of(
+                new ConfigurationViewSection("Hue", List.of(
+                        new ConfigurationViewItem("hue.application-key", "Application Key", "SECRET-CANARY-1234",
+                                "Set", "secret", false, true),
+                        new ConfigurationViewItem("hue.status-interval", "Status Interval", "30000", "30,000",
+                                "number", true, false)), false)));
+
+        String body = mockMvc.perform(get("/api/config/sections"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.adminTabEnabled").value(true))
+                .andExpect(jsonPath("$.sections[0].items[0].set").value(true))
+                .andExpect(jsonPath("$.sections[0].items[0].value").doesNotExist())
+                .andExpect(jsonPath("$.sections[0].items[1].writable").value(true))
+                .andReturn().getResponse().getContentAsString();
+
+        assertFalse(body.contains("SECRET-CANARY-1234"), body);
     }
 
     @DisplayName("GET /api/playback/history and /api/playback/now are public")

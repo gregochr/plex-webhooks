@@ -283,6 +283,11 @@ where they describe the dashboard.
 columns of `playback_event` are deliberately kept (V1 is not edited, no migration): the repository stops writing and
 reading them, so rolling back to an older image is safe, and a later migration can drop them.
 
+**Follow-up.** `GET /api/config/plex-commands/{mediaType}` and `GET /api/config/hue-scenes` are removed, along with
+`ConfigurationViewService.getPlexProperties` / `getSceneProperties` and `PropertiesRepository.readBooleanProperties` /
+`readSceneProperties`: only the Thymeleaf page read them. The dashboard reads `GET /api/config` and
+`GET /api/config/sections`; the `PUT` handlers on both paths stay.
+
 ## Delivery
 
 Each PR goes through CLAUDE.md steps 2 to 6: a Sonnet build, review, CI + Codex, and a squash merge. Each PR adds

@@ -142,31 +142,6 @@ public class ConfigControllerTest {
         verify(sseService, never()).broadcastConfig(any());
     }
 
-    @DisplayName("GET plex-commands returns movie config values")
-    @Test
-    public void testGetPlexCommandsMovie() {
-        when(configurationViewService.isValidMediaType("movie")).thenReturn(true);
-        Map<String, Boolean> expected = new LinkedHashMap<>();
-        expected.put("plex.movie-play-enabled", true);
-        expected.put("plex.movie-stop-enabled", false);
-        when(configurationViewService.getPlexProperties("movie")).thenReturn(expected);
-
-        ResponseEntity<Map<String, Boolean>> response = controller.getPlexCommands("movie");
-
-        assertEquals(200, response.getStatusCode().value());
-        assertEquals(expected, response.getBody());
-    }
-
-    @DisplayName("GET plex-commands returns 404 for unknown media type")
-    @Test
-    public void testGetPlexCommandsUnknownType() {
-        when(configurationViewService.isValidMediaType("unknown")).thenReturn(false);
-
-        ResponseEntity<Map<String, Boolean>> response = controller.getPlexCommands("unknown");
-
-        assertEquals(404, response.getStatusCode().value());
-    }
-
     @DisplayName("PUT plex-commands saves to disk and returns values")
     @Test
     public void testSavePlexCommands() throws Exception {
@@ -208,21 +183,6 @@ public class ConfigControllerTest {
         ResponseEntity<Map<String, Boolean>> response = controller.savePlexCommands("unknown", body);
 
         assertEquals(404, response.getStatusCode().value());
-    }
-
-    @DisplayName("GET hue-scenes returns current scene config")
-    @Test
-    public void testGetHueScenes() {
-        Map<String, String> scenes = Map.of(
-                "hue.start-scene", "abc-123",
-                "hue.stop-scene", "xyz-456"
-        );
-        when(configurationViewService.getSceneProperties()).thenReturn(scenes);
-
-        Map<String, String> result = controller.getHueScenes();
-
-        assertEquals("abc-123", result.get("hue.start-scene"));
-        assertEquals("xyz-456", result.get("hue.stop-scene"));
     }
 
     @DisplayName("PUT hue-scene saves start scene to disk")

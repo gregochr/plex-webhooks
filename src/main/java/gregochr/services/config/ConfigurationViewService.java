@@ -44,15 +44,6 @@ public class ConfigurationViewService {
         return formatter.buildSections(repository.readAllEntries());
     }
 
-    public Map<String, Boolean> getPlexProperties(String mediaType) {
-        String prefix = "plex." + mediaType + "-";
-        return repository.readBooleanProperties(prefix);
-    }
-
-    public Map<String, String> getSceneProperties() {
-        return repository.readSceneProperties();
-    }
-
     /**
      * Writes the updates to the settings file, then publishes {@link PropertiesUpdatedEvent}. Synchronized around
      * both, because a save reads the whole file and rewrites it: two concurrent saves would otherwise each start

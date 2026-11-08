@@ -1,6 +1,7 @@
 package gregochr.services.config;
 
 import gregochr.controllers.ConfigController;
+import gregochr.controllers.ConfigSectionsController;
 import gregochr.services.sse.SseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,7 +51,12 @@ public class ConfigInjectionTest {
                 new ConfigurationViewFormatter(), mock(ApplicationEventPublisher.class));
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new ConfigController(mock(ConfigService.class), mock(SseService.class), viewService,
-                        mock(ClientConfigService.class))).build();
+                        mock(ClientConfigService.class)),
+                new ConfigSectionsController(new ConfigSectionsService(viewService, false))).build();
+    }
+
+    private void assertSections(String path, String expected) throws Exception {
+        mockMvc.perform(get("/api/config/sections")).andExpect(jsonPath(path).value(expected));
     }
 
     @DisplayName("a plex-commands key with an embedded newline is ignored: no new line reaches the file")
@@ -62,9 +68,10 @@ public class ConfigInjectionTest {
 
         assertEquals(original, Files.readString(file));
         assertFalse(Files.readString(file).contains("app.admin.password"));
-        mockMvc.perform(get("/api/config/plex-commands/movie"))
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$['plex.movie-play-enabled']").value(false));
+        assertSections("$.sections[*].items[?(@.key=='plex.movie-play-enabled')].value", "false");
+        mockMvc.perform(get("/api/config/sections"))
+                .andExpect(jsonPath("$.sections[*].items[*].key")
+                        .value("plex.movie-play-enabled"));
     }
 
     @DisplayName("unknown plex keys are ignored but known ones in the same request are saved")
@@ -86,8 +93,9 @@ public class ConfigInjectionTest {
                 .andExpect(status().isBadRequest());
 
         assertEquals(original, Files.readString(file));
-        mockMvc.perform(get("/api/config/hue-scenes"))
-                .andExpect(jsonPath("$['hue.start-scene']").value("old-start"));
+        // Scenes are hidden from the sections view, so check that no extra key appeared there instead.
+        mockMvc.perform(get("/api/config/sections"))
+                .andExpect(jsonPath("$.sections[*].items[*].key").value("plex.movie-play-enabled"));
     }
 
     @DisplayName("a valid UUID scene id still saves")

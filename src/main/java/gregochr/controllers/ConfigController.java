@@ -80,6 +80,10 @@ public class ConfigController {
             }
         }
 
+        if (configurationViewService.hasLineBreak(updates)) {
+            return ResponseEntity.badRequest().build();
+        }
+
         configurationViewService.saveProperties(updates);
         broadcastConfig();
 
@@ -95,7 +99,8 @@ public class ConfigController {
     public ResponseEntity<Map<String, String>> saveHueScene(@RequestBody Map<String, String> body) throws IOException {
         String key = body.get("key");
         String sceneId = body.get("sceneId");
-        if (key == null || sceneId == null || !configurationViewService.isValidSceneKey(key)) {
+        if (key == null || sceneId == null || !configurationViewService.isValidSceneKey(key)
+                || configurationViewService.hasLineBreak(Map.of(key, sceneId))) {
             return ResponseEntity.badRequest().build();
         }
 
@@ -118,6 +123,7 @@ public class ConfigController {
             }
         }
 
+        // Every whitelisted key is an interval, and isValidPropertyValue accepts digits only: no CR or LF gets here.
         if (updates.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }

@@ -1,5 +1,7 @@
 package gregochr.services.events;
 
+import gregochr.services.config.SettingsMirror;
+import gregochr.services.config.SettingsRepository;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 
@@ -34,7 +38,8 @@ public class NoDatabaseConfiguredTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @DisplayName("The context starts with no DataSource, JdbcClient, Flyway, writer or lifecycle bean")
+    @DisplayName("The context starts with no DataSource, JdbcClient, Flyway, writer, lifecycle, settings mirror, "
+            + "settings repository, transaction manager or transaction template")
     @Test
     public void noDatabaseBeans() {
         assertEquals(0, context.getBeansOfType(DataSource.class).size());
@@ -44,6 +49,11 @@ public class NoDatabaseConfiguredTest {
         assertEquals(0, context.getBeansOfType(PlaybackHistoryWriter.class).size());
         assertEquals(0, context.getBeansOfType(PlaybackDatabaseLifecycle.class).size());
         assertEquals(0, context.getBeansOfType(DataSourceTransactionManager.class).size());
+        assertEquals(0, context.getBeansOfType(PlatformTransactionManager.class).size());
+        assertEquals(0, context.getBeansOfType(TransactionTemplate.class).size());
+        assertEquals(0, context.getBeansOfType(PlaybackReadyListener.class).size());
+        assertEquals(0, context.getBeansOfType(SettingsMirror.class).size());
+        assertEquals(0, context.getBeansOfType(SettingsRepository.class).size());
     }
 
     @DisplayName("The overall health endpoint is UP: with no DataSource there is no database health check to fail")

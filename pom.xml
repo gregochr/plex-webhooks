@@ -322,6 +322,7 @@
                         <!-- Only the embedded-Postgres tests cover these, and those are excluded from PIT below. -->
                         <param>gregochr.services.events.PostgresPlaybackEventRepository</param>
                         <param>gregochr.services.events.PlaybackDatabaseConfig</param>
+                        <param>gregochr.services.config.PostgresSettingsRepository</param>
                     </excludedClasses>
                     <!-- The Postgres integration tests (tag "postgres") start a real PostgreSQL and several Spring
                          contexts; PIT would rerun them for every mutant. The logic they cover (writer, seeding, id

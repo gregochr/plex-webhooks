@@ -27,6 +27,11 @@ public final class LogCapture implements AutoCloseable {
         return messagesAtOrAbove(Level.WARN);
     }
 
+    /** The formatted messages logged at ERROR. */
+    public List<String> errors() {
+        return messagesAtOrAbove(Level.ERROR);
+    }
+
     /** The formatted messages logged at INFO or above. */
     public List<String> infos() {
         return messagesAtOrAbove(Level.INFO);

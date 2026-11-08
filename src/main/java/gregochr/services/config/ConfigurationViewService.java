@@ -50,9 +50,30 @@ public class ConfigurationViewService {
         return repository.readSceneProperties();
     }
 
-    public void saveProperties(Map<String, String> updates) throws IOException {
+    /**
+     * Writes the updates to the settings file, then publishes {@link PropertiesUpdatedEvent}. Synchronized around
+     * both, because a save reads the whole file and rewrites it: two concurrent saves would otherwise each start
+     * from the same text, and the second rewrite would lose the first one's change.
+     *
+     * @throws IllegalArgumentException if a key or a value contains a CR or LF, which would inject a line into
+     *     the file (callers check {@link #hasLineBreak} first and answer 400)
+     */
+    public synchronized void saveProperties(Map<String, String> updates) throws IOException {
+        if (hasLineBreak(updates)) {
+            throw new IllegalArgumentException("A setting key or value must not contain a line break");
+        }
         repository.saveProperties(updates, repository.resolvePropertiesPath());
         eventPublisher.publishEvent(new PropertiesUpdatedEvent(this, updates));
+    }
+
+    /** True if any key or value in the map contains a CR or LF (a null value is not a line break). */
+    public boolean hasLineBreak(Map<String, String> updates) {
+        return updates.entrySet().stream()
+                .anyMatch(entry -> hasLineBreak(entry.getKey()) || hasLineBreak(entry.getValue()));
+    }
+
+    private static boolean hasLineBreak(String text) {
+        return text != null && (text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0);
     }
 
     /**

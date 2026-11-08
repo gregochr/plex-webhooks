@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -325,7 +326,7 @@ public class PropertiesRepositoryTest {
         Path file = tempDir.resolve("test.properties");
         Files.write(file, List.of("a=1", "b=2"));
 
-        repository.saveProperties(Map.of("c", "3"), file);
+        repository.saveProperties(Map.of("a", "1"), file);
 
         assertEquals(List.of("a=1", "b=2"), Files.readAllLines(file));
     }
@@ -352,15 +353,79 @@ public class PropertiesRepositoryTest {
         assertEquals(List.of("a=2"), Files.readAllLines(file));
     }
 
-    @DisplayName("saveProperties does not add a key that is missing from the file")
+    @DisplayName("saveProperties appends a key that is missing from the file and persists it")
     @Test
-    public void testSavePropertiesDoesNotAppendMissingKey(@TempDir Path tempDir) throws IOException {
+    public void testSavePropertiesAppendsMissingKey(@TempDir Path tempDir) throws IOException {
         Path file = tempDir.resolve("test.properties");
-        Files.write(file, List.of("a=1"));
+        Files.write(file, List.of("# Section", "a=1"));
 
         repository.saveProperties(Map.of("z", "26"), file);
 
-        assertEquals(List.of("a=1"), Files.readAllLines(file));
+        assertEquals(List.of("# Section", "a=1", "z=26"), Files.readAllLines(file));
+    }
+
+    @DisplayName("saveProperties rewrites a present key in place and does not duplicate it")
+    @Test
+    public void testSavePropertiesPresentKeyNotDuplicated(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of("a=1", "# note", "b=2"));
+
+        repository.saveProperties(Map.of("a", "9"), file);
+
+        assertEquals(List.of("a=9", "# note", "b=2"), Files.readAllLines(file));
+    }
+
+    @DisplayName("saveProperties with present and absent keys rewrites the first and appends the rest in order")
+    @Test
+    public void testSavePropertiesMixedPresentAndAbsent(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of("a=1", "# note", "b=2"));
+        Map<String, String> updates = new LinkedHashMap<>();
+        updates.put("y", "25");
+        updates.put("b", "20");
+        updates.put("x", "24");
+
+        repository.saveProperties(updates, file);
+
+        assertEquals(List.of("a=1", "# note", "b=20", "y=25", "x=24"), Files.readAllLines(file));
+    }
+
+    @DisplayName("a saved value is what the next read returns, for values, booleans and scenes")
+    @Test
+    public void testReadsSeeSavedValues(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of("# Plex", "plex.movie-play-enabled=false", "# Hue", "hue.start-scene=old"));
+        MockEnvironment env = new MockEnvironment()
+                .withProperty("plex.movie-play-enabled", "false")
+                .withProperty("hue.start-scene", "old");
+        PropertiesRepository repo = new PropertiesRepository(env, new FileSystemResource(file));
+
+        repo.saveProperties(Map.of("plex.movie-play-enabled", "true", "hue.start-scene", "new",
+                "hue.stop-scene", "stop-new"), file);
+
+        assertEquals("true", repo.resolveValue("plex.movie-play-enabled"));
+        assertEquals(Map.of("plex.movie-play-enabled", true), repo.readBooleanProperties("plex.movie-"));
+        assertEquals(Map.of("hue.start-scene", "new", "hue.stop-scene", "stop-new"), repo.readSceneProperties());
+        assertEquals("true", repo.readAllEntries().get(0).entries().get(0).getValue());
+    }
+
+    @DisplayName("a failed save leaves reads on the old value")
+    @Test
+    public void testFailedSaveKeepsOldReads(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("test.properties");
+        Files.write(file, List.of("hue.start-scene=old"));
+        MockEnvironment env = new MockEnvironment().withProperty("hue.start-scene", "old");
+        PropertiesRepository repo = new PropertiesRepository(env, new FileSystemResource(file)) {
+            @Override
+            void moveIntoPlace(Path temp, Path target) throws IOException {
+                throw new IOException("disk full");
+            }
+        };
+
+        assertThrows(IOException.class, () -> repo.saveProperties(Map.of("hue.start-scene", "lost"), file));
+
+        assertEquals("old", repo.resolveValue("hue.start-scene"));
+        assertEquals("old", repo.readSceneProperties().get("hue.start-scene"));
     }
 
     @DisplayName("saveProperties raises an IOException when the file does not exist")

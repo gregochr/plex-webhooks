@@ -279,6 +279,10 @@ Delete `templates/classic.html`, `DashboardController`, the `/classic` route, `s
 and `PlaybackEvent`'s legacy `command` object. Update `roadmap.md`, `dev-and-testing.md` and `AGENTS.md`
 where they describe the dashboard.
 
+**Done.** Thymeleaf, `/classic` and `PlaybackEvent.command` are removed. The nullable `command_title` and `duration`
+columns of `playback_event` are deliberately kept (V1 is not edited, no migration): the repository stops writing and
+reading them, so rolling back to an older image is safe, and a later migration can drop them.
+
 ## Delivery
 
 Each PR goes through CLAUDE.md steps 2 to 6: a Sonnet build, review, CI + Codex, and a squash merge. Each PR adds

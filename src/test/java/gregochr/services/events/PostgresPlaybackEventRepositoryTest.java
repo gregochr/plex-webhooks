@@ -15,8 +15,10 @@ import tools.jackson.databind.json.JsonMapper;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,8 +48,7 @@ public class PostgresPlaybackEventRepositoryTest {
 
     private static PlaybackEvent event(long id, String timestamp) {
         return new PlaybackEvent(id, timestamp, "media.play", "movie", "Heat", null, null, null, null, null,
-                PlexOutcome.Kind.IGNORED_RULE_OFF, null, "plex", "{}",
-                new PlaybackEvent.Command("media.play", "Heat", 0));
+                PlexOutcome.Kind.IGNORED_RULE_OFF, null, "plex", "{}");
     }
 
     @DisplayName("The tests run on PostgreSQL 16, the version utils-pg runs")
@@ -71,30 +72,39 @@ public class PostgresPlaybackEventRepositoryTest {
         assertTrue(indexes.stream().anyMatch(i -> i.contains("(occurred_at)")), indexes.toString());
     }
 
-    @DisplayName("An event with every field set is stored and read back identical, down to the legacy command")
+    @DisplayName("An event with every field set is stored and read back identical")
     @Test
     public void roundTripEveryField() {
         PlaybackEvent full = new PlaybackEvent(1_710_504_000_000_001L, "2024-03-15T12:00:00.123456Z", "media.play",
                 "episode", "Cold Open", "Slow Horses", 4, 2, 2025, "Living Room TV",
                 PlexOutcome.Kind.SCENE_APPLIED, "start-scene", "plex",
-                "{\"event\": \"media.play\", \"Metadata\": {\"title\": \"Cold Open\"}}",
-                new PlaybackEvent.Command("media.play", "Cold Open", 2700000));
+                "{\"event\": \"media.play\", \"Metadata\": {\"title\": \"Cold Open\"}}");
 
         repository.insert(full);
 
         assertEquals(List.of(full), repository.newest(10));
     }
 
-    @DisplayName("Null columns and a legacy command title of empty string survive the round trip")
+    @DisplayName("Null columns survive the round trip")
     @Test
-    public void roundTripNullsAndEmptyCommandTitle() {
+    public void roundTripNulls() {
         PlaybackEvent sparse = new PlaybackEvent(7, "2024-03-15T12:00:00Z", "media.play", null, null, null, null,
-                null, null, null, PlexOutcome.Kind.IGNORED_UNSUPPORTED, null, "debug", "{}",
-                new PlaybackEvent.Command("media.play", "", 0));
+                null, null, null, PlexOutcome.Kind.IGNORED_UNSUPPORTED, null, "debug", "{}");
 
         repository.insert(sparse);
 
         assertEquals(List.of(sparse), repository.newest(10));
+    }
+
+    @DisplayName("The unused command_title and duration columns are left null on insert")
+    @Test
+    public void unusedColumnsStayNull() {
+        repository.insert(event(6, "2024-03-15T12:00:00Z"));
+
+        Map<String, Object> row = jdbc.sql("SELECT command_title, duration FROM playback_event WHERE id = 6")
+                .query().singleRow();
+        assertNull(row.get("command_title"));
+        assertNull(row.get("duration"));
     }
 
     @DisplayName("The payload is stored as jsonb and read back as equal JSON")
@@ -102,8 +112,7 @@ public class PostgresPlaybackEventRepositoryTest {
     public void payloadIsJsonb() {
         String payload = "{\"b\":1,\"a\":{\"x\":[1,2]}}";
         PlaybackEvent withPayload = new PlaybackEvent(8, "2024-03-15T12:00:00Z", "media.play", "movie", "Heat",
-                null, null, null, null, null, PlexOutcome.Kind.IGNORED_RULE_OFF, null, "plex", payload,
-                new PlaybackEvent.Command("media.play", "Heat", 0));
+                null, null, null, null, null, PlexOutcome.Kind.IGNORED_RULE_OFF, null, "plex", payload);
 
         repository.insert(withPayload);
 
@@ -128,8 +137,7 @@ public class PostgresPlaybackEventRepositoryTest {
     public void duplicateIdIsLoggedNotOverwritten() {
         repository.insert(event(4, "2024-03-15T12:00:00Z"));
         PlaybackEvent rival = new PlaybackEvent(4, "2024-03-15T12:00:01Z", "media.stop", "movie", "Other", null,
-                null, null, null, null, PlexOutcome.Kind.FAILED, null, "plex", "{}",
-                new PlaybackEvent.Command("media.stop", "Other", 0));
+                null, null, null, null, PlexOutcome.Kind.FAILED, null, "plex", "{}");
 
         try (LogCapture log = new LogCapture(PostgresPlaybackEventRepository.class)) {
             repository.insert(rival);

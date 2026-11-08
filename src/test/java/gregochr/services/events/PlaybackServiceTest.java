@@ -98,8 +98,7 @@ public class PlaybackServiceTest {
                 "Slow Horses", 4, 2, 2025, "Living Room TV", PlexOutcome.Kind.SCENE_APPLIED, "start-scene", "plex",
                 "{\"event\":\"media.play\",\"Player\":{\"title\":\"Living Room TV\"},"
                         + "\"Metadata\":{\"type\":\"episode\",\"title\":\"Cold Open\","
-                        + "\"grandparentTitle\":\"Slow Horses\",\"parentIndex\":4,\"index\":2,\"year\":2025}}",
-                new PlaybackEvent.Command("media.play", "Cold Open", 2700000)), event);
+                        + "\"grandparentTitle\":\"Slow Horses\",\"parentIndex\":4,\"index\":2,\"year\":2025}}"), event);
     }
 
     @DisplayName("The event is broadcast after the command ran, then the now-playing state, and both are stored")

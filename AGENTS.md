@@ -23,12 +23,13 @@ Focus on:
   crash the app or fail the Plex webhook response.
 - **Config write safety.** Only whitelisted keys (`ConfigurationViewService`) may be written through the config
   API; anything that widens what can be written, or writes outside `PropertiesRepository`, is a defect.
-- **Security.** `SecurityConfig` is stateless HTTP Basic with CSRF off. Reads (`GET` dashboard, SSE, Hue,
+- **Security.** `SecurityConfig` is stateless HTTP Basic with CSRF off. Reads (`GET /` (the React dashboard), SSE, Hue,
   DIRIGERA and config views) and the Plex webhook (`POST /plex`) are public; only `PUT /api/config/**` and
   `POST /api/debug/**` require authentication, and every other request falls through to `anyRequest().permitAll()`.
   So any new state-changing route is public unless it is added to an `authenticated()` matcher: flag that, and any
-  secret logged, returned in a response or rendered into a page. The public dashboard's config tab must never carry
-  a credential value (`hue.application-key`, passwords, tokens) in its HTML, masked or not.
+  secret logged, returned in a response or rendered into a page. The public config surfaces (`GET /api/config/sections`,
+  `GET /api/config`, the SSE `config` event) must never carry a credential value (`hue.application-key`,
+  passwords, tokens), masked or not.
 - **Deploy safety.** Nothing may bake `application.properties` or `.env` into the image (`.dockerignore`, and the
   CI image test). Settings are read and written only at `cinelight.config-file` when it is set. Only
   `/actuator/health/**` is reachable, and the `container` health group includes no third party. **A

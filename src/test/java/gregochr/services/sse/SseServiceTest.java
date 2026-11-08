@@ -71,7 +71,7 @@ public class SseServiceTest {
     private static PlaybackEvent playEvent() {
         return new PlaybackEvent(7, "2024-03-15T12:00:00Z", "media.play", "movie", "Test Movie", null, null, null,
                 1997, "Living Room", PlexOutcome.Kind.SCENE_APPLIED, "scene-1", "plex",
-                "{\"event\":\"media.play\"}", new PlaybackEvent.Command("media.play", "Test Movie", 7200000));
+                "{\"event\":\"media.play\"}");
     }
 
     // ---- subscribe ----
@@ -218,7 +218,7 @@ public class SseServiceTest {
 
     // ---- broadcasts ----
 
-    @DisplayName("broadcast sends the event as a message event: outcome, raw JSON payload and the legacy command")
+    @DisplayName("broadcast sends the event as a message event: outcome and raw JSON payload")
     @Test
     public void broadcastSendsMessageEvent() {
         RecordingSseEmitter emitter = subscribe("client-1");
@@ -229,8 +229,7 @@ public class SseServiceTest {
                 + "\"event\":\"media.play\",\"mediaType\":\"movie\",\"title\":\"Test Movie\","
                 + "\"grandparentTitle\":null,\"parentIndex\":null,\"index\":null,\"year\":1997,"
                 + "\"player\":\"Living Room\",\"outcome\":\"SCENE_APPLIED\",\"sceneId\":\"scene-1\","
-                + "\"source\":\"plex\",\"payload\":{\"event\":\"media.play\"},"
-                + "\"command\":{\"event\":\"media.play\",\"title\":\"Test Movie\",\"duration\":7200000}}\n\n"),
+                + "\"source\":\"plex\",\"payload\":{\"event\":\"media.play\"}}\n\n"),
                 emitter.sent());
     }
 

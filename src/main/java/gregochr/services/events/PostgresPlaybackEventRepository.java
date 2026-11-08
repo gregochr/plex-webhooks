@@ -14,20 +14,26 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 
-/** Stores playback events in the {@code playback_event} table (see {@code V1__playback_history.sql}). */
+/**
+ * Stores playback events in the {@code playback_event} table (see {@code V1__playback_history.sql}).
+ *
+ * <p>The {@code command_title} and {@code duration} columns are unused since PR 3c: they are nullable, so inserts
+ * leave them null and reads ignore them (rows written by older versions still carry values). Keeping them lets an
+ * older image roll back safely; a later migration can drop them.
+ */
 public class PostgresPlaybackEventRepository implements PlaybackEventRepository {
     private static final Logger LOGGER = LogManager.getLogger(PostgresPlaybackEventRepository.class);
 
     private static final String INSERT = """
             INSERT INTO playback_event (id, occurred_at, event, media_type, title, grandparent_title, parent_index,
-                idx, year, player, outcome, scene_id, source, payload, command_title, duration)
+                idx, year, player, outcome, scene_id, source, payload)
             VALUES (:id, :occurredAt, :event, :mediaType, :title, :grandparentTitle, :parentIndex, :idx, :year,
-                :player, :outcome, :sceneId, :source, cast(:payload as jsonb), :commandTitle, :duration)
+                :player, :outcome, :sceneId, :source, cast(:payload as jsonb))
             ON CONFLICT (id) DO NOTHING""";
 
     private static final String NEWEST = """
             SELECT id, occurred_at, event, media_type, title, grandparent_title, parent_index, idx, year, player,
-                outcome, scene_id, source, payload::text AS payload, command_title, duration
+                outcome, scene_id, source, payload::text AS payload
             FROM playback_event ORDER BY id DESC LIMIT :limit""";
 
     private final JdbcClient jdbc;
@@ -53,8 +59,6 @@ public class PostgresPlaybackEventRepository implements PlaybackEventRepository 
                 .param("sceneId", event.sceneId(), Types.VARCHAR)
                 .param("source", event.source())
                 .param("payload", event.payload(), Types.VARCHAR)
-                .param("commandTitle", event.command().title(), Types.VARCHAR)
-                .param("duration", event.command().duration())
                 .update();
         if (rows == 0) {
             LOGGER.warn("[ Playback event id {} is already stored; the new event was not saved (id collision) ]",
@@ -81,7 +85,7 @@ public class PostgresPlaybackEventRepository implements PlaybackEventRepository 
                 .update();
     }
 
-    /** Rebuilds an event, including the legacy {@code command}; null (skipped) when the outcome is unknown. */
+    /** Rebuilds an event, null (skipped) when the outcome is unknown. */
     private static PlaybackEvent toEvent(ResultSet rs, int rowNum) throws SQLException {
         long id = rs.getLong("id");
         String outcomeName = rs.getString("outcome");
@@ -92,11 +96,10 @@ public class PostgresPlaybackEventRepository implements PlaybackEventRepository 
             LOGGER.warn("[ Skipping stored playback event {}: unknown outcome '{}' ]", id, outcomeName);
             return null;
         }
-        String event = rs.getString("event");
         return new PlaybackEvent(
                 id,
                 rs.getObject("occurred_at", OffsetDateTime.class).toInstant().toString(),
-                event,
+                rs.getString("event"),
                 rs.getString("media_type"),
                 rs.getString("title"),
                 rs.getString("grandparent_title"),
@@ -107,7 +110,6 @@ public class PostgresPlaybackEventRepository implements PlaybackEventRepository 
                 outcome,
                 rs.getString("scene_id"),
                 rs.getString("source"),
-                rs.getString("payload"),
-                new PlaybackEvent.Command(event, rs.getString("command_title"), rs.getInt("duration")));
+                rs.getString("payload"));
     }
 }

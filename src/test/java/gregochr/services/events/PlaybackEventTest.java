@@ -12,7 +12,7 @@ public class PlaybackEventTest {
 
     private static PlaybackEvent withEvent(String event) {
         return new PlaybackEvent(1, "2024-03-15T12:00:00Z", event, null, null, null, null, null, null, null,
-                PlexOutcome.Kind.IGNORED_UNSUPPORTED, null, "plex", "{}", new PlaybackEvent.Command(event, "", 0));
+                PlexOutcome.Kind.IGNORED_UNSUPPORTED, null, "plex", "{}");
     }
 
     @DisplayName("media.* events are media events")

@@ -22,8 +22,6 @@ import gregochr.commands.PlexOutcome;
  * @param sceneId          the scene activated, when the outcome is {@code SCENE_APPLIED}
  * @param source           {@code plex} or {@code debug}
  * @param payload          the sanitised Plex payload as raw JSON (see {@link PlexPayloadSanitizer})
- * @param command          the legacy {@code {event, title, duration}} object the Thymeleaf dashboard reads; to be
- *                         removed when that dashboard is retired
  */
 public record PlaybackEvent(
         long id,
@@ -39,12 +37,7 @@ public record PlaybackEvent(
         PlexOutcome.Kind outcome,
         String sceneId,
         String source,
-        @JsonRawValue String payload,
-        Command command) {
-
-    /** The legacy command summary. */
-    public record Command(String event, String title, int duration) {
-    }
+        @JsonRawValue String payload) {
 
     /** True for {@code media.*} events: the only ones that are stored in the history. */
     @JsonIgnore

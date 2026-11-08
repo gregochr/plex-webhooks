@@ -30,7 +30,7 @@ public class PlaybackControllerTest {
     private static PlaybackEvent event(long id) {
         return new PlaybackEvent(id, "2024-03-15T12:00:00Z", "media.play", "episode", "Cold Open", "Slow Horses",
                 4, 2, 2025, "Den", PlexOutcome.Kind.SCENE_APPLIED, "scene-1", "plex",
-                "{\"event\":\"media.play\"}", new PlaybackEvent.Command("media.play", "Cold Open", 0));
+                "{\"event\":\"media.play\"}");
     }
 
     @BeforeEach
@@ -86,7 +86,7 @@ public class PlaybackControllerTest {
                 .andExpect(jsonPath("$[0].grandparentTitle").value("Slow Horses"))
                 .andExpect(jsonPath("$[0].parentIndex").value(4))
                 .andExpect(jsonPath("$[0].payload.event").value("media.play"))
-                .andExpect(jsonPath("$[0].command.title").value("Cold Open"))
+                .andExpect(jsonPath("$[0].command").doesNotExist())
                 .andExpect(jsonPath("$[0].media").doesNotExist());
     }
 

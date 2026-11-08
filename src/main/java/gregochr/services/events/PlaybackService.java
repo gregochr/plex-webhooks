@@ -99,8 +99,7 @@ public class PlaybackService {
                     outcome.kind(),
                     outcome.sceneId(),
                     source,
-                    cleanPayload,
-                    new PlaybackEvent.Command(command.getEvent(), command.getTitle(), command.getDuration()));
+                    cleanPayload);
             if (event.isMedia()) {
                 history.add(event);
                 nowPlaying = nowPlaying.apply(event, command.getPlexEvent());

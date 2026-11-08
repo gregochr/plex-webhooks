@@ -241,6 +241,38 @@ Escape closes, focus returns).
   test event** (Play / Pause / Resume / Stop + media type + optional title) via `POST /api/debug/{command}`;
   those events appear in history marked as tests.
 
+Detail, settled when PR 3b was planned (frontend only, no Java change):
+- **Routing.** `#/events`, `#/lighting`, `#/config`, `#/debug`; any other hash is the mode view. `hashchange`
+  drives it, so Back works. Each screen has a heading and a "Back to the room" link to `#`. `#/debug` with
+  `adminTabEnabled` false says Debug is off instead of rendering the controls.
+- **More menu.** A disclosure button (`aria-expanded`, `aria-controls`) opening a list of links; Escape and an
+  outside click close it, and focus returns to the button on Escape. The Debug link is shown only when
+  `adminTabEnabled`. The button gets a visible outline on the light ground (found in PR 2b).
+- **Data.** `GET /api/config/sections` once at start (for `adminTabEnabled`) and again whenever Config opens
+  or an interval is saved. Hue and DIRIGERA status come from the existing SSE state, seeded by
+  `GET /api/hue/status` and `GET /api/dirigera/status` when Lighting opens with none yet.
+- **Event monitor (screen 20).** The 100-event history as a table: time, event, media, title, lights (the
+  existing outcome wording); a `source: debug` row is tagged **test**. Selecting a row shows its title, event,
+  player and pretty-printed `payload`. The design's Simulate buttons appear only when `adminTabEnabled`
+  (owner decision: simulate sits behind the Debug toggle) and send `POST /api/debug/{event}?type=movie`. On a
+  phone the table becomes a list and the payload sits below it.
+- **Lighting (screen 20b).** Hue bridge card (status, Hue commands enabled, hub address, bridge id shortened,
+  application key Set / Not set) and DIRIGERA card (reachable, hub address). Hue resources from
+  `GET /api/hue/resources` (the bridge's CLIP v2 JSON, `data[]` of `{id, type, metadata.name}`; a 503 shows
+  "bridge unreachable"): search, a type filter of All / Scene / Room / Light (every type present when "show all
+  types" is on), start / stop tags on the current scenes, and **Use on start / Use on stop** for a selected
+  scene via `PUT /api/config/hue-scene`. The design's per-light level panel is left out: the backend has no
+  per-light levels. In its place, On start / On stop cards name the current scenes.
+- **Config (screen 20c).** The matrix of media type × Play / Resume / Pause / Stop / Scrobble checkboxes, one
+  `PUT /api/config/plex-commands/{type}` per change with the same optimistic update and rollback as House rules.
+  Intervals are the `writable` items, shown and edited in whole seconds (1 to 86 400), sent as milliseconds to
+  `PUT /api/config/properties`; Save is disabled until a value changes and all are valid, Cancel restores.
+  Credentials are the `secret` items, as Set / Not set, with the note that values never reach the browser.
+- **Debug (screen 20d).** Integrate Hue (`PUT /api/config/hue-enabled`), Show all Hue resource types (a
+  per-browser preference in `localStorage`, read and written inside try/catch), Test Hue connection
+  (`GET /api/hue/test-connection`, result shown inline), and Send test event (event, media type, optional title;
+  the outcome shown inline).
+
 ## PR 3c: retire Thymeleaf
 
 Delete `templates/classic.html`, `DashboardController`, the `/classic` route, `spring-boot-starter-thymeleaf`,

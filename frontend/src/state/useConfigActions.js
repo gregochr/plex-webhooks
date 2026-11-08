@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
 import { apiWrite } from '../api/http';
 import { SCENE_KEYS, sceneSlot } from '../lib/scenes';
-import { toggleGroup } from '../lib/rules';
+import { toggleEvent, toggleGroup } from '../lib/rules';
 
 /**
- * The two admin writes of the dashboard, both optimistic: the config is updated at once, and put back if the
+ * The admin writes of the dashboard, all optimistic: the config is updated at once, and put back if the
  * server refuses or the sign-in dialog is cancelled. `failed` is true after such a rollback until the next write.
  */
 export function useConfigActions({ config, scenes, dispatch }) {
@@ -25,23 +25,60 @@ export function useConfigActions({ config, scenes, dispatch }) {
     [config, dispatch]
   );
 
-  /** Moves the start or stop scene to the next one in the cycle. */
-  const cycleScene = useCallback(
-    (slot) => {
-      const next = sceneSlot(scenes, config, slot).next;
-      if (next === null) {
-        return Promise.resolve();
-      }
+  /** Makes `sceneId` the start or stop scene. */
+  const setScene = useCallback(
+    (slot, sceneId) => {
       const current = {
         start: sceneSlot(scenes, config, 'start').id,
         stop: sceneSlot(scenes, config, 'stop').id,
       };
-      return commit({ ...config, scenes: { ...current, [slot]: next } }, '/api/config/hue-scene', {
-        key: SCENE_KEYS[slot],
-        sceneId: next,
-      });
+      return commit(
+        { ...config, scenes: { ...current, [slot]: sceneId } },
+        '/api/config/hue-scene',
+        {
+          key: SCENE_KEYS[slot],
+          sceneId,
+        }
+      );
     },
     [commit, config, scenes]
+  );
+
+  /** Moves the start or stop scene to the next one in the cycle. */
+  const cycleScene = useCallback(
+    (slot) => {
+      const next = sceneSlot(scenes, config, slot).next;
+      return next === null ? Promise.resolve() : setScene(slot, next);
+    },
+    [config, scenes, setScene]
+  );
+
+  /** Writes a media type's full map of switches, optimistically. */
+  const writeMap = useCallback(
+    (type, map) =>
+      commit(
+        { ...config, plexCommands: { ...config.plexCommands, [type]: map } },
+        `/api/config/plex-commands/${type}`,
+        map
+      ),
+    [commit, config]
+  );
+
+  /** Flips one event of a media type (the Config matrix). */
+  const toggleCell = useCallback(
+    (type, event) => writeMap(type, toggleEvent(config.plexCommands?.[type], type, event)),
+    [config, writeMap]
+  );
+
+  /** Turns the Hue integration on or off. */
+  const setHueEnabled = useCallback(
+    (enabled) =>
+      config
+        ? commit({ ...config, hueIntegrationEnabled: enabled }, '/api/config/hue-enabled', {
+            enabled,
+          })
+        : Promise.resolve(),
+    [commit, config]
   );
 
   /** Flips a phrase of a media type's rule; the write carries the type's full map. */
@@ -50,15 +87,10 @@ export function useConfigActions({ config, scenes, dispatch }) {
       if (!config) {
         return Promise.resolve();
       }
-      const map = toggleGroup(config.plexCommands?.[type], type, group);
-      return commit(
-        { ...config, plexCommands: { ...config.plexCommands, [type]: map } },
-        `/api/config/plex-commands/${type}`,
-        map
-      );
+      return writeMap(type, toggleGroup(config.plexCommands?.[type], type, group));
     },
-    [commit, config]
+    [config, writeMap]
   );
 
-  return { cycleScene, toggleRule, failed };
+  return { cycleScene, setScene, toggleRule, toggleCell, setHueEnabled, failed };
 }

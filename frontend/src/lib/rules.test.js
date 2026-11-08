@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventKey, groupState, offEvents, rowTag, toggleGroup } from './rules';
+import { eventKey, groupState, offEvents, rowTag, toggleEvent, toggleGroup } from './rules';
 
 const all = (type, value) =>
   Object.fromEntries(
@@ -76,5 +76,17 @@ describe('rowTag', () => {
 
   it('is Off when both are off', () => {
     expect(rowTag(all('movie', false), 'movie')).toBe('Off');
+  });
+});
+
+describe('toggleEvent', () => {
+  it('flips one switch and leaves the rest, from on, off or missing', () => {
+    const map = all('movie', true);
+    const off = toggleEvent(map, 'movie', 'pause');
+    expect(off[eventKey('movie', 'pause')]).toBe(false);
+    expect(off[eventKey('movie', 'play')]).toBe(true);
+    expect(map[eventKey('movie', 'pause')]).toBe(true);
+    expect(toggleEvent(off, 'movie', 'pause')[eventKey('movie', 'pause')]).toBe(true);
+    expect(toggleEvent(undefined, 'clip', 'play')).toEqual({ [eventKey('clip', 'play')]: true });
   });
 });

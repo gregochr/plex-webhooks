@@ -449,7 +449,7 @@ before the context exists, which conflicts with "start when the database is down
 - D2's `PlaybackDatabaseLifecycle` owns "migrate, retry every 30 s, then ready", and the `DataSource`, `JdbcClient`
   and `Flyway` beans live in `PlaybackDatabaseConfig`, conditional on `spring.datasource.url`.
 
-### Design (revised after review, 2026-11-08)
+### Design (revised after review, 2026-11-08; built 2026-11-08)
 
 The review's main point: a per-save queue (a copy of `PlaybackHistoryWriter`) brings ordering, race and
 "recorded a key the file never got" problems. So D3 does not copy saves. It **reconciles the whole file** into the
@@ -582,6 +582,19 @@ it**, because this repo's Actions logs are public).
 Flyway ignores a migration it does not know by default (`ignoreMigrationPatterns` `*:future`); check this against
 the pinned Flyway version, and set it explicitly if it differs. The D2 image does not mirror saves. The next
 forward deploy's first reconcile catches up and records those saves as `sync`. `--restore-db` stays optional.
+
+### As built (deviations agreed in review)
+
+- Boot's own `DataSourceTransactionManager` and `TransactionTemplate` are used: only `DataSourceAutoConfiguration`
+  is excluded, so the transaction auto-configuration still runs, once, on the app's `DataSource`.
+- Flyway 12.4.0 already ignores future migrations (`*:future`); `FlywayFutureMigrationTest` pins it.
+- Lifecycle logs are per step, since there are two listeners. "Still missing after migrate" fires when a listener
+  reports 42P01 right after a successful migration, or on a second 42P01 restart within 5 minutes.
+- When a key becomes excluded, its `setting` row and its value-bearing change rows are purged; one value-free
+  deletion row (key only, both values null) is kept.
+- `readFileEntries` throws on an unreadable file, and the mirror skips a reconcile when the filtered file is
+  empty but the table is not, so a lost or truncated file never wipes the copy.
+- `setting_change.source` has a CHECK constraint.
 
 ### Owner actions for D3
 

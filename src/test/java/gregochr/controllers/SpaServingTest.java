@@ -16,12 +16,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * {@code GET /} is the React single-page app (a static {@code index.html}, served by Spring Boot's welcome page)
- * and {@code GET /classic} is the legacy Thymeleaf dashboard. The tests use the fixture
+ * {@code GET /} is the React single-page app (a static {@code index.html}, served by Spring Boot's welcome page);
+ * the legacy {@code /classic} page no longer exists. The tests use the fixture
  * {@code src/test/resources/static/index.html}, so they pass without a frontend build.
  */
 @DisplayName("SPA Serving Tests")
-// Kept as @SpringBootTest: the welcome page, SecurityConfig and the Thymeleaf view resolver must all be wired.
+// Kept as @SpringBootTest: the welcome page and SecurityConfig must be wired together.
 @SpringBootTest
 @AutoConfigureMockMvc
 public class SpaServingTest {
@@ -48,15 +48,9 @@ public class SpaServingTest {
         assertFalse(body.contains(LEGACY_MARKER), "the legacy page must not be the SPA");
     }
 
-    @DisplayName("GET /classic serves the legacy Thymeleaf dashboard, without authentication")
+    @DisplayName("GET /classic is gone: the legacy Thymeleaf dashboard was retired")
     @Test
-    public void testClassicServesLegacyDashboard() throws Exception {
-        String body = mockMvc.perform(get("/classic"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-                .andReturn().getResponse().getContentAsString();
-
-        assertFalse(body.contains("spa-fixture-root"), body);
-        assertTrue(body.contains(LEGACY_MARKER), "expected the legacy dashboard script");
+    public void testClassicIsNotFound() throws Exception {
+        mockMvc.perform(get("/classic")).andExpect(status().isNotFound());
     }
 }

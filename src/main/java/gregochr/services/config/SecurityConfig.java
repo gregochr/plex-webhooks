@@ -35,7 +35,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/", "/classic", "/index.html", "/assets/**",
+                .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**",
                         "/api/events", "/api/hue/**", "/api/dirigera/**",
                         "/api/config", "/api/config/sections", "/api/config/plex-commands/**",
                         "/api/config/hue-scenes").permitAll()

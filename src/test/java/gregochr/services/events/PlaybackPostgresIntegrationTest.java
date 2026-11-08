@@ -61,8 +61,7 @@ public class PlaybackPostgresIntegrationTest extends PostgresSpringTestBase {
 
     private static PlaybackEvent stored(long id, Instant at) {
         return new PlaybackEvent(id, at.toString(), "media.play", "movie", "Earlier", null, null, null, null, null,
-                PlexOutcome.Kind.SCENE_APPLIED, "start-scene", "plex", "{}",
-                new PlaybackEvent.Command("media.play", "Earlier", 0));
+                PlexOutcome.Kind.SCENE_APPLIED, "start-scene", "plex", "{}");
     }
 
     private void awaitSeeded() {
@@ -91,7 +90,7 @@ public class PlaybackPostgresIntegrationTest extends PostgresSpringTestBase {
         assertEquals(FUTURE_ID + 1, event.id());
     }
 
-    @DisplayName("A Plex play is stored in the table once the database is up, with its scene and legacy command")
+    @DisplayName("A Plex play is stored in the table once the database is up, with its scene")
     @Test
     public void historyLandsInTheTable() throws Exception {
         await().atMost(20, SECONDS).until(writer::isReady);
@@ -100,10 +99,10 @@ public class PlaybackPostgresIntegrationTest extends PostgresSpringTestBase {
 
         await().atMost(20, SECONDS).until(() -> DB.sql("SELECT count(*) FROM playback_event WHERE id = :id")
                 .param("id", event.id()).query(Long.class).single() == 1);
-        Map<String, Object> row = DB.sql("SELECT outcome, scene_id, title, source, year, player, command_title "
+        Map<String, Object> row = DB.sql("SELECT outcome, scene_id, title, source, year, player "
                 + "FROM playback_event WHERE id = :id").param("id", event.id()).query().singleRow();
         assertEquals(Map.of("outcome", "SCENE_APPLIED", "scene_id", "start-scene", "title", "Heat",
-                "source", "plex", "year", 1995, "player", "Den", "command_title", "Heat"), row);
+                "source", "plex", "year", 1995, "player", "Den"), row);
     }
 
     @DisplayName("The database health group is UP while the container group, which Docker reads, stays UP too")

@@ -20,7 +20,7 @@ public class NowPlayingTest {
     private static PlaybackEvent event(String name, String title, String at, PlexOutcome.Kind outcome,
             String sceneId) {
         return new PlaybackEvent(1, at, name, "episode", title, "Slow Horses", 4, 2, 2025, "TV", outcome, sceneId,
-                "plex", "{}", new PlaybackEvent.Command(name, title, 0));
+                "plex", "{}");
     }
 
     private static NowPlaying apply(NowPlaying now, PlexEvent plexEvent, String title, String at,

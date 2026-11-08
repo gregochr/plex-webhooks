@@ -108,7 +108,6 @@ public class DebugControllerTest {
         assertEquals("{\"event\":\"media.play\",\"Player\":{\"title\":\"CineLight debug\"},"
                 + "\"Metadata\":{\"type\":\"movie\",\"title\":\"Debug Play Command Test\",\"duration\":0}}",
                 event.payload());
-        assertEquals(new PlaybackEvent.Command("media.play", "Debug Play Command Test", 0), event.command());
     }
 
     @DisplayName("Each command has its own default title")
@@ -132,7 +131,6 @@ public class DebugControllerTest {
 
         PlaybackEvent event = broadcastEvent();
         assertEquals("<b>\"Heat\"</b>", event.title());
-        assertEquals("<b>\"Heat\"</b>", event.command().title());
         assertTrue(event.payload().contains("\"title\":\"<b>\\\"Heat\\\"</b>\""));
     }
 

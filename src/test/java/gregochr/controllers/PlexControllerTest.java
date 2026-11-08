@@ -70,7 +70,7 @@ public class PlexControllerTest {
         return event.getValue();
     }
 
-    @DisplayName("A play event is broadcast with its details, the sanitised payload and the legacy command object")
+    @DisplayName("A play event is broadcast with its details, and the sanitised payload")
     @Test
     public void broadcastsEvent() {
         when(hueSceneController.startMovieLightScene()).thenReturn(Optional.of("start-scene"));
@@ -82,26 +82,23 @@ public class PlexControllerTest {
                 "start-scene", "plex",
                 "{\"event\":\"media.play\",\"user\":true,\"Player\":{\"title\":\"Den\"},"
                         + "\"Metadata\":{\"type\":\"movie\",\"title\":\"Good Will Hunting\",\"year\":1997,"
-                        + "\"duration\":7620000}}",
-                new PlaybackEvent.Command("media.play", "Good Will Hunting", 7620000)), broadcastEvent());
+                        + "\"duration\":7620000}}"), broadcastEvent());
     }
 
-    @DisplayName("A play event whose Metadata has no duration is read as duration 0 and still starts the scene")
+    @DisplayName("A play event whose Metadata has no duration still starts the scene")
     @Test
-    public void missingDurationReadsAsZero() {
+    public void missingDurationStillStartsScene() {
         controller.plexEvent("{\"event\":\"media.play\",\"Metadata\":{\"title\":\"x\",\"type\":\"movie\"}}");
 
-        assertEquals(0, broadcastEvent().command().duration());
         verify(hueSceneController).startMovieLightScene();
     }
 
-    @DisplayName("A play event whose duration is null is read as duration 0 and still starts the scene")
+    @DisplayName("A play event whose duration is null still starts the scene")
     @Test
-    public void nullDurationReadsAsZero() {
+    public void nullDurationStillStartsScene() {
         controller.plexEvent(
                 "{\"event\":\"media.play\",\"Metadata\":{\"title\":\"x\",\"duration\":null,\"type\":\"movie\"}}");
 
-        assertEquals(0, broadcastEvent().command().duration());
         verify(hueSceneController).startMovieLightScene();
     }
 
@@ -159,7 +156,6 @@ public class PlexControllerTest {
 
         PlaybackEvent event = broadcastEvent();
         assertEquals("media.rate", event.event());
-        assertEquals("", event.command().title());
         assertEquals(PlexOutcome.Kind.IGNORED_UNSUPPORTED, event.outcome());
         verifyNoInteractions(hueSceneController);
     }

@@ -9,8 +9,7 @@ same PR.
 - JDK 25 is the target (`maven.compiler.release` 25; CI uses Temurin 25). Older JDKs cannot build it.
 - Copy `src/main/resources/application.properties.example` to `application.properties` (git-ignored).
 - `CINELIGHT_ADMIN_PASSWORD` sets the admin password (dev fallback `changeme`).
-- `./mvnw spring-boot:run` starts the app; the React dashboard is `GET /` and the legacy Thymeleaf one is
-  `GET /classic` (until it is retired). See "The frontend" below.
+- `./mvnw spring-boot:run` starts the app; the React dashboard is `GET /`. See "The frontend" below.
 - `hue-java-client` comes from JitPack, so no GitHub token or `~/.m2/settings.xml` entry is needed.
 
 ## Project layout
@@ -20,7 +19,7 @@ src/main/java/gregochr/
 ├── Main.java, RestClientConfig.java
 ├── clients/          LocationClient (postcodes.io), SunriseSunsetClient (sunrise-sunset.org), dto/
 ├── commands/         PlexCommand, PlexEvent, PlexOutcome, PlexMediaType, PlexCommandFactory, *Config
-├── controllers/      PlexController (POST /plex), DashboardController (GET /classic), ConfigController (/api/config/**),
+├── controllers/      PlexController (POST /plex), ConfigController (/api/config/**), ConfigSectionsController (/api/config/sections),
 │                     SseController (GET /api/events), DebugController (POST /api/debug/{command}),
 │                     PlaybackController (GET /api/playback/history, /now), GlobalExceptionHandler,
 │                     hue/ (/api/hue/**, HueConfig, HueSceneCatalog + /api/hue/scenes), dirigera/ (/api/dirigera/status)
@@ -59,9 +58,8 @@ npm audit --audit-level=high
 - **How it ships.** There is no boot jar (no `spring-boot-maven-plugin`); the app runs through
   `./mvnw spring-boot:run`, which serves `target/classes/static`. So a build without `-Dfrontend.skip` and without
   `clean` is all it takes for `GET /` to show the SPA. (Without `clean`, old hashed files linger in `assets/`; harmless.)
-- **Serving.** `GET /` is the static `index.html` (Boot's welcome page); `DashboardController` serves the legacy
-  Thymeleaf page at `GET /classic` from `templates/classic.html`. The template is not named `index`, because Boot's
-  welcome page falls back to a template of that name.
+- **Serving.** `GET /` is the static `index.html` (Boot's welcome page). There is no server-side template engine
+  (Thymeleaf was removed in PR 3c); `GET /classic` is a 404.
 - **Admin writes.** `apiWrite()` (`src/api/http.js`) always sends `X-Requested-With: XMLHttpRequest`, so Spring's HTTP
   Basic answers a bare 401 with no `WWW-Authenticate` (`SecurityConfigTest` pins this) and the browser's own prompt
   never appears. A `<dialog>` takes the login; credentials live in memory only. Requests without the header (curl)

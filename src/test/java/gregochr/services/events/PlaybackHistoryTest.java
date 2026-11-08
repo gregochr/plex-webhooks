@@ -14,8 +14,7 @@ public class PlaybackHistoryTest {
 
     static PlaybackEvent event(long id) {
         return new PlaybackEvent(id, "2024-03-15T12:00:00Z", "media.play", "movie", "Heat", null, null, null, null,
-                null, PlexOutcome.Kind.IGNORED_RULE_OFF, null, "plex", "{}",
-                new PlaybackEvent.Command("media.play", "Heat", 0));
+                null, PlexOutcome.Kind.IGNORED_RULE_OFF, null, "plex", "{}");
     }
 
     private static List<Long> ids(List<PlaybackEvent> events) {
@@ -94,8 +93,7 @@ public class PlaybackHistoryTest {
     public void seedMergesById() {
         PlaybackHistory history = new PlaybackHistory();
         PlaybackEvent inMemory = new PlaybackEvent(5, "2024-03-15T12:00:00Z", "media.stop", "movie", "Heat", null,
-                null, null, null, null, PlexOutcome.Kind.SCENE_APPLIED, "scene", "plex", "{}",
-                new PlaybackEvent.Command("media.stop", "Heat", 0));
+                null, null, null, null, PlexOutcome.Kind.SCENE_APPLIED, "scene", "plex", "{}");
         history.add(event(6));
         history.add(inMemory);
 

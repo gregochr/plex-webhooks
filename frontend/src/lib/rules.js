@@ -41,6 +41,12 @@ export function toggleGroup(map, type, group) {
   return next;
 }
 
+/** Flips one event's switch (the Config matrix); returns the type's new full map. */
+export function toggleEvent(map, type, event) {
+  const key = eventKey(type, event);
+  return { ...map, [key]: map?.[key] !== true };
+}
+
 /** `On` if either group is on or mixed, else `Off`. */
 export function rowTag(map, type) {
   return groupState(map, type, 'start') === 'off' && groupState(map, type, 'stop') === 'off'

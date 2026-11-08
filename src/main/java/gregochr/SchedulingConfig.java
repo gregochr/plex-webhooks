@@ -7,13 +7,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 /**
  * Supplies the {@link TaskScheduler} behind every {@code ScheduledTaskManager}. The pool has one thread for each
- * periodic task (SSE heartbeat, Hue status, Hue scene catalog, DIRIGERA status, and the two database tasks: the
- * playback-history migration retry and the retention delete) so a slow hub check or a dead database cannot delay
- * the others.
+ * periodic task (SSE heartbeat, Hue status, Hue scene catalog, DIRIGERA status, and the three database tasks: the
+ * database migration retry, the playback-history retention delete and the settings mirror's reconcile check) so a
+ * slow hub check or a dead database cannot delay the others.
  */
 @Configuration
 public class SchedulingConfig {
-    static final int POOL_SIZE = 6;
+    static final int POOL_SIZE = 7;
     static final String THREAD_NAME_PREFIX = "cinelight-scheduler-";
 
     @Bean

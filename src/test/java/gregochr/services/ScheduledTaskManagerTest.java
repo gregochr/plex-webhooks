@@ -280,4 +280,24 @@ public class ScheduledTaskManagerTest {
         verify(first).cancel(false);
         verify(second, never()).cancel(false);
     }
+
+    @DisplayName("startIn schedules the first run that long from now, whatever initial delay the task has, and "
+            + "replaces a schedule that is already running")
+    @Test
+    public void startInOverridesTheInitialDelayAndReplacesTheSchedule() {
+        ScheduledFuture<Object> first = TaskSchedulers.future();
+        ScheduledFuture<Object> second = TaskSchedulers.future();
+        TaskScheduler scheduler = TaskSchedulers.returning(first, second);
+        ScheduledTaskManager manager = unkeyed(scheduler, 30000, 0);
+        manager.start();
+
+        manager.startIn(30000);
+
+        verify(scheduler).scheduleAtFixedRate(eq(task), eq(Instant.parse("2024-03-15T12:00:00Z")),
+                eq(Duration.ofSeconds(30)));
+        verify(scheduler).scheduleAtFixedRate(eq(task), eq(Instant.parse("2024-03-15T12:00:30Z")),
+                eq(Duration.ofSeconds(30)));
+        verify(first).cancel(false);
+        verify(second, never()).cancel(false);
+    }
 }

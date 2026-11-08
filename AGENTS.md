@@ -44,6 +44,11 @@ Focus on:
   reach `process`, or makes startup depend on the database is a defect. Event ids come from
   `max(nextId, millis*1000)` inside the lock and are raised past the stored `max(id)` before the writer is marked
   ready. The `database` health group stays out of `container`, and nothing may gate on aggregate `/actuator/health`.
+- **The settings copy is one-way and credential-free (D3).** The file is the only source; nothing may read
+  settings back from the database. `SettingsDiff` must exclude every `SensitiveKeys` key and all
+  `spring.datasource.*` keys, and anything that could put a credential value into `setting` or `setting_change`
+  is a defect. `ConfigurationViewService.saveProperties` stays `synchronized`, and a CR or LF in a key or value
+  is refused.
 - **Tests that cannot fail.** `any()` where the value is knowable, `lenient()`, `Thread.sleep`, a fixed `Clock` on
   a date that could be today, a live network call outside a `real-api` test.
 

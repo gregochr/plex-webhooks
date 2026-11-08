@@ -5,12 +5,8 @@ import jakarta.annotation.PreDestroy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +30,6 @@ public class PlaybackHistoryWriter {
     static final Duration DRAIN_TIMEOUT = Duration.ofSeconds(5);
     static final long WARN_INTERVAL_MS = 60_000;
     private static final long POLL_MS = 250;
-    private static final String MISSING_TABLE = "42P01";
 
     private final PlaybackEventRepository repository;
     private final Clock clock;
@@ -169,7 +164,7 @@ public class PlaybackHistoryWriter {
         try {
             repository.insert(event);
         } catch (RuntimeException e) {
-            if (isMissingTable(e) && ready.compareAndSet(true, false)) {
+            if (SqlErrors.isMissingTable(e) && ready.compareAndSet(true, false)) {
                 LOGGER.warn("Playback event {} not saved: the playback_event table is missing; recreating the schema",
                         event.id());
                 schemaMissingHandler.run();
@@ -177,18 +172,6 @@ public class PlaybackHistoryWriter {
                 warnRateLimited("the insert failed with " + e.getClass().getSimpleName());
             }
         }
-    }
-
-    private static boolean isMissingTable(Throwable error) {
-        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        Throwable cause = error;
-        while (cause != null && seen.add(cause)) {
-            if (cause instanceof SQLException sql && MISSING_TABLE.equals(sql.getSQLState())) {
-                return true;
-            }
-            cause = cause.getCause();
-        }
-        return false;
     }
 
     /** Logs at most one warning a minute, counting what it held back. */

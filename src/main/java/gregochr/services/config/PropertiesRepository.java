@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -102,6 +103,40 @@ public class PropertiesRepository {
         }
 
         return sections;
+    }
+
+    /**
+     * The settings file's own text, key to value, in file order. It follows exactly the rules
+     * {@link #saveProperties} uses: blank lines and lines starting with {@code #} are skipped, a line is split on its
+     * first {@code =}, the key and the value are trimmed, and when a key appears twice the last one wins (as in
+     * Spring).
+     *
+     * <p>This is the file's text under CineLight's own rules, <em>not</em> the effective configuration. It never
+     * reads the {@link Environment}, which does not see a save until restart. Environment overrides, {@code :} or
+     * space separators, {@code !} comments, {@code \} continuations and {@code ${...}} placeholders are not
+     * interpreted. A line with an empty key is skipped. Unlike {@link #readAllEntries()}, an unreadable file is
+     * an error, never an empty result, so a caller cannot mistake it for a file with no settings.
+     *
+     * @throws java.io.UncheckedIOException if the file cannot be read
+     */
+    public Map<String, String> readFileEntries() {
+        Map<String, String> entries = new LinkedHashMap<>();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(propertiesResource.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String trimmed = line.trim();
+                int eq = trimmed.indexOf('=');
+                // eq == 0 is an empty key ("=value"): skipped, as a line with no "=" at all is.
+                if (trimmed.isEmpty() || trimmed.startsWith("#") || eq <= 0) {
+                    continue;
+                }
+                entries.put(trimmed.substring(0, eq).trim(), trimmed.substring(eq + 1).trim());
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read the settings file", e);
+        }
+        return entries;
     }
 
     public Map<String, Boolean> readBooleanProperties(String prefix) {

@@ -1,17 +1,17 @@
 package gregochr.services.events;
 
-import gregochr.support.FakePlaybackEventRepository;
+import gregochr.support.FakeDatabaseReadyListener;
 import gregochr.support.LogCapture;
+import gregochr.support.MutableClock;
 import gregochr.support.TestClocks;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.scheduling.TaskScheduler;
 
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -19,9 +19,8 @@ import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static gregochr.services.events.PlaybackHistoryTest.event;
-import static gregochr.support.TestClocks.FIXED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -29,18 +28,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @DisplayName("Playback Database Lifecycle Tests")
 public class PlaybackDatabaseLifecycleTest {
 
     private final List<Runnable> scheduledTasks = new ArrayList<>();
     private final List<ScheduledFuture<?>> futures = new ArrayList<>();
+    private final List<String> calls = new ArrayList<>();
+    private final MutableClock clock = new MutableClock();
     private TaskScheduler scheduler;
-    private FakePlaybackEventRepository repository;
-    private PlaybackHistory history;
-    private PlaybackService service;
-    private PlaybackHistoryWriter writer;
+    private FakeDatabaseReadyListener playback;
+    private FakeDatabaseReadyListener settings;
     private AtomicInteger migrations;
     private RuntimeException migrationFailure;
     private PlaybackDatabaseLifecycle lifecycle;
@@ -54,17 +52,16 @@ public class PlaybackDatabaseLifecycleTest {
             futures.add(future);
             return future;
         });
-        repository = new FakePlaybackEventRepository();
-        history = new PlaybackHistory();
-        service = mock(PlaybackService.class);
-        writer = mock(PlaybackHistoryWriter.class);
+        playback = new FakeDatabaseReadyListener("playback", calls);
+        settings = new FakeDatabaseReadyListener("settings", calls);
         migrations = new AtomicInteger();
         lifecycle = new PlaybackDatabaseLifecycle(() -> {
             migrations.incrementAndGet();
+            calls.add("migrate");
             if (migrationFailure != null) {
                 throw migrationFailure;
             }
-        }, repository, history, service, writer, scheduler, FIXED);
+        }, List.of(playback, settings), scheduler, clock);
         log = new LogCapture(PlaybackDatabaseLifecycle.class);
     }
 
@@ -78,8 +75,13 @@ public class PlaybackDatabaseLifecycleTest {
         return messages.stream().filter(m -> !m.startsWith("Scheduled ")).toList();
     }
 
+    /** The most recent run of the migration task: restarts replace it. */
     private void runMigrationTask() {
-        scheduledTasks.get(0).run();
+        scheduledTasks.get(scheduledTasks.size() - 1).run();
+    }
+
+    private static RuntimeException missingTable() {
+        return new BadSqlGrammarException("insert", "insert into x", new SQLException("no such table", "42P01"));
     }
 
     @DisplayName("start schedules the migration to run at once and then every 30 seconds")
@@ -92,43 +94,23 @@ public class PlaybackDatabaseLifecycleTest {
         assertEquals(0, migrations.get());
     }
 
-    @DisplayName("A successful migration raises the next id BEFORE marking the database ready, seeds the history, "
-            + "schedules retention at once and stops the migration task")
+    @DisplayName("The migration runs first, then playback, then settings; then the task stops itself")
     @Test
-    public void successfulMigration() {
-        repository.maxId = 1_710_503_999_999_999L;
-        repository.stored = List.of(event(1_710_503_999_999_999L), event(1_710_503_999_999_998L));
+    public void listenersRunInOrderAfterMigration() {
         lifecycle.start();
 
         runMigrationTask();
 
-        InOrder order = Mockito.inOrder(writer, service);
-        order.verify(service).raiseNextId(1_710_504_000_000_000L);
-        order.verify(writer).markReady();
-        assertEquals(List.of(100), repository.newestLimits);
-        assertEquals(List.of(1_710_503_999_999_999L, 1_710_503_999_999_998L),
-                history.newestFirst(10).stream().map(PlaybackEvent::id).toList());
-        assertEquals(2, futures.size());
-        verify(scheduler).scheduleAtFixedRate(any(Runnable.class), eq(TestClocks.INSTANT),
-                eq(Duration.ofHours(24)));
+        assertEquals(List.of("migrate", "playback", "settings"), calls);
+        assertEquals(1, futures.size());
         verify(futures.get(0)).cancel(false);
-        assertEquals(List.of("Playback database is ready; playback history is being saved"), logged(log.infos()));
+        assertEquals(List.of(), logged(log.warnings()));
     }
 
-    @DisplayName("An empty table raises the next id to 1, which the clock-derived ids are always above")
+    @DisplayName("While the migration fails no listener runs, one warning is logged and the task keeps running; "
+            + "on recovery the listeners run and one 'ready again' line is logged")
     @Test
-    public void emptyTable() {
-        lifecycle.start();
-
-        runMigrationTask();
-
-        verify(service).raiseNextId(1);
-    }
-
-    @DisplayName("While the migration fails the database is not ready, one warning is logged and the task keeps "
-            + "running; on recovery nothing more is warned")
-    @Test
-    public void failureLogsOnStateChangeOnly() {
+    public void migrationFailureLogsOnStateChangeOnly() {
         migrationFailure = new IllegalStateException("Unable to obtain connection");
         lifecycle.start();
 
@@ -136,103 +118,257 @@ public class PlaybackDatabaseLifecycleTest {
         runMigrationTask();
         runMigrationTask();
 
-        verify(writer, times(3)).markNotReady();
-        verify(writer, never()).markReady();
-        assertEquals(1, futures.size());
+        assertEquals(List.of("migrate", "migrate", "migrate"), calls);
         verify(futures.get(0), never()).cancel(false);
-        assertEquals(List.of("Playback database is not ready (IllegalStateException: Unable to obtain connection); "
-                + "history stays in memory and the migration is retried every 30 s"), logged(log.warnings()));
+        assertEquals(List.of("Database step 'migration' is not ready (IllegalStateException: Unable to obtain "
+                + "connection); it is retried every 30 s"), logged(log.warnings()));
 
         migrationFailure = null;
         runMigrationTask();
 
         assertEquals(1, log.warnings().size());
-        assertEquals(List.of("Playback database is ready again; playback history is being saved"),
-                logged(log.infos()).subList(1, logged(log.infos()).size()));
-        verify(writer).markReady();
+        assertEquals("Database step 'migration' is ready again", logged(log.infos()).get(1));
+        assertEquals(2, logged(log.infos()).size());
+        assertEquals(List.of("migrate", "migrate", "migrate", "migrate", "playback", "settings"), calls);
         verify(futures.get(0)).cancel(false);
     }
 
-    @DisplayName("A failure after the migration, while reading max(id), is a failed attempt and is retried")
+    @DisplayName("The migration is not run again once it has succeeded, while a listener is still being retried")
     @Test
-    public void failureReadingMaxIdIsRetried() {
-        repository.failure = new IllegalStateException("connection reset");
+    public void migrationRunsOnceThenOnlyFailedListenersRetry() {
+        settings.failure = new IllegalStateException("settings blip");
         lifecycle.start();
 
         runMigrationTask();
+        runMigrationTask();
 
-        verify(writer).markNotReady();
-        verify(service, never()).raiseNextId(Mockito.anyLong());
-        assertEquals(1, futures.size());
-        verify(futures.get(0), never()).cancel(false);
+        assertEquals(List.of("migrate", "playback", "settings", "settings"), calls);
+        assertEquals(1, migrations.get());
+        assertEquals(1, playback.runs.get());
     }
 
-    @DisplayName("A table that vanishes after ready starts the migration again, at once")
+    @DisplayName("A listener that throws does not stop the one after it, and the task keeps retrying it alone")
     @Test
-    public void missingTableRestartsMigration() {
-        ArgumentCaptor<Runnable> handler = ArgumentCaptor.forClass(Runnable.class);
-        verify(writer).onSchemaMissing(handler.capture());
+    public void failingPlaybackDoesNotBlockSettings() {
+        playback.failure = new IllegalStateException("seed failed");
+        lifecycle.start();
+
+        runMigrationTask();
+
+        assertEquals(List.of("migrate", "playback", "settings"), calls);
+        verify(futures.get(0), never()).cancel(false);
+        assertEquals(List.of("Database step 'playback' is not ready (IllegalStateException: seed failed); it is "
+                + "retried every 30 s"), logged(log.warnings()));
+
+        playback.failure = null;
+        runMigrationTask();
+
+        assertEquals(List.of("migrate", "playback", "settings", "playback"), calls);
+        assertEquals(1, settings.runs.get());
+        verify(futures.get(0)).cancel(false);
+        assertEquals("Database step 'playback' is ready again", logged(log.infos()).get(1));
+        assertEquals(2, logged(log.infos()).size());
+    }
+
+    @DisplayName("A throwing settings listener does not undo playback, and playback is not run again")
+    @Test
+    public void failingSettingsDoesNotUndoPlayback() {
+        settings.failure = new IllegalStateException("settings blip");
+        lifecycle.start();
+
+        runMigrationTask();
+        settings.failure = null;
+        runMigrationTask();
+
+        assertEquals(List.of("migrate", "playback", "settings", "settings"), calls);
+        assertEquals(1, playback.runs.get());
+        verify(futures.get(0)).cancel(false);
+    }
+
+    @DisplayName("A listener failure is warned about once, however many times it is retried")
+    @Test
+    public void listenerFailureWarnsOnce() {
+        settings.failure = new IllegalStateException("blip");
+        lifecycle.start();
+
+        runMigrationTask();
+        runMigrationTask();
+        runMigrationTask();
+
+        assertEquals(1, logged(log.warnings()).size());
+    }
+
+    @DisplayName("Each listener is given the way to restart the migration")
+    @Test
+    public void listenersCanRestartTheMigration() {
         lifecycle.start();
         runMigrationTask();
 
-        handler.getValue().run();
+        playback.restartMigration.run();
 
-        verify(scheduler, times(2)).scheduleAtFixedRate(any(Runnable.class), eq(TestClocks.INSTANT),
+        assertNotNull(settings.restartMigration);
+        verify(scheduler).scheduleAtFixedRate(any(Runnable.class), eq(TestClocks.INSTANT.plusSeconds(30)),
                 eq(Duration.ofSeconds(30)));
     }
 
-    @DisplayName("Retention deletes everything older than exactly 90 days")
+    @DisplayName("A restart waits the normal 30 seconds, never zero, and runs every step again")
     @Test
-    public void retentionCutoff() {
+    public void restartWaitsThirtySecondsAndRerunsEverything() {
         lifecycle.start();
         runMigrationTask();
 
-        scheduledTasks.get(1).run();
+        settings.restartMigration.run();
 
-        assertEquals(List.of(Instant.parse("2023-12-16T12:00:00Z")), repository.cutoffs);
-        assertEquals("Playback history retention deleted 3 events older than 90 days",
-                log.infos().get(log.infos().size() - 1));
+        verify(scheduler, times(2)).scheduleAtFixedRate(any(Runnable.class), any(Instant.class),
+                eq(Duration.ofSeconds(30)));
+        verify(scheduler, never()).scheduleAtFixedRate(any(Runnable.class), eq(TestClocks.INSTANT.plusSeconds(1)),
+                any(Duration.class));
+        runMigrationTask();
+        assertEquals(List.of("migrate", "playback", "settings", "migrate", "playback", "settings"), calls);
     }
 
-    @DisplayName("A retention failure is logged and does not escape the scheduled task")
+    @DisplayName("A restart that arrives while a run is in progress is not cancelled by that run finishing")
     @Test
-    public void retentionFailureIsContained() {
+    public void restartDuringARunSurvivesTheRunEnding() {
+        lifecycle.start();
+        playback.duringRun = () -> {
+            if (playback.runs.get() == 1) {
+                playback.restartMigration.run();
+            }
+        };
+
+        runMigrationTask();
+
+        assertEquals(2, futures.size());
+        verify(futures.get(1), never()).cancel(false);
+        assertEquals(List.of("migrate", "playback"), calls);
+
+        runMigrationTask();
+
+        assertEquals(List.of("migrate", "playback", "migrate", "playback", "settings"), calls);
+        verify(futures.get(1)).cancel(false);
+    }
+
+    @DisplayName("A restart that arrives during the migration discards that run's result, so every step runs again")
+    @Test
+    public void restartDuringMigrationDiscardsTheRun() {
+        PlaybackDatabaseLifecycle restarting = new PlaybackDatabaseLifecycle(() -> {
+            calls.add("migrate");
+            settings.restartMigration.run();
+        }, List.of(playback, settings), scheduler, clock);
+        restarting.start();
+
+        runMigrationTask();
+
+        assertEquals(List.of("migrate"), calls);
+        verify(futures.get(futures.size() - 1), never()).cancel(false);
+    }
+
+    @DisplayName("A table missing straight after a migration that succeeded stops everything, with one error")
+    @Test
+    public void missingTableAfterSuccessfulMigrationGivesUp() {
+        playback.failure = missingTable();
+        lifecycle.start();
+
+        runMigrationTask();
+
+        assertEquals(List.of("migrate", "playback"), calls);
+        verify(futures.get(0)).cancel(false);
+        assertEquals(1, log.errors().size());
+        assertTrue(log.errors().get(0).startsWith("Database setup stopped: the playback table is missing "
+                + "straight after a migration that succeeded."), log.errors().get(0));
+        assertTrue(log.errors().get(0).contains("flyway repair"));
+
+        playback.restartMigration.run();
+        settings.restartMigration.run();
+        runMigrationTask();
+
+        assertEquals(1, futures.size());
+        assertEquals(1, log.errors().size());
+        assertEquals(List.of("migrate", "playback"), calls);
+    }
+
+    @DisplayName("A table that is missing from the settings listener also gives up, whichever listener it is")
+    @Test
+    public void missingTableFromSettingsGivesUp() {
+        settings.failure = missingTable();
+        lifecycle.start();
+
+        runMigrationTask();
+
+        assertEquals(List.of("migrate", "playback", "settings"), calls);
+        assertEquals(1, log.errors().size());
+        assertTrue(log.errors().get(0).contains("the settings table is missing"), log.errors().get(0));
+    }
+
+    @DisplayName("A second 42P01 within five minutes of a restart's migration succeeding gives up instead of looping")
+    @Test
+    public void secondRestartStraightAfterGivesUp() {
         lifecycle.start();
         runMigrationTask();
-        repository.failure = new IllegalStateException("db gone");
+        playback.restartMigration.run();
+        clock.advance(Duration.ofSeconds(30));
+        runMigrationTask();
+        int schedulesSoFar = futures.size();
 
-        scheduledTasks.get(1).run();
+        clock.advance(Duration.ofMillis(PlaybackDatabaseLifecycle.STRAIGHT_AFTER_MS - 1));
+        playback.restartMigration.run();
 
-        assertTrue(log.warnings().contains(
-                "Playback history retention failed (IllegalStateException); it runs again in 24 h"));
+        assertEquals(schedulesSoFar, futures.size());
+        assertEquals(1, log.errors().size());
+        assertTrue(log.errors().get(0).startsWith("Database setup stopped: a table is missing again straight after "
+                + "a migration that succeeded."), log.errors().get(0));
+        playback.restartMigration.run();
+        assertEquals(1, log.errors().size());
     }
 
-    @DisplayName("stop cancels a migration that is still being retried")
+    @DisplayName("A restart exactly five minutes after the last restart's migration is a new incident, and allowed")
     @Test
-    public void stopCancelsMigration() {
+    public void restartAfterTheWindowIsAllowed() {
+        lifecycle.start();
+        runMigrationTask();
+        playback.restartMigration.run();
+        runMigrationTask();
+        int schedulesSoFar = futures.size();
+
+        clock.advance(Duration.ofMillis(PlaybackDatabaseLifecycle.STRAIGHT_AFTER_MS));
+        playback.restartMigration.run();
+
+        assertEquals(schedulesSoFar + 1, futures.size());
+        assertEquals(List.of(), log.errors());
+    }
+
+    @DisplayName("A task run that starts after the lifecycle gave up stops its own schedule")
+    @Test
+    public void runAfterGivingUpStops() {
+        playback.failure = missingTable();
+        lifecycle.start();
+        runMigrationTask();
+        playback.failure = null;
+
+        runMigrationTask();
+
+        assertEquals(List.of("migrate", "playback"), calls);
+        assertEquals(1, log.errors().size());
+    }
+
+    @DisplayName("stop cancels a migration that is still being retried and stops every listener")
+    @Test
+    public void stopCancelsMigrationAndListeners() {
         lifecycle.start();
 
         lifecycle.stop();
 
         verify(futures.get(0)).cancel(false);
-    }
-
-    @DisplayName("stop cancels the retention schedule")
-    @Test
-    public void stopCancelsRetention() {
-        lifecycle.start();
-        runMigrationTask();
-
-        lifecycle.stop();
-
-        verify(futures.get(1)).cancel(false);
+        assertEquals(1, playback.stops.get());
+        assertEquals(1, settings.stops.get());
     }
 
     @DisplayName("Nothing touches the database until start is called")
     @Test
     public void nothingBeforeStart() {
-        verifyNoInteractions(service);
         assertEquals(0, migrations.get());
+        assertEquals(List.of(), calls);
         assertEquals(List.of(), scheduledTasks);
     }
 }

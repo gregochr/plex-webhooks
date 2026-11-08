@@ -68,16 +68,24 @@ public class ScheduledTaskManager {
     }
 
     public synchronized void start() {
-        scheduleTask();
+        scheduleTask(initialDelayMs);
+    }
+
+    /**
+     * Starts (or restarts) the schedule with a first run {@code firstRunDelayMs} from now, whatever initial delay
+     * the task was built with. Used to wait out a full interval before retrying after a failure.
+     */
+    public synchronized void startIn(long firstRunDelayMs) {
+        scheduleTask(firstRunDelayMs);
     }
 
     public synchronized void shutdown() {
         cancelScheduledTask();
     }
 
-    private void scheduleTask() {
+    private void scheduleTask(long firstRunDelayMs) {
         cancelScheduledTask();
-        Instant firstRun = clock.instant().plusMillis(initialDelayMs);
+        Instant firstRun = clock.instant().plusMillis(firstRunDelayMs);
         scheduledTask = taskScheduler.scheduleAtFixedRate(task, firstRun, Duration.ofMillis(intervalMs));
         logger.info("Scheduled {} at interval: {} ms", taskName, intervalMs);
     }
@@ -102,7 +110,7 @@ public class ScheduledTaskManager {
             }
             this.intervalMs = parsed;
             this.initialDelayMs = parsed;
-            scheduleTask();
+            scheduleTask(initialDelayMs);
             logger.info("Hot-reloaded {}: {} ms", propertyKey, this.intervalMs);
         }
     }

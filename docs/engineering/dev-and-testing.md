@@ -111,7 +111,7 @@ The report must show real percentages. "No lines with coverage information" on a
 
 | What | Command | Where it runs |
 |---|---|---|
-| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage -Dfrontend.skip=true` | Weekly (`pitest.yml`), never on PRs. PIT 1.30.1 with pitest-junit5-plugin 1.2.3 (JUnit 6). Threshold 98 (`pitest.mutation.threshold`), measured 99% (264/267) after Phase 3 on 2026-11-07; the 3 survivors are 2 equivalent mutants and `SecurityConfig.securityFilterChain` returning null, which PIT cannot kill through a cached Spring context. With ~4 survivors of headroom, a new equivalent mutant can turn the weekly run red: decide then whether it is a test gap or equivalent. `postgres`-tagged tests, `PostgresPlaybackEventRepository` and `PlaybackDatabaseConfig` are excluded from PIT (D2). Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes a few minutes locally. |
+| PIT mutation testing | `./mvnw test-compile pitest:mutationCoverage -Dfrontend.skip=true` | Weekly (`pitest.yml`), never on PRs. PIT 1.30.1 with pitest-junit5-plugin 1.2.3 (JUnit 6). Threshold 98 (`pitest.mutation.threshold`), measured 99% (264/267) after Phase 3 on 2026-11-07; the 3 survivors are 2 equivalent mutants and `SecurityConfig.securityFilterChain` returning null, which PIT cannot kill through a cached Spring context. With ~4 survivors of headroom, a new equivalent mutant can turn the weekly run red: decide then whether it is a test gap or equivalent. `postgres`-tagged tests, `PostgresPlaybackEventRepository`, `PostgresSettingsRepository` and `PlaybackDatabaseConfig` are excluded from PIT (D2, D3): keep logic out of them. Narrow with `-Dpit.targetClasses='gregochr.services.sse.*'`. Takes a few minutes locally. |
 | Live third-party APIs | `./mvnw test -Dsurefire.excludedGroups= -Dgroups=real-api -Dfrontend.skip=true` | Weekly (`real-api-smoke.yml`), which fails if 0 tests ran. |
 | OWASP Dependency-Check | `./mvnw dependency-check:check` (needs `NVD_API_KEY`) | **Not in CI** until a valid `NVD_API_KEY` secret is set (the current one is rejected by NVD). Fails on CVSS ≥ 7; suppressions in `owasp-suppressions.xml`. |
 
@@ -210,6 +210,13 @@ Ported from goldenhour on 2026-11-07; the design and its reasons are in `deploy-
   when it is not UP. Every other `/actuator` path is denied. `scripts/prod-health.sh` checks compose health, that
   endpoint and `GET /`, and only warns if the Hue bridge is unreachable. `prod-health.yml` runs it daily on the
   runner, with an off-box watchdog.
+- **Settings copy (D3):** a non-credential copy of the settings file lives in the `setting` table, with every
+  change in `setting_change` (`initial`, `dashboard` or `sync`). `SettingsMirror` reconciles the **whole file**
+  into it within 5 s of a dashboard save and whenever the database becomes ready, so the copy always equals the
+  file. It never writes the file and never feeds settings back. Credentials (`SensitiveKeys`) and every
+  `spring.datasource.*` key are never stored. An empty settings file is never reconciled, so the copy is not wiped.
+  `scripts/settings-export.sh` (owner only, on the host; **never from a workflow**, because the logs are public)
+  prints the copy as `key=value`, or the last N changes with `--changes N`.
 - **Rollback:** `scripts/rollback.sh <version>` pins the previous digest in `docker-compose.override.yml` and
   restores the settings copy. `--restore-db` (never the default: it discards history written since the release)
   also drops and recreates the `cinelight` database and restores that release's dump, before the settings; it

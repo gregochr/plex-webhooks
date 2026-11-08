@@ -53,7 +53,15 @@ public class ConfigurationViewService {
         return repository.readSceneProperties();
     }
 
-    public void saveProperties(Map<String, String> updates) throws IOException {
+    /**
+     * Writes the updates to the settings file, then publishes {@link PropertiesUpdatedEvent}. Synchronized around
+     * both, because a save reads the whole file and rewrites it: two concurrent saves would otherwise each start
+     * from the same text, and the second rewrite would lose the first one's change.
+     *
+     * @throws IllegalArgumentException if a key or a value would inject a line into the file (the repository
+     *     refuses it; the handlers' whitelists and scene-id pattern keep it from getting this far)
+     */
+    public synchronized void saveProperties(Map<String, String> updates) throws IOException {
         repository.saveProperties(updates, repository.resolvePropertiesPath());
         eventPublisher.publishEvent(new PropertiesUpdatedEvent(this, updates));
     }

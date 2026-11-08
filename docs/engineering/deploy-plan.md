@@ -449,76 +449,139 @@ before the context exists, which conflicts with "start when the database is down
 - D2's `PlaybackDatabaseLifecycle` owns "migrate, retry every 30 s, then ready", and the `DataSource`, `JdbcClient`
   and `Flyway` beans live in `PlaybackDatabaseConfig`, conditional on `spring.datasource.url`.
 
-### Design
+### Design (revised after review, 2026-11-08)
 
-**1. One database lifecycle, two users.** Move the shared part of D2 out of `gregochr.services.events` into
-`gregochr.services.database`:
-- `DatabaseConfig` (the conditional `DataSource`, `JdbcClient` and `Flyway` beans, unchanged behaviour) and
-  `DatabaseLifecycle` (the migration task, its retry, state-change logging and 42P01 restart).
-- On a successful migration, `DatabaseLifecycle` calls every `DatabaseReadyListener` bean in a fixed order
-  (`@Order`), each in its own try/catch: one failing listener logs and does not stop the others or mark the
-  database not ready. Playback (raise the id, mark the writer ready, seed, retention) becomes one listener. Settings
-  becomes another.
-- Any component may report "table missing" (SQL state 42P01) to restart the migration, as the playback writer does
-  today.
-- This is a refactor of D2's code: D2's behaviour and tests stay, moved and renamed where needed. The no-database
-  context still has none of these beans.
+The review's main point: a per-save queue (a copy of `PlaybackHistoryWriter`) brings ordering, race and
+"recorded a key the file never got" problems. So D3 does not copy saves. It **reconciles the whole file** into the
+database whenever something may have changed. The database then always equals the file, which is the owner's
+decision taken literally, and save order stops mattering.
+
+**1. Hooking into D2's lifecycle, without moving it.** No package move in D3 (that is a refactor for another day).
+- `PlaybackDatabaseLifecycle` gains an explicit, ordered `List<DatabaseReadyListener>` built in
+  `PlaybackDatabaseConfig`: **playback first, settings second**, written out in code, not left to `@Order`.
+- Playback's ready steps (raise the next id, then mark the writer ready, then seed, then start retention) become
+  the playback listener, **in that order**. Keep the comment and the `InOrder` test that proves the id is raised
+  before the writer is ready.
+- **Retry per listener.** The migration task keeps running every 30 s until `migrate()` has succeeded **and every
+  listener has succeeded once**. Each run re-runs only the listeners that have not yet succeeded, each in its own
+  try/catch, so one failing listener neither blocks the others nor undoes them. That keeps D2's current behaviour
+  (a blip in seeding retries in 30 s) instead of quietly ending retries. Listeners are idempotent. Test each with
+  "fails once, succeeds on the next run".
+- **Listeners do no long work on the migration thread.** The settings listener only marks the mirror ready and
+  sets it dirty (point 3).
+- **42P01 restarts.** A restart because a table is missing waits the normal 30 s, never 0, and it cannot be
+  cancelled by the run that is in progress. If a table is still missing straight after a migration that succeeded
+  (Flyway's history says it exists, for example after a hand `DROP`), log an **error** once, saying it needs a manual
+  fix or `flyway repair`, and stop restarting. That rules out a hot loop.
 
 **2. Schema: `V2__settings.sql`.**
 - `setting(key text primary key, value text not null, updated_at timestamptz not null)`: the copy, one row per
   non-credential key in the file.
 - `setting_change(id bigserial primary key, changed_at timestamptz not null, key text not null, old_value text,
-  new_value text, source text not null)`, indexed on `changed_at`. `old_value` is null for a key first seen;
-  `new_value` is null for a key that disappeared from the file. `source` is `dashboard` (a save) or `sync` (a
-  difference found when the copy is brought up to date, for example a hand edit of the file or a save made while
-  the database was down).
-- No retention: the log is tiny (a few rows a week).
+  new_value text, source text not null)`, indexed on `changed_at`. `old_value` is null for a key first seen and
+  `new_value` is null for a key removed. `source` is one of:
+  - `initial`: the first reconcile into an empty table;
+  - `dashboard`: the key was in a dashboard save since the last reconcile;
+  - `sync`: any other difference, such as a hand edit of the file or a save made while the database was down.
+- No retention: the log is tiny.
+- Upsert with `INSERT … ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`.
+  Compare values with `IS DISTINCT FROM`. Timestamps come from the injected `Clock`, never `now()`, so tests can
+  pin them.
 
-**3. Credentials never reach the database.** Every row is filtered through `SensitiveKeys.isSensitive` before it
-is written, in the one class that writes both tables. The admin password is an env var, not in the file, and stays
-so. A test puts every credential-shaped key in the file (the `SensitiveKeys` cases, including `hue.application-key`
-and any DIRIGERA token key) and proves neither table ever holds it, by key or by value.
+**3. The mirror: `SettingsMirror`** (`gregochr.services.config`). One `dirty` flag, plus a `ScheduledTaskManager`
+task with no property key that checks it every 5 s (pool size 6 → 7). No queue.
+- **Triggers.** It listens for `PropertiesUpdatedEvent` and adds the event's keys to a pending set of "saved since
+  the last reconcile". Then it sets `dirty`. The settings listener also sets `dirty` when the database becomes ready.
+  `ConfigurationViewService` does not change shape: no `Optional<SettingsMirror>`. With no database configured
+  there is no mirror bean at all.
+- **Reconcile.** When ready and dirty, the task:
+  1. clears `dirty`, then takes and clears the pending set;
+  2. reads the file's text (`PropertiesRepository.readFileEntries()`, point 5) and drops excluded keys (point 4);
+  3. in **one transaction**, loads `setting`, computes the differences, upserts changed and new keys, deletes
+     keys no longer in the file, and inserts one `setting_change` row per difference, labelled as in point 2.
+  
+  A save that lands while the reconcile runs sets `dirty` again, so the next run picks it up. Nothing is lost,
+  however saves and reconciles interleave.
+- **On a database error:** the task puts the pending keys back, sets `dirty`, logs a rate-limited warning, and
+  tries again on the next run. 42P01 is reported to the lifecycle (point 1).
+- **The logic is pure.** `SettingsDiff.compute(dbRows, fileEntries, savedKeys, firstRun)` returns the list of
+  changes. It is tested exhaustively with plain maps and stays in PIT. `PostgresSettingsRepository` holds only SQL,
+  is tested against embedded Postgres, and is excluded from PIT like D2's repository. Add it to the `pom.xml` PIT
+  `excludedClasses`.
+- **Transactions.** `PlaybackDatabaseConfig` builds a `DataSourceTransactionManager` and a `TransactionTemplate`
+  explicitly (`JdbcClient` has no transaction API, and `@Transactional` on a self-call is not proxied). Check
+  whether Boot's `DataSourceTransactionManagerAutoConfiguration` already makes a manager in the database context.
+  If it does, use that one rather than create a second. A test shows the template exists with a database and is
+  absent without one.
 
-**4. The mirror: `SettingsMirror`** (in `gregochr.services.config`, one daemon thread, a bounded queue of 100,
-the same shape as `PlaybackHistoryWriter`, including `drainOnce()` and a `@PreDestroy` drain of at most 5 s).
-- **On a save:** `ConfigurationViewService.saveProperties` writes the file **first**, exactly as today, then offers
-  the update map to the mirror. The offer never blocks, never throws and never fails the save, whether the database
-  is down, missing or slow. With no database configured there is no mirror bean (`Optional`, as D2's writer).
-- **Applying a save (mirror thread):** in one transaction, for each non-credential key, read the current row,
-  upsert the new value, and insert a `setting_change` row (`source = dashboard`) only if the value really changed.
-  `old_value` comes from the database row, not from the file. One thread applies saves in the order they were
-  made.
-- **On database ready (the settings `DatabaseReadyListener`):** parse the file's text (keys and values, ignoring
-  comments and blank lines), drop credentials, and reconcile the table against it in one transaction. Upsert keys
-  that are new or changed, delete keys no longer in the file, and log each difference as `source = sync`. A first
-  run on an empty table logs every key as first seen (`old_value` null). This is what makes the copy right after a
-  hand edit, or after saves made while the database was down. Then the mirror is marked ready.
-- **Until ready** the mirror drops offers with a rate-limited warning. That is safe, because the sync at ready
-  catches up from the file, which is always right.
-- Failures after ready: a `DataAccessException` logs and drops that save (the next sync repairs the copy); 42P01
-  restarts the migration through the lifecycle (point 1).
-- The parse reuses `PropertiesRepository`'s file rules (first `=` splits; trim; `#` starts a comment). Add a
-  `readFileEntries()` there that reads the file's text without the `Environment`, and use it for the sync.
+**4. What never reaches the database.**
+- Every key for which `SensitiveKeys.isSensitive` is true. Today these are `hue.application-key` and
+  `app.admin.password`. No DIRIGERA token key exists.
+- Every `spring.datasource.*` key, whatever its name: the URL can carry a password.
+- The reconcile deletes every row not in the filtered file map. So if `SensitiveKeys` widens later, the newly
+  sensitive keys' `setting` rows **and** their `setting_change` rows are purged. Their deletion is recorded without
+  `old_value`.
+- Test with concrete keys and distinctive fake values in the file. Use `hue.application-key`,
+  `app.admin.password`, `dirigera.access-token`, `foo.api-key`, `x.client-secret` and `spring.datasource.url`
+  (with a password in it). Prove that no row in either table holds any of these keys **or values**. The repo is
+  public, so fixtures use fake values only.
+- `postcode` and the hub addresses do go into the database, and so into dumps and backups. They are not credentials,
+  and the owner has already accepted that the location is not secret (see Risks accepted).
 
-**5. Reading it back.** No API or UI change. `scripts/settings-export.sh` (the owner runs it on the host) prints the
-copy as `key=value` lines through `docker exec -i utils-pg psql -U postgres -d cinelight -At`, to rebuild or compare
-a settings file. It never prints credentials, because there are none to print. With `--changes [N]` it prints the
-last N (default 20) `setting_change` rows. ShellCheck clean, with fixture tests that stub `docker`.
+**5. The parse: `PropertiesRepository.readFileEntries()`.** It reads the file's **text**, never the `Environment`,
+which does not see a save until restart. It follows exactly the rules `saveProperties` uses:
+- skip blank lines, and lines starting with `#`;
+- split on the first `=`, and trim the key and the value;
+- when a key appears twice, the last one wins (`LinkedHashMap.put`), as in Spring.
 
-**6. Tests** (embedded Postgres 16, tagged `postgres`, as D2; logic tested with a fake repository and excluded from
-PIT the same way):
-- A save writes the file, then (Awaitility) the row and one change row; saving the same value again adds no
-  change row.
+The copy is therefore the file's text under CineLight's own rules, not the effective configuration. Env
+overrides, `:` or space separators, `!` comments and `\` continuations are not interpreted, and that is stated in
+the Javadoc. It is tested against `application.properties.example`, a duplicate key and a value containing `=`.
+
+**6. Save safety, fixed in this PR** (pre-existing defects that D3 would otherwise mirror):
+- **Concurrent saves.** `ConfigurationViewService.saveProperties` becomes `synchronized` around the file write
+  and the event publish, so two concurrent `PUT`s can no longer lose one update in the file. Add a concurrency test.
+- **CR or LF in a value.** A value containing either is rejected with 400 by every `PUT /api/config/**` handler
+  (validated in `ConfigurationViewService`). `PUT /hue-scene` did not validate `sceneId`, so a newline could inject a
+  line into the file. Hue scene ids are UUIDs.
+- Unknown keys (for example `plex.movie-junk`, or a key missing from an older file) stay out of the copy, because
+  the copy is built from the file and `saveProperties` only replaces lines that already exist. No change to that
+  behaviour here.
+- `/hue-enabled` is in memory only (`ConfigService`), not in the file, so it is not mirrored. That is correct.
+
+**7. Reading it back: `scripts/settings-export.sh`** (the owner runs it on the host; **no workflow may ever run
+it**, because this repo's Actions logs are public).
+- It runs `docker exec -i utils-pg psql -U postgres -d cinelight -X -q -v ON_ERROR_STOP=1 -At` with the SQL on
+  stdin. It uses `-i`, never `-t`.
+- With no arguments it prints `key=value` lines, ordered by key. It ends with a comment naming the keys that must be
+  re-added by hand before a rebuilt file will start the app (`hue.application-key`,
+  `app.admin.password=${CINELIGHT_ADMIN_PASSWORD}`). Its header says the file's sections are not kept.
+- `--changes [N]` (default 20; `N` must match `^[0-9]+$` and is passed with `-v n=`) prints tab-separated
+  `setting_change` rows, newest first. NULL is printed as `(none)` via `\pset null`.
+- It exits non-zero with a clear message when `utils-pg`, the `cinelight` database or the `setting` table is
+  missing.
+- ShellCheck clean, with fixture tests that stub `docker`.
+
+**8. Tests** (embedded Postgres 16 tagged `postgres`, as D2; logic through `SettingsDiff` and fakes):
+- A save writes the file; then (Awaitility) the row and one `dashboard` change row appear. Saving the same value
+  again adds none.
 - The save succeeds and the file is written with the database down, unreachable, or not configured.
-- A sync after a hand edit records `sync` rows for changed, added and removed keys; a second sync records none.
-- Saves made before ready are caught up by the sync.
-- Credentials never reach either table (point 3).
-- Two listeners: a throwing settings listener does not stop playback becoming ready, and the other way round.
-- The moved D2 tests still pass, and the no-database context has no database beans.
+- A hand edit, then a reconcile, records `sync` rows for changed, added and removed keys. A second reconcile records
+  none. The first reconcile into an empty table records `initial` rows.
+- Saves made before ready are caught up when the database becomes ready.
+- A save that lands during a reconcile is in the database after the next run.
+- The credential and `spring.datasource.*` exclusions (point 4), including the purge when a key becomes
+  sensitive.
+- Lifecycle: listener order, retry per listener, a throwing settings listener does not stop playback becoming
+  ready (and the other way round), 42P01 from either side, and the "still missing after migrate" stop.
+- Concurrent saves and CR/LF rejection (point 6).
+- The no-database context has no mirror, repository, transaction manager or template.
 
-**7. Deploy and rollback.** Nothing new on the host: the database, role, dumps and nightly backups are D2's and
-phase B's. `V2` is additive. Rolling back past D3 is D2's `rollback.sh --restore-db`, which drops and recreates
-the database, so V2's tables never outlive a restore (that is why D2 restores that way).
+**9. Deploy and rollback.** Nothing new on the host. `V2` is additive. A **default** rollback (no
+`--restore-db`) runs a D2 image against a database that already has V2's tables and a migration D2 does not know.
+Flyway ignores a migration it does not know by default (`ignoreMigrationPatterns` `*:future`); check this against
+the pinned Flyway version, and set it explicitly if it differs. The D2 image does not mirror saves. The next
+forward deploy's first reconcile catches up and records those saves as `sync`. `--restore-db` stays optional.
 
 ### Owner actions for D3
 
@@ -531,6 +594,8 @@ settings, without credentials.
   brings it back.
 - **The LAN-only webhook has no TLS.** As today.
 - **A self-hosted runner per repo** is a second process on the host to keep updated.
+- **Location data in the database (D3).** `postcode` and the hub addresses are copied into `cinelight`, and so
+  into dumps and nightly backups. They are not credentials, and the owner treats the location as not secret.
 - **`apps-net` is external (D2).** If that network is missing, `docker compose up` fails and CineLight (and so
   the lights) does not start, for the sake of history. Accepted: `apps-net` belongs to the long-lived
   `utils-pg` project and wainwrights depends on it too. The fix is `docker network create apps-net` or bringing

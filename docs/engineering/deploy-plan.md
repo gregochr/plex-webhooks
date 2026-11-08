@@ -544,9 +544,10 @@ the Javadoc. It is tested against `application.properties.example`, a duplicate 
 - **CR or LF in a value.** A value containing either is rejected with 400 by every `PUT /api/config/**` handler
   (validated in `ConfigurationViewService`). `PUT /hue-scene` did not validate `sceneId`, so a newline could inject a
   line into the file. Hue scene ids are UUIDs.
-- Unknown keys (for example `plex.movie-junk`, or a key missing from an older file) stay out of the copy, because
-  the copy is built from the file and `saveProperties` only replaces lines that already exist. No change to that
-  behaviour here.
+- Unknown keys: React PR 3a (#44) made `saveProperties` append a whitelisted key that the file does not have
+  yet, and whitelist the plex keys exactly, so a key that was saved is in the file and therefore in the copy.
+- As merged, React PR 3a already refuses CR/LF in `PropertiesRepository.saveProperties` and validates scene ids
+  (`[A-Za-z0-9-]{1,64}`), so D3 dropped its own duplicate check; the concurrency fix is D3's.
 - `/hue-enabled` is in memory only (`ConfigService`), not in the file, so it is not mirrored. That is correct.
 
 **7. Reading it back: `scripts/settings-export.sh`** (the owner runs it on the host; **no workflow may ever run

@@ -39,7 +39,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: docker/setup-buildx-action@v3
 
@@ -79,7 +79,7 @@ jobs:
     steps:
       # The tag being released, onto the runner. Everything below runs from this checkout, so the
       # scripts and docker-compose.yml are exactly the release's, never an older copy on the host.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Deploy
         env:
